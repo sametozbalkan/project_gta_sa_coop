@@ -28,6 +28,17 @@ Kutular yalnızca iki bilgisayarda gözlendikten sonra işaretlenir.
 
 Oturum kaydı: tarih `____` · host `____` · arkadaş `____` · paket/SHA-256 `____` · manifest `____`.
 
+### Açılış çözünürlüğü
+
+- [ ] Oyun açılırken Device Selection penceresindeki çözünürlük listesinde **2560×1440×32** bulunuyor;
+  bu modu seçip oyun menüsüne ulaşabiliyorsunuz. Birden çok ekran varsa seçilen aygıtın bu çözünürlüğü
+  desteklediğinden emin olun. Oyun yalnız seçilen aygıtın sunduğu modları listeler.
+- [ ] Oyun içi görüntü ayarlarında seçilen çözünürlük doğru, görüntü kesilmiyor; kapatıp yeniden açınca
+  çözünürlük tekrar seçilebiliyor. Önceden çalışan düşük çözünürlükler de kullanılabiliyor.
+
+Bu istemci düzeltmesi de 0.3.102-alpha yazar; güncel paketi **manifest commit'i veya ZIP SHA-256** ile ayırt edin.
+Çözünürlük listesi için sürücü ve kod kontrolleri yapıldı; gerçek pencere/oyun görüntüsü kabulü bekliyor.
+
 ## Her görevde uygulanacak ortak kontrol
 
 - [ ] Başlangıç, ara sahneler ve kararmadan dönüş iki tarafta tamamlanıyor; arkadaş görünmez iç mekânda,

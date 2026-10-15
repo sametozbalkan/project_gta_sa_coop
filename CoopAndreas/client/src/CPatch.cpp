@@ -125,7 +125,17 @@ void PatchStreaming()
 
     // patch game freezeing if inactive
     //patch::Nop(0x561AF0, 7);  // dont pause the game loop if paused
-    patch::Nop(0x745BC9, 2);  // unlock resolutions
+    patch::Nop(0x745BC9, 2);  // in-game GetVideoModeList aspect-ratio filter
+    // The startup Device Selection list has a separate filter (FillAvailableVMs,
+    // gta-reversed app/platform/win/VideoModeSelectDialog.cpp, 0x745920).
+    // Verified in gta_sa.exe 1.0 US: 7459E1 = 7A 71 (jp 745A54), rejecting 16:9.
+    // Preserve the earlier fullscreen/minimum-size checks and original RW mode IDs.
+    const auto startupAspectReject = patch::GetUShort(0x7459E1, false);
+    if (startupAspectReject == 0x717A)
+        patch::Nop(0x7459E1, 2);
+    else if (startupAspectReject != 0x9090)
+        logger::warn("Skipped startup resolution filter patch: unexpected bytes 0x%04X",
+            static_cast<unsigned int>(startupAspectReject));
     // patch::SetUChar(0x747FB6, 1);
     patch::SetUChar(0x74805A, 1);  // ForegroundApp always 1
     patch::Nop(0x53EA88, 6);

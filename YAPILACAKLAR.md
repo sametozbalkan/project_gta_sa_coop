@@ -23,6 +23,7 @@ Proje GitHub'da: github.com/sametozbalkan/project_gta_sa_coop. Grup 1 teslimatı
 | Görevlerin aranma komutları host'tan iki oyuncuya; San Fierro/Las Venturas kilidi arkadaşa da (sürüm 0.3.101) | gtasa-coder-high | birleştirildi (59d055e) |
 | Görev grubu 1: #6 Drive-Thru, #7 Nines And AK's, #8 Drive-By, #9 Sweet's Girl, #10 Cesar Vialpando | gtasa-coder / -high | kaynaklar main'de (ecbab75, e4f12f7, 2f9cfda, c297af5, 14b15e9); birlikte derlendi, test onayı bekliyor |
 | Ryder restoran/pompalı sahnesinde arkadaşın çökmesi (0x4D68BA) | gpt-6.1-sol / high | 0.3.102-alpha: NPC yaşam süresi/model koruması ve en güncel durumu erteleme kodlandı; C++ derlemesi ve yerel politika testleri geçti, iki oyunculu tekrar testi bekliyor |
+| Açılıştaki Device Selection listesinde 2560×1440 yok | Codex + gpt-6.1-sol / high inceleme | Açılışa ait ayrı en-boy oranı filtresi, doğrulanan 1.0 US baytlarıyla kaldırıldı; gerçek pencere seçimi kullanıcı testi bekliyor. İstemci düzeltmesi, sürüm/protokol 0.3.102-alpha kalır. |
 
 Grup 1 teslimatı **0.3.101-alpha**: `main.scm` ve `script.img` güncel kaynaklardan üretildi; kayıt uyumluluğu
 ve boyut denetimleri geçti. C++ derlemesi ve tünel yayını başarılı; mod `C:\Games\GTASA_Coop` içine kuruldu,
