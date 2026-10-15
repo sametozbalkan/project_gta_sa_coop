@@ -4,14 +4,15 @@ Durum (2026-10-15): host (oveRange) ve arkadaşı ilk co-op oturumunu Steam tün
 Proje GitHub'da: github.com/sametozbalkan/project_gta_sa_coop. Bu oturum projenin mimarı; işler `gtasa-coder`
 (Opus 5.5 medium) ve `gtasa-coder-high` (Opus 5.5 high) ajanlarına gidiyor (`CLAUDE.md` > "Working model").
 
-## 1. dalga
+## 1. dalga (2026-10-15'te başladı)
 | İş | Ajan | Durum |
 |---|---|---|
-| Alt+Tab'da sunucudan düşmeyi düzelt | gtasa-coder-high | planlandı |
-| Tagging Up Turf: arkadaşın sıktığı tag sayılmıyor | gtasa-coder-high | planlandı |
-| Radyo senkronu (aynı araçta aynı istasyon) | gtasa-coder-high | planlandı |
-| Görev derleme hattı, görev uyarlama rehberi ve görev envanteri | gtasa-coder-high | planlandı |
-| Tünel yayın betiği, pakete yama arşivini koyma seçeneği | gtasa-coder | planlandı |
+| Alt+Tab'da sunucudan düşmeyi düzelt | gtasa-coder-high | çalışıyor |
+| Tagging Up Turf: arkadaşın sıktığı tag sayılmıyor | gtasa-coder-high | çalışıyor |
+| Radyo senkronu (aynı araçta aynı istasyon) | gtasa-coder-high | çalışıyor |
+| Görev derleme hattı, görev uyarlama rehberi ve görev envanteri | gtasa-coder-high | çalışıyor |
+| Tünel yayın betiği, yeni repo düzeni için paketleme, pakete yama arşivi seçeneği | gtasa-coder | çalışıyor |
+| Discord Rich Presence'ı kapat, dış bağlantıları denetle | gtasa-coder | çalışıyor |
 
 Dalga bitince: birleştir, derle, oyuna kur, arkadaş için yeni paket; sonra ikiniz oyunda test edersiniz.
 
