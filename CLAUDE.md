@@ -31,6 +31,7 @@ Repository: github.com/sametozbalkan/project_gta_sa_coop (public), branch `main`
 - The client loads its own `CoopAndreas\main.scm` and `CoopAndreas\script.img`; the game's `data\script` stays vanilla. Don't let Sanny Builder's copy-to-game-directory overwrite it.
 - GPL-3.0: when the friend gets our build, they get its source too.
 - The repo is public: no game files, downgrade patches, saves, secrets or the friend's personal details in it.
+- Never break the story mission order (the user's rule, 2026-10-15; otherwise the game can break). Missions are ported, tested and played in story order, and a port changes only the inside of its own mission: the order missions unlock in, their start triggers, and the progression and story flags in the MAIN section stay as in the original.
 
 ## Working model (architect + coder agents)
 - This session is the project's architect (the user's decision, 2026-10-15; they leave the decisions to it): it plans the work, writes work-package briefs, reviews and merges what comes back, builds, deploys to the game copy, packages for the friend, commits and pushes, keeps this file and `YAPILACAKLAR.md` current, and talks to the user in Turkish. It may code small things itself.

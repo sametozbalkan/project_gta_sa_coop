@@ -19,6 +19,8 @@ Dalga bitince: birleştir, derle, oyuna kur, arkadaş için yeni paket; sonra ik
 
 ## Sonraki dalgalar (öncelik sırasıyla)
 - Görevleri hikâye sırasıyla uyarlamak (rehber çıkınca; görev başına bir iş, her biri oyunda test ister).
+  Görev sırası bozulmaz (kullanıcının kuralı): açılma sırası, başlatma tetikleri ve ilerleme bayraklarına
+  dokunulmaz; bir uyarlama sadece kendi görevinin içini değiştirir.
   95 hikâye görevinden yalnızca ilk 4'ü uyarlanmış; asıl darboğaz bu.
 - Upstream PR #106 (para, aranma seviyesi, hileler; açık, 11 dosya): önce salt-okunur kontrol, iyiyse fork'a al.
 - Upstream README'de yapılmamış diğerleri, hikâyede gerektikleri sırayla: para, nefes çubuğu, max HP,
