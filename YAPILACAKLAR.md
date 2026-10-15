@@ -23,8 +23,10 @@ Proje GitHub'da: github.com/sametozbalkan/project_gta_sa_coop. Bu oturum projeni
 | Görev grubu 1: #6 Drive-Thru, #7 Nines And AK's, #8 Drive-By, #9 Sweet's Girl, #10 Cesar Vialpando | gtasa-coder / -high | çalışıyor |
 
 ## Görev grupları (plan)
-Görevler hikâye sırasıyla, gruplar halinde uyarlanıyor; her grup tek pakette gelir, siz bir grubu oynarken sıradaki
-hazırlanır. Kurallar: görev sırası bozulmaz (açılma sırası, tetikler, ilerleme bayraklarına dokunulmaz) ve kayıtlar
+Görevler hikâye sırasıyla, gruplar halinde uyarlanıyor; her grup tek pakette gelir. **Bir grup bitince paket size
+gelir, siz test edip onay verene kadar sıradaki grup başlamaz** (kullanıcının kuralı); hata düzeltmeleri ve görev
+dışı işler bu arada sürebilir. Hiçbir görev atlanmaz: engele takılan görevde grup durur, engel çözülünce devam
+edilir; tek kişilik mini oyunlarda ikinci oyuncu izler. Kurallar: görev sırası bozulmaz (açılma sırası, tetikler, ilerleme bayraklarına dokunulmaz) ve kayıtlar
 paketten pakete açılmaya devam eder (derleme hattı her pakette denetler). Liste ve riskler: `docs/missions.md`.
 - Los Santos: grup 1 #6–#10 (Sweet), grup 2 #11–#17 (Smoke, Ryder), grup 3 #18–#22 (müzik ve Cesar),
   grup 4 #23–#28 (Crash, Doberman, Los Sepulcros, Reuniting The Families, The Green Sabre).
