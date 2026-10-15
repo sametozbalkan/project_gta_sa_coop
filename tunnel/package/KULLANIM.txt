@@ -1,0 +1,21 @@
+﻿CoopTunnel: CoopAndreas trafiğini Steam (Spacewar, AppID 480) üzerinden taşır.
+Port yönlendirme gerekmez; CGNAT arkasında da çalışır.
+
+GEREKENLER
+- Steam açık ve oturum açılmış olmalı.
+- İki taraf Steam'de arkadaş olmalı (host, arkadaş olmayanları kabul etmez).
+
+1) BAĞLANTI TESTİ (oyun gerekmez)
+- Host (sunucuyu açan): "1-Host-ac.bat" çalıştırır, pencere açık kalır.
+- Arkadaş: "2-Baglanti-testi.bat" çalıştırır. Host kendiliğinden bulunur, 20 ping atılır;
+  gecikme ve bağlantı ayrıntısı (doğrudan mı, Valve relay'i üzerinden mi) yazılır.
+
+2) OYUN
+- Host: CoopAndreas Server + "1-Host-ac.bat" + oyun. Bağlan ekranı: 127.0.0.1, port 6767.
+- Arkadaş: "3-Oyuna-baglan.bat" + oyun. Bağlan ekranı: 127.0.0.1, port 6767.
+  Takma adın host'unkinden farklı olmalı. İlk bağlanan oyuncu görevlerin host'u olur.
+
+NOTLAR
+- Steam'de "Spacewar oynuyor" görünürsünüz; bu normal.
+- Windows "bilgisayarınız korundu" derse: "Ek bilgi" > "Yine de çalıştır".
+- Güvenlik duvarı izin sorarsa "Özel ağlar"a izin ver.

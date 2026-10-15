@@ -1,0 +1,10 @@
+# Local only (see CLAUDE.md): portable tools, downgrade patches, saves, build outputs
+/.tools/
+/backups/
+/dist/
+/tunnel/bin/
+/tunnel/obj/
+/.claude/worktrees/
+/.claude/settings.local.json
+__pycache__/
+*.pyc
