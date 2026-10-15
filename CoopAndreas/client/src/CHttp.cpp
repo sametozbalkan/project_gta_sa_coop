@@ -1,3 +1,6 @@
+// COOP_NO_CRASH_UPLOAD: private build, the crash report upload was the only user, so the WinHTTP client is compiled
+// out and winhttp.dll isn't imported; a new CHttp caller fails to link instead of going online unnoticed
+#ifndef COOP_NO_CRASH_UPLOAD
 #include "CHttp.h"
 #include <winhttp.h>
 
@@ -71,3 +74,4 @@ std::string CHttp::Post(const wchar_t* host, const wchar_t* path, const std::str
 {
     return Request(L"POST", host, path, data);
 }
+#endif

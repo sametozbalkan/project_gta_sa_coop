@@ -7,7 +7,8 @@
     Then it copies the client DLL, the proxy (as eax.dll), the server (into server\) and the co-op
     main.scm / script.img (into CoopAndreas\), and creates two shortcuts in the game folder:
     "CoopAndreas" (gta_sa.exe --coop; the proxy only loads the mod with that flag) and
-    "CoopAndreas Server". The launcher isn't used: this build has no serial check. Supports -WhatIf.
+    "CoopAndreas Server". The launcher isn't used: this build has no serial check. It also removes the
+    discord-<appid> URL handler that older builds' Discord Rich Presence wrote to HKCU. Supports -WhatIf.
 .PARAMETER Force
     Continue even if gta_sa.exe has a size that is not a known 1.0 US size.
 #>
@@ -85,5 +86,14 @@ Copy-One (Join-Path $repo 'scm\script.img')     (Join-Path $GameDir 'CoopAndreas
 
 New-Shortcut (Join-Path $GameDir 'CoopAndreas.lnk') $exe '--coop' $GameDir
 New-Shortcut (Join-Path $GameDir 'CoopAndreas Server.lnk') (Join-Path $serverDir 'server.exe') '' $serverDir
+
+# Older builds' Discord Rich Presence registered this URL handler; the client no longer does (COOP_NO_DISCORD_RPC)
+$discordKey = 'HKCU:\Software\Classes\discord-1324128258672951317'
+if (Test-Path -LiteralPath $discordKey) {
+    if ($PSCmdlet.ShouldProcess($discordKey, 'Remove the old Discord URL handler')) {
+        Remove-Item -LiteralPath $discordKey -Recurse -Force
+        "Removed the old Discord URL handler: $discordKey"
+    }
+}
 
 if ($WhatIfPreference) { 'Dry run: nothing was changed' } else { "Deployed the $Mode build to $GameDir" }

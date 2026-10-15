@@ -11,8 +11,11 @@
 
 // clang-format on
 
+// COOP_NO_CRASH_UPLOAD: private build, the upload is compiled out: no report server address is fetched and no
+// crash log is posted, whatever report-crashlogs says (the local crash log, the minidump and the dialog stay)
 void CCrashReporter::FetchIP()
 {
+#ifndef COOP_NO_CRASH_UPLOAD
     if (!ms_bReportingEnabled)
     {
         logger::info("CCrashReporter::FetchIP - ms_bReportingEnabled is FALSE, crash logs won't be sent");
@@ -37,6 +40,7 @@ void CCrashReporter::FetchIP()
             }
         })
         .detach();
+#endif
 }
 
 static void _ReplaceAllStr(std::string& str, const std::string& from, const std::string& to)
@@ -82,6 +86,7 @@ void AnonymizeCrashLog(std::string& content)
 
 void CCrashReporter::PostCrashLog(std::string& content)
 {
+#ifndef COOP_NO_CRASH_UPLOAD
     if (!ms_bReportingEnabled)
     {
         logger::info("CCrashReporter::PostCrashLog - ms_bReportingEnabled is FALSE, crash logs won't be sent");
@@ -102,4 +107,5 @@ void CCrashReporter::PostCrashLog(std::string& content)
             std::wstring wAddress(ms_sAddress.begin(), ms_sAddress.end());
             CHttp::Post(wAddress.c_str(), ENDPOINT_POST_TO, content);
         });
+#endif
 }

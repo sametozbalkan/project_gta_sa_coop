@@ -84,6 +84,10 @@ target("client", function()
     add_defines("COOP_NO_SERIAL_CHECK")
     -- private build: no Discord Rich Presence (no Discord IPC, no discord-<appid> URL handler in the registry)
     add_defines("COOP_NO_DISCORD_RPC")
+    -- private build: no crash report upload (no report server lookup, no log POST), even with report-crashlogs=true
+    add_defines("COOP_NO_CRASH_UPLOAD")
+    -- private build: ImGui's links (TextLinkOpenURL) don't open anything (no ShellExecute)
+    add_defines("IMGUI_DISABLE_DEFAULT_SHELL_FUNCTIONS")
 
     if is_mode("debug") then
         add_defines("DEBUG")

@@ -30,6 +30,7 @@ void CConfigManager::CreateConfig()
 	{
 		file << key << " = " << value << "\n";
 	}
+	file << "bind = " << ms_sDefaultBindAddress << "\n"; // private build: listen address
 }
 
 uint16_t CConfigManager::GetConfigPort()
@@ -40,4 +41,10 @@ uint16_t CConfigManager::GetConfigPort()
 uint16_t CConfigManager::GetConfigMaxPlayers()
 {
 	return (uint16_t)ms_pReader->GetUnsigned("", "maxplayers", ms_umDefaultConfig.at("maxplayers"));
+}
+
+// private build: a missing or empty "bind" keeps the default (all interfaces)
+std::string CConfigManager::GetConfigBindAddress()
+{
+	return ms_pReader->GetString("", "bind", ms_sDefaultBindAddress);
 }

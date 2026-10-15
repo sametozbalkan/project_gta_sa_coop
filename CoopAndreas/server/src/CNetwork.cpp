@@ -23,6 +23,16 @@ bool CNetwork::Init(unsigned short port)
     address.host = ENET_HOST_ANY;  // bind server ip
     address.port = port;           // bind server port
 
+    // private build: listen address from server-config.ini ("bind", 0.0.0.0 = all interfaces); an IPv4 literal only
+    // (no DNS lookup), and a bad value stops the server instead of falling back to all interfaces
+    std::string bindAddress = CConfigManager::GetConfigBindAddress();
+    if (enet_address_set_host_ip(&address, bindAddress.c_str()) != 0)
+    {
+        printf("[ERROR] : bind = %s in server-config.ini is not an IPv4 address\n", bindAddress.c_str());
+        return false;
+    }
+    printf("[!] : Bind address : %s\n", bindAddress.c_str());
+
     // TODO: `ConfigManager::GetConfigMaxPlayers`
     ENetHost* pENetHost =
         enet_host_create(&address, Config::MAX_SERVER_PLAYERS, (int)ePacketChannel::COUNT, 0, 0);  // create enet host

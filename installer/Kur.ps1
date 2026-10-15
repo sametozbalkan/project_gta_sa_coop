@@ -240,6 +240,15 @@ try {
         New-Item -ItemType Directory -Force -Path (Join-Path $GameDir $sub) | Out-Null
         Copy-Item -Path (Join-Path $files "$sub\*") -Destination (Join-Path $GameDir $sub) -Force
     }
+    # older builds' Discord Rich Presence registered this URL handler; this build doesn't write it any more
+    $discordKey = 'HKCU:\Software\Classes\discord-1324128258672951317'
+    if (Test-Path -LiteralPath $discordKey) {
+        try {
+            Remove-Item -LiteralPath $discordKey -Recurse -Force
+            Say "Eski sürümden kalan Discord kayıt defteri anahtarı silindi: $discordKey"
+        }
+        catch { Say "Eski sürümden kalan Discord kayıt defteri anahtarı silinemedi: $($_.Exception.Message)" 'Yellow' }
+    }
 
     Step 'CoopTunnel kuruluyor'
     $tunnelDir = Join-Path $GameDir 'CoopTunnel'
