@@ -3,8 +3,7 @@
 
 :SWEET2
 script_name 'SWEET2'
-Coop.AddChatMessage("{ffff00}[CoopAndreas Warning]{ffffff} This mission is currently unsupported and not recommended to play!")
-Coop.AddChatMessage("{ffff00}[CoopAndreas Warning]{ffffff} It may cause desyncs, crashes, or other unexpected behavior!")
+Coop.EnableSyncingThisScript()
 
 gosub @SWEET2_1108
 if 
@@ -120,7 +119,22 @@ return
 
 :SWEET2_1108
 Stat.RegisterMissionGiven
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 $onmission = 1
+// co-op state (mission locals): 200@..202@ per network player, Smoke's car state shown to them (-1 nothing,
+// 0 blip on the car, 1 checkpoint at the destination), 212@..214@ when each was last in the car; 203@ = 1
+// while one of them is still away from 208@ 209@ 210@; 204@ = 1 once they got the mission pistol; 205@s/207@
+// text and time for @SWEET2_COOP_PRINT_NOW; 211@ which fail reason can apply (0 none, 1 Smoke and his car,
+// 2 also Emmet); 215@ 216@ scratch
+200@ = -1
+201@ = -1
+202@ = -1
+203@ = 0
+204@ = 0
+211@ = 0
+212@ = 0
+213@ = 0
+214@ = 0
 36@ = 0
 42@ = 0
 38@ = 0
@@ -208,6 +222,20 @@ Audio.SetRadioChannel(RadioChannel.BounceFM)
 Game.SetRelationship(RelationshipType.Respect, PedType.Gang2, PedType.Mission1)
 Game.SetRelationship(RelationshipType.Respect, PedType.Mission1, PedType.Gang2)
 $big_smoke = Char.Create(24, 299, 2505.869, -1672.723, 12.3778)
+
+// co-op: Smoke and his car need their network ids before the other players' blips and tasks can use them
+$temp_int = Coop.GetVehicleNetworkId($big_smoke_car)
+while $temp_int == -1
+    wait 0
+    $temp_int = Coop.GetVehicleNetworkId($big_smoke_car)
+end
+$temp_int = Coop.GetPedNetworkId($big_smoke)
+while $temp_int == -1
+    wait 0
+    $temp_int = Coop.GetPedNetworkId($big_smoke)
+end
+211@ = 1
+
 Char.SetHeading($big_smoke, 160.0)
 Char.SetHealth($big_smoke, 500)
 Char.SetNeverTargeted($big_smoke, True)
@@ -221,6 +249,7 @@ Char.SetDecisionMaker($big_smoke, 52@)
 Char.SetCoordinates($scplayer, 2515.28, -1673.44, 12.73)
 Char.SetHeading($scplayer, 81.2)
 Streaming.LoadScene(2516.54, -1671.2, 12.87)
+Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Camera.DoFade(1, 1000)
 Camera.SetBehindPlayer
 Hud.SwitchWidescreen(False)
@@ -229,6 +258,22 @@ Camera.RestoreJumpcut
 Text.PrintNow('SWE2_A', 10000, 1)
 Char.SetNextDesiredMoveState(MoveState.Walk)
 Task.EnterCarAsPassenger($big_smoke, $big_smoke_car, 0, 5000)
+
+// co-op: the other players ride along in the back of Smoke's car
+for $temp_int = 0 to 2
+    if
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.PrintNowForNetworkPlayer('SWE2_A', 10000, 1, $NETWORK_PLAYER[$temp_int])
+        Coop.UpdateCarBlipForNetworkPlayer($NETWORK_PLAYER[$temp_int], $big_smoke_car, true, BlipDisplay.Both, BlipColor.Blue, 3)
+        200@($temp_int,3i) = 0
+    end
+end
+gosub @SWEET2_COOP_ENTER_SMOKES_CAR
+208@ = 2453.07
+209@ = -2003.96
+210@ = 12.56
+
 Char.SetCantBeDraggedOut($big_smoke, True)
 Char.SetStayInCarWhenJacked($big_smoke, True)
 44@ = Blip.AddForCar($big_smoke_car)
@@ -245,10 +290,12 @@ TIMERB = 0
 56@ = 0
 
 :SWEET2_1949
+gosub @SWEET2_COOP_FOLLOW_SMOKES_CAR
 if or
   not Car.Locate3D($big_smoke_car, $blob_flag, 2453.07, -2003.96, 12.56, 4.0, 4.0, 4.0)
   not Char.IsSittingInCar($big_smoke, $big_smoke_car)
   not Car.IsOnAllWheels($big_smoke_car)
+  203@ <> 0
 goto_if_false @SWEET2_2420
 wait 0
 if 
@@ -335,6 +382,7 @@ Player.SetControl($player1, False)
 Hud.SwitchWidescreen(True)
 Camera.SetFixedPosition(2452.949, -2011.824, 16.3096, 0.0, 0.0, 0.0)
 Camera.PointAtPoint(2452.98, -2010.903, 15.9217, SwitchType.JumpCut)
+gosub @SWEET2_COOP_LEAVE_SMOKES_CAR
 if 
   not Char.IsDead($big_smoke)
 goto_if_false @SWEET2_2642
@@ -443,6 +491,7 @@ Car.SetHeading(83@, 101.85)
 Car.LockDoors(83@, CarLock.Locked)
 Car.SetProofs(83@, True, True, True, True, True)
 63@ = Char.Create(24, 290, 2451.834, -1976.811, 12.5469)
+211@ = 2
 Char.SetHeading(63@, 75.6292)
 Char.SetHealth(63@, 600)
 Char.SetNeverTargeted(63@, True)
@@ -495,6 +544,10 @@ Char.WarpFromCarToCoord($scplayer, 2453.821, -1978.777, 12.5469)
 
 :SWEET2_3475
 Char.SetHeading($scplayer, 89.5159)
+// co-op: the other players watch the bottle practice from behind the host and join in at the car. The bottles
+// are script objects, which exist only in the host's game, and a network player's shots can't break them:
+// PLAYER_BULLET_SHOT carries only player, ped and vehicle victims to the host.
+Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 38@ = 0
 wait 2500
 Camera.SetFixedPosition(2451.365, -1980.395, 14.288, 0.0, 0.0, 0.0)
@@ -527,6 +580,8 @@ goto @SWEET2_3729
 :SWEET2_3794
 Audio.PlayMissionAudio(MissionAudioSlot.Slot1)
 Text.PrintNow('SWE3_BC', 10000, 1)
+set_lvar_text_label 205@s = 'SWE3_BC'
+gosub @SWEET2_COOP_PRINT_NOW
 if 
   not Char.IsDead($big_smoke)
 goto_if_false @SWEET2_3845
@@ -728,6 +783,8 @@ goto @SWEET2_4819
 :SWEET2_4923
 Audio.PlayMissionAudio(MissionAudioSlot.Slot1)
 Text.PrintNow('SWE3_DC', 10000, 1)
+set_lvar_text_label 205@s = 'SWE3_DC'
+gosub @SWEET2_COOP_PRINT_NOW
 if 
   not Char.IsDead(63@)
 goto_if_false @SWEET2_5017
@@ -801,6 +858,7 @@ Char.WarpFromCarToCoord($scplayer, 2453.821, -1978.777, 12.5469)
 
 :SWEET2_5408
 Char.SetHeading($scplayer, 89.5159)
+Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Camera.SetFixedPosition(2447.379, -1977.062, 15.2851, 0.0, 0.0, 0.0)
 Camera.PointAtPoint(2446.391, -1977.011, 15.1366, SwitchType.JumpCut)
 wait 2500
@@ -961,6 +1019,8 @@ goto @SWEET2_6483
 :SWEET2_6548
 Audio.PlayMissionAudio(MissionAudioSlot.Slot2)
 Text.PrintNow('SWE3_BA', 10000, 1)
+set_lvar_text_label 205@s = 'SWE3_BA'
+gosub @SWEET2_COOP_PRINT_NOW
 if 
   not Char.IsDead($big_smoke)
 goto_if_false @SWEET2_6599
@@ -1103,6 +1163,8 @@ goto @SWEET2_7186
 :SWEET2_7290
 Audio.PlayMissionAudio(MissionAudioSlot.Slot1)
 Text.PrintNow('SWE3_DA', 10000, 1)
+set_lvar_text_label 205@s = 'SWE3_DA'
+gosub @SWEET2_COOP_PRINT_NOW
 if 
   not Char.IsDead(63@)
 goto_if_false @SWEET2_7384
@@ -1200,6 +1262,7 @@ Char.WarpFromCarToCoord($scplayer, 2453.821, -1978.777, 12.5469)
 
 :SWEET2_8051
 Char.SetHeading($scplayer, 89.5159)
+Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 wait 2500
 Camera.SetFixedPosition(2449.041, -1977.732, 12.9667, 0.0, 0.0, 0.0)
 Camera.PointAtPoint(2449.835, -1978.326, 13.0934, SwitchType.JumpCut)
@@ -1355,6 +1418,8 @@ goto @SWEET2_9337
 :SWEET2_9402
 Audio.PlayMissionAudio(MissionAudioSlot.Slot1)
 Text.PrintNow('SWE3_BD', 10000, 1)
+set_lvar_text_label 205@s = 'SWE3_BD'
+gosub @SWEET2_COOP_PRINT_NOW
 if 
   not Char.IsDead($big_smoke)
 goto_if_false @SWEET2_9453
@@ -1420,6 +1485,8 @@ goto @SWEET2_9672
 :SWEET2_9737
 Audio.PlayMissionAudio(MissionAudioSlot.Slot2)
 Text.PrintNow('SWE3_BE', 10000, 1)
+set_lvar_text_label 205@s = 'SWE3_BE'
+gosub @SWEET2_COOP_PRINT_NOW
 if 
   not Char.IsDead($big_smoke)
 goto_if_false @SWEET2_9788
@@ -1497,6 +1564,8 @@ goto @SWEET2_10078
 :SWEET2_10143
 Audio.PlayMissionAudio(MissionAudioSlot.Slot1)
 Text.PrintNow('SWE3_BF', 10000, 1)
+set_lvar_text_label 205@s = 'SWE3_BF'
+gosub @SWEET2_COOP_PRINT_NOW
 if 
   not Char.IsDead($big_smoke)
 goto_if_false @SWEET2_10194
@@ -1562,6 +1631,8 @@ goto @SWEET2_10413
 :SWEET2_10478
 Audio.PlayMissionAudio(MissionAudioSlot.Slot2)
 Text.PrintNow('SWE3_BG', 10000, 1)
+set_lvar_text_label 205@s = 'SWE3_BG'
+gosub @SWEET2_COOP_PRINT_NOW
 if 
   not Char.IsDead($big_smoke)
 goto_if_false @SWEET2_10529
@@ -1639,6 +1710,8 @@ goto @SWEET2_10811
 :SWEET2_10876
 Audio.PlayMissionAudio(MissionAudioSlot.Slot1)
 Text.PrintNow('SWE3_BB', 10000, 1)
+set_lvar_text_label 205@s = 'SWE3_BB'
+gosub @SWEET2_COOP_PRINT_NOW
 if 
   not Char.IsDead($big_smoke)
 goto_if_false @SWEET2_10927
@@ -1693,6 +1766,8 @@ goto @SWEET2_11050
 :SWEET2_11115
 Audio.PlayMissionAudio(MissionAudioSlot.Slot2)
 Text.PrintNow('SWE3_ZZ', 10000, 1)
+set_lvar_text_label 205@s = 'SWE3_ZZ'
+gosub @SWEET2_COOP_PRINT_NOW
 
 :SWEET2_11135
 if 
@@ -1835,6 +1910,8 @@ goto @SWEET2_11802
 :SWEET2_11906
 Audio.PlayMissionAudio(MissionAudioSlot.Slot1)
 Text.PrintNow('SWE3_DG', 10000, 1)
+set_lvar_text_label 205@s = 'SWE3_DG'
+gosub @SWEET2_COOP_PRINT_NOW
 if 
   not Char.IsDead(63@)
 goto_if_false @SWEET2_12000
@@ -1915,6 +1992,38 @@ Char.WarpFromCarToCoord($scplayer, 2446.11, -1974.53, 12.54)
 :SWEET2_12426
 Char.SetHeading($scplayer, 349.81)
 Text.PrintNow('SWE2_F', 10000, 1)
+// co-op: the other players join in here (the car is a network vehicle, so their hits count on the host): a
+// pistol, cut to 60 rounds after the next scene as the host's, and a spot 11-14 m from the car. Its explosion
+// hurts within 9 m and only the host is made explosion proof (no co-op command sets another player's proofs).
+for $temp_int = 0 to 2
+    if
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Char.ClearTasksImmediately($NETWORK_PLAYER[$temp_int])
+        if
+            $temp_int == 0
+        then
+            Char.SetCoordinates($NETWORK_PLAYER[$temp_int], 2450.74, -1978.375, 12.5469)
+            Char.SetHeading($NETWORK_PLAYER[$temp_int], 19.6)
+        end
+        if
+            $temp_int == 1
+        then
+            Char.SetCoordinates($NETWORK_PLAYER[$temp_int], 2453.821, -1978.777, 12.5469)
+            Char.SetHeading($NETWORK_PLAYER[$temp_int], 30.8)
+        end
+        if
+            $temp_int == 2
+        then
+            Char.SetCoordinates($NETWORK_PLAYER[$temp_int], 2451.834, -1976.811, 12.5469)
+            Char.SetHeading($NETWORK_PLAYER[$temp_int], 27.3)
+        end
+        Char.GiveWeapon($NETWORK_PLAYER[$temp_int], WeaponType.Pistol, 30000)
+        Char.SetCurrentWeapon($NETWORK_PLAYER[$temp_int], WeaponType.Pistol)
+        Coop.PrintNowForNetworkPlayer('SWE2_F', 10000, 1, $NETWORK_PLAYER[$temp_int])
+        204@ = 1
+    end
+end
 if 
   not Car.IsDead(83@)
 goto_if_false @SWEET2_12529
@@ -1925,6 +2034,13 @@ wait 2000
 
 :SWEET2_12529
 Text.PrintHelpForever('HOOD2C')
+for $temp_int = 0 to 2
+    if
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.PrintHelpForNetworkPlayer('HOOD2C', $NETWORK_PLAYER[$temp_int])
+    end
+end
 Camera.RestoreJumpcut
 Camera.SetBehindPlayer
 Hud.SwitchWidescreen(False)
@@ -2072,6 +2188,15 @@ Char.WarpFromCarToCoord($scplayer, 2450.567, -1975.641, 12.5469)
 
 :SWEET2_13342
 Char.SetHeading($scplayer, 288.25)
+// co-op: the other players stand with the group for Emmet's goodbye, their guns away like the host's
+Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
+for $temp_int = 0 to 2
+    if
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Char.SetCurrentWeapon($NETWORK_PLAYER[$temp_int], WeaponType.Unarmed)
+    end
+end
 if 
   not Char.IsDead($big_smoke)
 goto_if_false @SWEET2_13484
@@ -2335,6 +2460,7 @@ goto @SWEET2_14615
 
 :SWEET2_14827
 Task.GoStraightToCoord($scplayer, 2452.642, -1998.219, 12.554, MoveState.Walk, 20000)
+gosub @SWEET2_COOP_WALK_TO_SMOKES_CAR
 if 
   not Char.IsDead($big_smoke)
 goto_if_false @SWEET2_14893
@@ -2396,6 +2522,8 @@ Char.SetCoordinates($scplayer, 2452.079, -1978.844, 12.5469)
 Char.SetHeading($scplayer, 180.0)
 Char.ClearTasks($scplayer)
 Task.GoStraightToCoord($scplayer, 2452.642, -1998.219, 12.554, MoveState.Walk, 20000)
+Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
+gosub @SWEET2_COOP_WALK_TO_SMOKES_CAR
 82@ = 0
 
 :SWEET2_15232
@@ -2623,6 +2751,7 @@ Char.SetNextDesiredMoveState(MoveState.Walk)
 Task.EnterCarAsPassenger($big_smoke, $big_smoke_car, 0, 50000)
 Char.SetNextDesiredMoveState(MoveState.Walk)
 Task.EnterCarAsDriver($scplayer, $big_smoke_car, 50000)
+gosub @SWEET2_COOP_ENTER_SMOKES_CAR
 
 :SWEET2_16512
 if 
@@ -2769,6 +2898,7 @@ goto_if_false @SWEET2_17244
 Char.WarpIntoCar($scplayer, $big_smoke_car)
 
 :SWEET2_17244
+gosub @SWEET2_COOP_ENTER_SMOKES_CAR
 if 
   not Char.IsInAnyCar($big_smoke)
 goto_if_false @SWEET2_17270
@@ -2780,6 +2910,7 @@ Camera.DoFade(1, 500)
 
 :SWEET2_17281
 Char.Delete(63@)
+211@ = 1
 Camera.RestoreJumpcut
 Camera.SetBehindPlayer
 Hud.SwitchWidescreen(False)
@@ -2793,6 +2924,27 @@ Char.SetAmmo($scplayer, WeaponType.Pistol, 41@)
 
 :SWEET2_17340
 Text.PrintNow('SWE2_D', 10000, 1)
+// co-op: the other players keep the pistol with 60 rounds (no co-op command sets ammo, so it is given anew)
+// and get the same state machine as on the way to Emmet's
+for $temp_int = 0 to 2
+    if
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        if
+            204@ == 1
+        then
+            Char.RemoveWeapon(22, $NETWORK_PLAYER[$temp_int])
+            Char.GiveWeapon($NETWORK_PLAYER[$temp_int], WeaponType.Pistol, 60)
+        end
+        Coop.PrintNowForNetworkPlayer('SWE2_D', 10000, 1, $NETWORK_PLAYER[$temp_int])
+    end
+end
+200@ = -1
+201@ = -1
+202@ = -1
+208@ = 2066.465
+209@ = -1695.444
+210@ = 12.5547
 if 
   not Car.IsDead($big_smoke_car)
 goto_if_false @SWEET2_17397
@@ -2838,10 +2990,12 @@ Streaming.MarkModelAsNoLongerNeeded(549)
 Streaming.UnloadSpecialCharacter(1)
 
 :SWEET2_17618
+gosub @SWEET2_COOP_FOLLOW_SMOKES_CAR
 if or
   not Car.Locate3D($big_smoke_car, $blob_flag, 2066.465, -1695.444, 12.5547, 4.0, 4.0, 4.0)
   not Char.IsSittingInCar($big_smoke, $big_smoke_car)
   not Car.IsOnAllWheels($big_smoke_car)
+  203@ <> 0
 goto_if_false @SWEET2_18388
 wait 0
 if 
@@ -2977,6 +3131,7 @@ Hud.SwitchWidescreen(True)
 Camera.SetNearClip(0.2)
 Camera.SetFixedPosition(2086.01, -1699.698, 17.7495, 0.0, 0.0, 0.0)
 Camera.PointAtPoint(2085.06, -1699.831, 17.4682, SwitchType.JumpCut)
+gosub @SWEET2_COOP_LEAVE_SMOKES_CAR
 Streaming.RequestModel(330)
 wait 1000
 Camera.DoFade(0, 1000)
@@ -3027,6 +3182,7 @@ Char.WarpFromCarToCoord($scplayer, 2071.554, -1704.375, 12.5538)
 :SWEET2_18698
 Char.SetHeading($scplayer, 12.5041)
 Char.ClearTasks($scplayer)
+Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Camera.SetFixedPosition(2069.607, -1704.63, 14.2313, 0.0, 0.0, 0.0)
 Camera.PointAtPoint(2070.475, -1704.174, 14.0353, SwitchType.JumpCut)
 wait 1000
@@ -3052,6 +3208,8 @@ goto @SWEET2_18801
 :SWEET2_18866
 Audio.PlayMissionAudio(MissionAudioSlot.Slot1)
 Text.PrintNow('SWE3_JA', 10000, 1)
+set_lvar_text_label 205@s = 'SWE3_JA'
+gosub @SWEET2_COOP_PRINT_NOW
 gosub @SWEET2_21732
 
 :SWEET2_18893
@@ -3094,6 +3252,8 @@ goto @SWEET2_18986
 :SWEET2_19051
 Audio.PlayMissionAudio(MissionAudioSlot.Slot2)
 Text.PrintNow('SWE3_JB', 10000, 1)
+set_lvar_text_label 205@s = 'SWE3_JB'
+gosub @SWEET2_COOP_PRINT_NOW
 Char.ShutUpForScriptedSpeech($scplayer, True)
 Char.StartFacialTalk($scplayer, 3000)
 if 
@@ -3116,6 +3276,7 @@ wait 1000
 Camera.SetFixedPosition(2072.723, -1699.737, 14.1283, 0.0, 0.0, 0.0)
 Camera.PointAtPoint(2072.935, -1700.67, 13.8382, SwitchType.JumpCut)
 Char.Delete($big_smoke)
+211@ = 0
 
 :SWEET2_19248
 if 
@@ -3161,10 +3322,16 @@ Streaming.MarkModelAsNoLongerNeeded(#DYN_WINE_BIG)
 Streaming.MarkModelAsNoLongerNeeded(549)
 Streaming.UnloadSpecialCharacter(10)
 Streaming.UnloadSpecialCharacter(1)
+// co-op: the other players come to Binco too (within 10 m of the door); the shop itself is the host's
+208@ = 2246.972
+209@ = -1660.779
+210@ = 14.2856
 
 :SWEET2_19458
-if 
+gosub @SWEET2_COOP_ALL_NEAR
+if or
   not Char.LocateAnyMeans3D($scplayer, 1, 2246.972, -1660.779, 14.2856, 3.5, 4.0, 4.0)
+  203@ <> 0
 goto_if_false @SWEET2_19706
 wait 0
 if 
@@ -3183,6 +3350,9 @@ Text.ClearPrints
 Task.UseMobilePhone($scplayer, False)
 Streaming.MarkModelAsNoLongerNeeded(330)
 Text.PrintNow('COLORS', 6000, 1)
+set_lvar_text_label 205@s = 'COLORS'
+207@ = 6000
+gosub @SWEET2_COOP_PRINT_NOW_FOR
 85@ = 1
 
 :SWEET2_19618
@@ -3197,6 +3367,13 @@ Hud.SwitchWidescreen(False)
 Player.SetControl($player1, True)
 Blip.Remove(35@)
 35@ = Blip.AddForCoord(2246.972, -1660.779, 14.2856)
+for $temp_int = 0 to 2
+    if
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.UpdateCheckpointForNetworkPlayer(2246.972, -1660.779, 14.2856, 3.5, 4.0, 4.0, $NETWORK_PLAYER[$temp_int])
+    end
+end
 65@ = 1
 
 :SWEET2_19699
@@ -3208,6 +3385,16 @@ Hud.SwitchWidescreen(True)
 Camera.SetFixedPosition(2253.099, -1644.225, 16.6501, 0.0, 0.0, 0.0)
 Camera.PointAtPoint(2252.774, -1645.161, 16.5203, SwitchType.JumpCut)
 Text.PrintNow('S2HELP1', 6000, 1)
+for $temp_int = 0 to 2
+    if
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.RemoveCheckpointForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
+set_lvar_text_label 205@s = 'S2HELP1'
+207@ = 6000
+gosub @SWEET2_COOP_PRINT_NOW_FOR
 World.SwitchEntryExit('CSCHP', True)
 World.SwitchEntryExit('CSSPRT', True)
 World.SwitchEntryExit('LACS1', True)
@@ -3240,6 +3427,9 @@ Player.SetControl($player1, False)
 Camera.SetFixedPosition(213.0277, -102.9124, 1006.377, 0.0, 0.0, 0.0)
 Camera.PointAtPoint(213.7582, -102.2797, 1006.119, SwitchType.JumpCut)
 Text.PrintNow('S2HELP2', 6000, 1)
+set_lvar_text_label 205@s = 'S2HELP2'
+207@ = 6000
+gosub @SWEET2_COOP_PRINT_NOW_FOR
 wait 4000
 Camera.RestoreJumpcut
 Hud.SwitchWidescreen(False)
@@ -3272,6 +3462,7 @@ goto @SWEET2_20304
 
 :SWEET2_20215
 Text.PrintBig('M_FAIL', 5000, TextStyle.Middle)
+gosub @SWEET2_COOP_FAILED
 if 
   Char.HasGotWeapon($scplayer, WeaponType.Pistol)
 goto_if_false @SWEET2_20258
@@ -3351,6 +3542,16 @@ Car.SetProofs(83@, False, False, False, False, False)
 World.SetCarDensityMultiplier(1.0)
 World.SetPedDensityMultiplier(1.0)
 Text.ClearHelp
+// co-op cleanup, after a pass or a fail
+for $temp_int = 0 to 2
+    if
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.RemoveCheckpointForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+    $NETWORK_PLAYER[$temp_int] = 0
+end
 Mission.Finish
 return 
 
@@ -3424,6 +3625,13 @@ if
   Audio.HasMissionAudioLoaded(MissionAudioSlot.Slot1)
 goto_if_false @SWEET2_21243
 Text.PrintNow($sweet2_chat(80@,14s), 4000, 1)
+for $temp_int = 0 to 2
+    if
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.PrintNowForNetworkPlayer($sweet2_chat(80@,14s), 4000, 1, $NETWORK_PLAYER[$temp_int])
+    end
+end
 Audio.PlayMissionAudio(MissionAudioSlot.Slot1)
 gosub @SWEET2_21732
 81@ = 2
@@ -3488,34 +3696,45 @@ goto @SWEET2_21400
 
 :SWEET2_21462
 Audio.PlayMissionAudio(MissionAudioSlot.Slot2)
+207@ = 3000
 if 
   57@ == 0
 goto_if_false @SWEET2_21500
 Text.PrintNow('SMOX_AA', 3000, 1)
+set_lvar_text_label 205@s = 'SMOX_AA'
+gosub @SWEET2_COOP_PRINT_NOW_FOR
 
 :SWEET2_21500
 if 
   57@ == 1
 goto_if_false @SWEET2_21534
 Text.PrintNow('SMOX_AB', 3000, 1)
+set_lvar_text_label 205@s = 'SMOX_AB'
+gosub @SWEET2_COOP_PRINT_NOW_FOR
 
 :SWEET2_21534
 if 
   57@ == 2
 goto_if_false @SWEET2_21568
 Text.PrintNow('SMOX_AC', 3000, 1)
+set_lvar_text_label 205@s = 'SMOX_AC'
+gosub @SWEET2_COOP_PRINT_NOW_FOR
 
 :SWEET2_21568
 if 
   57@ == 3
 goto_if_false @SWEET2_21602
 Text.PrintNow('SMOX_AD', 3000, 1)
+set_lvar_text_label 205@s = 'SMOX_AD'
+gosub @SWEET2_COOP_PRINT_NOW_FOR
 
 :SWEET2_21602
 if 
   57@ == 4
 goto_if_false @SWEET2_21636
 Text.PrintNow('SMOX_AE', 3000, 1)
+set_lvar_text_label 205@s = 'SMOX_AE'
+gosub @SWEET2_COOP_PRINT_NOW_FOR
 
 :SWEET2_21636
 if 
@@ -3693,4 +3912,174 @@ Zone.SetGangStrength('IWD3B', GangType.Ballas, 30)
 Zone.SetGangStrength('IWD4', GangType.Ballas, 30)
 Zone.SetGangStrength('IWD5', GangType.Ballas, 30)
 return 
+
+// ---------------------------------------------------------------------------------------------------------
+// Co-op subroutines (private build). Each network player is used only after Coop.IsNetworkPlayerActorValid.
+// They loop with $temp_int, so none of them is called from inside a $temp_int loop.
+
+:SWEET2_COOP_PRINT_NOW
+// shows the text label in 205@s on every network player's screen for 10 s (Text.PrintNow isn't replayed)
+207@ = 10000
+
+:SWEET2_COOP_PRINT_NOW_FOR
+// the same for 207@ ms
+for $temp_int = 0 to 2
+    if
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.PrintNowForNetworkPlayer(205@s, 207@, 1, $NETWORK_PLAYER[$temp_int])
+    end
+end
+return
+
+:SWEET2_COOP_ENTER_SMOKES_CAR
+// network players 0 and 1 who aren't in Smoke's car get into its back seats (2 rear right, 1 rear left; seat
+// 0 is Smoke's); the task seats them after 10 s at the latest. A third player has no seat and follows the car.
+for $temp_int = 0 to 1
+    if
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        if
+            not Char.IsInCar($NETWORK_PLAYER[$temp_int], $big_smoke_car)
+        then
+            if
+                $temp_int == 0
+            then
+                Task.EnterCarAsPassenger($NETWORK_PLAYER[$temp_int], $big_smoke_car, 2, 10000)
+            else
+                Task.EnterCarAsPassenger($NETWORK_PLAYER[$temp_int], $big_smoke_car, 1, 10000)
+            end
+        end
+    end
+end
+return
+
+:SWEET2_COOP_WALK_TO_SMOKES_CAR
+// the network players walk to Smoke's car with the host, to a spot on his way, just behind him
+for $temp_int = 0 to 2
+    if
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Task.GoStraightToCoord($NETWORK_PLAYER[$temp_int], 2452.6, -1996.6, 12.554, MoveState.Walk, 20000)
+    end
+end
+return
+
+:SWEET2_COOP_FOLLOW_SMOKES_CAR
+// while the host drives Smoke: a network player in Smoke's car gets the checkpoint at the destination
+// (208@ 209@ 210@), one out of it for 1.5 s a blue blip on the car and 'SWE2_L', as the host. The delay hides
+// the moment in which the host's copy of a player seated by a script task drops out of the seat again, until
+// that player's own passenger sync arrives. 200@..202@ hold what each one is shown, 212@..214@ when each was
+// last in the car. Goes on into @SWEET2_COOP_ALL_NEAR for 203@.
+215@ = Clock.GetGameTimer()
+for $temp_int = 0 to 2
+    if
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        if
+            Char.IsInCar($NETWORK_PLAYER[$temp_int], $big_smoke_car)
+        then
+            0085: 212@($temp_int,3i) = 215@
+            if
+                200@($temp_int,3i) <> 1
+            then
+                Coop.RemoveCarBlipForNetworkPlayer($NETWORK_PLAYER[$temp_int], $big_smoke_car)
+                Coop.UpdateCheckpointForNetworkPlayer(208@, 209@, 210@, 4.0, 4.0, 4.0, $NETWORK_PLAYER[$temp_int])
+                200@($temp_int,3i) = 1
+            end
+        else
+            0085: 216@ = 215@
+            0062: 216@ -= 212@($temp_int,3i)
+            if and
+                216@ > 1500
+                200@($temp_int,3i) <> 0
+            then
+                Coop.RemoveCheckpointForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+                Coop.UpdateCarBlipForNetworkPlayer($NETWORK_PLAYER[$temp_int], $big_smoke_car, true, BlipDisplay.Both, BlipColor.Blue, 3)
+                Coop.PrintNowForNetworkPlayer('SWE2_L', 6000, 1, $NETWORK_PLAYER[$temp_int])
+                200@($temp_int,3i) = 0
+            end
+        end
+    end
+end
+
+:SWEET2_COOP_ALL_NEAR
+// 203@ = 1 while a network player is more than 10 m from 208@ 209@ 210@
+203@ = 0
+for $temp_int = 0 to 2
+    if
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        if
+            not Char.LocateAnyMeans3D($NETWORK_PLAYER[$temp_int], 0, 208@, 209@, 210@, 10.0, 10.0, 10.0)
+        then
+            203@ = 1
+        end
+    end
+end
+return
+
+:SWEET2_COOP_LEAVE_SMOKES_CAR
+// at a stop: the network players lose the checkpoint and the car blip and get out of the car
+for $temp_int = 0 to 2
+    if
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.RemoveCheckpointForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+        if
+            Char.IsInAnyCar($NETWORK_PLAYER[$temp_int])
+        then
+            Task.LeaveAnyCar($NETWORK_PLAYER[$temp_int])
+        end
+    end
+end
+return
+
+:SWEET2_COOP_FAILED
+// the host's reason text isn't replayed, so it is sent (211@ says which reasons can apply), and the mission
+// pistol is cut to 5 rounds, as the host's
+207@ = 10000
+if
+    211@ > 0
+then
+    if
+        Char.IsDead($big_smoke)
+    then
+        set_lvar_text_label 205@s = 'SWE2_B'
+        gosub @SWEET2_COOP_PRINT_NOW_FOR
+    else
+        if and
+            211@ == 2
+            Char.IsDead(63@)
+        then
+            set_lvar_text_label 205@s = 'SWE2_K'
+            gosub @SWEET2_COOP_PRINT_NOW_FOR
+        else
+            if
+                Car.IsDead($big_smoke_car)
+            then
+                set_lvar_text_label 205@s = 'SWE2_C'
+                gosub @SWEET2_COOP_PRINT_NOW_FOR
+            end
+        end
+    end
+end
+if
+    204@ == 1
+then
+    for $temp_int = 0 to 2
+        if
+            Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+        then
+            if
+                not Char.IsDead($NETWORK_PLAYER[$temp_int])
+            then
+                Char.RemoveWeapon(22, $NETWORK_PLAYER[$temp_int])
+                Char.GiveWeapon($NETWORK_PLAYER[$temp_int], WeaponType.Pistol, 5)
+            end
+        end
+    end
+end
+return
 
