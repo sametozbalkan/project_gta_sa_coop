@@ -465,7 +465,6 @@ try {
     else { $baseline = $CompareTo }
 
     $log = Join-Path $sb 'compile.log'   # rewritten on every error, untouched on success
-    $logBefore = if (Test-Path -LiteralPath $log) { (Get-Item -LiteralPath $log).LastWriteTimeUtc.Ticks } else { 0 }
     $guardFiles = 'data\script\main.scm', 'data\script\script.img' | ForEach-Object { Join-Path $GameDir $_ }
     $guardBefore = $guardFiles | ForEach-Object { if (Test-Path -LiteralPath $_) { (Get-Item -LiteralPath $_).LastWriteTimeUtc.Ticks } else { 0 } }
 
@@ -478,33 +477,44 @@ try {
         '-o', 'Editor::ShowReport', '0', '-o', 'Compiler::ShowIMGWarning', '0',
         '--compile', "`"$source`"", "`"$(Join-Path $stage 'main.scm')`""
     )
-    $watch = [Diagnostics.Stopwatch]::StartNew()
-    $proc = [CompileScmHiddenProcess]::new($sanny, ($argList -join ' '), $sb)
-    $dialog = ''
-    $dialogSince = -1
-    while (-not $proc.WaitForExit(250)) {
-        $windows = $proc.Windows()
-        if ($windows.Count -eq 0) { $dialogSince = -1 }
-        elseif ($dialogSince -lt 0) { $dialogSince = $watch.Elapsed.TotalSeconds }
-        elseif ($watch.Elapsed.TotalSeconds - $dialogSince -ge 2) { $dialog = $windows -join '; '; break }
-        if ($watch.Elapsed.TotalSeconds -ge $TimeoutSec) { break }
-    }
-    if (-not $proc.WaitForExit(0)) {
-        $proc.Kill()
-        if ($dialog) {
-            throw "Sanny Builder stopped at a window nobody can see (it runs on a desktop of its own): $dialog. Killed PID $($proc.Id); compile in the Sanny Builder GUI to see it."
+    for ($attempt = 1; ; $attempt++) {
+        $logBefore = if (Test-Path -LiteralPath $log) { (Get-Item -LiteralPath $log).LastWriteTimeUtc.Ticks } else { 0 }
+        $watch = [Diagnostics.Stopwatch]::StartNew()
+        $proc = [CompileScmHiddenProcess]::new($sanny, ($argList -join ' '), $sb)
+        $dialog = ''
+        $dialogSince = -1
+        while (-not $proc.WaitForExit(250)) {
+            $windows = $proc.Windows()
+            if ($windows.Count -eq 0) { $dialogSince = -1 }
+            elseif ($dialogSince -lt 0) { $dialogSince = $watch.Elapsed.TotalSeconds }
+            elseif ($watch.Elapsed.TotalSeconds - $dialogSince -ge 2) { $dialog = $windows -join '; '; break }
+            if ($watch.Elapsed.TotalSeconds -ge $TimeoutSec) { break }
         }
-        throw "Sanny Builder did not finish within $TimeoutSec s; killed PID $($proc.Id)."
-    }
-    $seconds = $watch.Elapsed.TotalSeconds
+        if (-not $proc.WaitForExit(0)) {
+            $proc.Kill()
+            if ($dialog) {
+                throw "Sanny Builder stopped at a window nobody can see (it runs on a desktop of its own): $dialog. Killed PID $($proc.Id); compile in the Sanny Builder GUI to see it."
+            }
+            throw "Sanny Builder did not finish within $TimeoutSec s; killed PID $($proc.Id)."
+        }
+        $seconds = $watch.Elapsed.TotalSeconds
 
-    $guardAfter = $guardFiles | ForEach-Object { if (Test-Path -LiteralPath $_) { (Get-Item -LiteralPath $_).LastWriteTimeUtc.Ticks } else { 0 } }
-    if (($guardAfter -join ',') -ne ($guardBefore -join ',')) {
-        throw "$GameDir\data\script changed during the compile. Restore the vanilla main.scm/script.img there (from the Steam copy downgraded the same way)."
-    }
-    $logAfter = if (Test-Path -LiteralPath $log) { (Get-Item -LiteralPath $log).LastWriteTimeUtc.Ticks } else { 0 }
-    if ($logAfter -ne $logBefore) {
+        $guardAfter = $guardFiles | ForEach-Object { if (Test-Path -LiteralPath $_) { (Get-Item -LiteralPath $_).LastWriteTimeUtc.Ticks } else { 0 } }
+        if (($guardAfter -join ',') -ne ($guardBefore -join ',')) {
+            throw "$GameDir\data\script changed during the compile. Restore the vanilla main.scm/script.img there (from the Steam copy downgraded the same way)."
+        }
+        $logAfter = if (Test-Path -LiteralPath $log) { (Get-Item -LiteralPath $log).LastWriteTimeUtc.Ticks } else { 0 }
+        if ($logAfter -eq $logBefore) { break }
         $text = (Get-Content -LiteralPath $log) -join [Environment]::NewLine
+        # Sanny Builder's own debug.bin can still be held for a moment after the previous run (an antivirus scan,
+        # for example); agents compiling one after another hit this. It says nothing about the source, so retry.
+        if ($attempt -lt 3 -and $text -match 'debug\.bin|being used by another process') {
+            "Sanny Builder could not open its debug.bin (attempt $attempt of 3); retrying in 5 s"
+            $proc.Dispose()
+            $proc = $null
+            Start-Sleep -Seconds 5
+            continue
+        }
         throw "Sanny Builder reported an error ($log keeps only the last one; fix it and rerun):$([Environment]::NewLine)$text"
     }
     if ($proc.ExitCode -ne 0) { throw "Sanny Builder exited with code $($proc.ExitCode)" }
