@@ -3,6 +3,7 @@
 
 :HOODS5
 script_name 'HOODS5'
+Coop.EnableSyncingThisScript()
 gosub @HOODS5_251
 if 
   has_deatharrest_been_executed 
@@ -29,6 +30,7 @@ goto_if_false @HOODS5_251
 
 :HOODS5_251
 Stat.RegisterMissionGiven
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 $onmission = 1
 Player.SetGroupToFollowAlways($player1, True)
 154@ = 14
@@ -136,6 +138,9 @@ if
 goto_if_false @HOODS5_849
 126@ = 1
 Text.Print('SW5_L', 4000, 1)
+set_lvar_text_label 409@s = 'SW5_L'
+411@ = 4000
+gosub @HOODS5_COOP_PRINT
 
 :HOODS5_849
 if 
@@ -143,6 +148,9 @@ if
 goto_if_false @HOODS5_888
 126@ = 1
 Text.Print('SW5_M', 4000, 1)
+set_lvar_text_label 409@s = 'SW5_M'
+411@ = 4000
+gosub @HOODS5_COOP_PRINT
 
 :HOODS5_888
 return 
@@ -515,6 +523,7 @@ Streaming.RequestCollision(2518.789, -1677.22)
 Char.SetCoordinates($scplayer, 2518.448, -1677.224, 13.4109)
 Char.SetHeading($scplayer, 90.691)
 Streaming.LoadScene(2510.284, -1674.066, 14.5338)
+Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2]) // co-op: the others stand next to CJ at Grove Street
 set_lvar_int_to_lvar_int 35@ = TIMERA
 35@ += 300
 148@ = 9
@@ -542,6 +551,11 @@ World.SetCarDensityMultiplier(1.0)
 34@ = Char.GetScriptTaskStatus($scplayer, 1833)
 Text.Print('SW5_A2', 6000, 1)
 Text.Print('SW5_17', 6000, 1)
+set_lvar_text_label 409@s = 'SW5_A2'
+411@ = 6000
+gosub @HOODS5_COOP_PRINT
+set_lvar_text_label 409@s = 'SW5_17'
+gosub @HOODS5_COOP_PRINT
 Player.SetControl($player1, True)
 Player.MakeGangReappear
 Hud.SwitchWidescreen(False)
@@ -568,6 +582,9 @@ if
 goto_if_false @HOODS5_3616
 $sw5_sweet_health = 0
 Text.Print('SW5_L', 4000, 1)
+set_lvar_text_label 409@s = 'SW5_L'
+411@ = 4000
+gosub @HOODS5_COOP_PRINT
 125@ = 1
 
 :HOODS5_3616
@@ -580,6 +597,16 @@ goto_if_false @HOODS5_4349
 Game.SetCreateRandomGangMembers(False)
 97@ = 1
 Text.Print('SW5_J', 4000, 1)
+set_lvar_text_label 409@s = 'SW5_J'
+411@ = 4000
+gosub @HOODS5_COOP_PRINT
+for $temp_int = 0 to 2 // co-op: Emmet's pistol (pickups are not synced) with the pickup's 16 rounds, as the shootout starts
+  if
+    Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+  then
+    Char.GiveWeapon($NETWORK_PLAYER[$temp_int], WeaponType.Pistol, 16)
+  end
+end
 106@ = 2761.516
 112@ = -1972.028
 118@ = 12.5459
@@ -656,6 +683,7 @@ if
   97@ == 1
 goto_if_false @HOODS5_4666
 gosub @HOODS5_11951
+gosub @HOODS5_COOP_SEVILLE_BLIPS
 if 
   146@ == 0
 goto_if_false @HOODS5_4474
@@ -781,6 +809,10 @@ Task.UseMobilePhone($scplayer, False)
 Path.SwitchRoadsBackToOriginal(2793.814, -1987.935, 15.3045, 2754.324, -1900.369, 9.8752)
 Path.SwitchPedRoadsBackToOriginal(2793.814, -1987.935, 15.3045, 2754.324, -1900.369, 9.8752)
 Text.Print('SW5_14', 5000, 1)
+set_lvar_text_label 409@s = 'SW5_14'
+411@ = 5000
+gosub @HOODS5_COOP_PRINT
+gosub @HOODS5_COOP_CHECKPOINT_PICKUP
 127@ = 4
 
 :HOODS5_5151
@@ -797,6 +829,14 @@ goto_if_false @HOODS5_5481
 if 
   not Car.IsDead(59@)
 goto_if_false @HOODS5_5481
+// co-op: only with CJ (the host) at the wheel. In co-op the host can sit as a passenger, and the
+// pickup below gives passenger seats 0 and 1 to Sweet and his girl.
+419@ = Car.GetDriver(59@)
+if
+  not is_int_var_equal_to_int_lvar $scplayer == 419@
+then
+  goto @HOODS5_5481
+end
 60@ = Car.GetMaximumNumberOfPassengers(59@)
 if 
   2 > 60@
@@ -805,6 +845,13 @@ if
   61@ == 0
 goto_if_false @HOODS5_5308
 Text.PrintNow('SW5_G', 5000, 1)
+for $temp_int = 0 to 2
+  if
+    Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+  then
+    Coop.PrintNowForNetworkPlayer('SW5_G', 5000, 1, $NETWORK_PLAYER[$temp_int])
+  end
+end
 61@ = 1
 
 :HOODS5_5308
@@ -836,6 +883,7 @@ goto @HOODS5_5415
 127@ = 5
 148@ = 0
 Blip.Remove(48@)
+gosub @HOODS5_COOP_NO_CHECKPOINT
 goto @HOODS5_5481
 
 :HOODS5_5465
@@ -940,16 +988,25 @@ if
   not Car.IsPassengerSeatFree(59@, SeatIndex.TandemRear)
 goto_if_false @HOODS5_6260
 175@ = Car.GetCharInPassengerSeat(59@, 0)
-Char.Delete(175@)
+if
+  not Coop.IsNetworkPlayerActorValid(175@) // co-op: never delete a player; HOODS5_COOP_SEAT moves them
+then
+  Char.Delete(175@)
+end
 
 :HOODS5_6260
 if 
   not Car.IsPassengerSeatFree(59@, SeatIndex.RearLeft)
 goto_if_false @HOODS5_6293
 175@ = Car.GetCharInPassengerSeat(59@, 1)
-Char.Delete(175@)
+if
+  not Coop.IsNetworkPlayerActorValid(175@)
+then
+  Char.Delete(175@)
+end
 
 :HOODS5_6293
+gosub @HOODS5_COOP_SEAT
 Camera.SetFixedPosition(2756.231, -1949.667, 18.0543, 0.0, 0.0, 0.0)
 Camera.PointAtPoint(2755.751, -1950.535, 17.9303, SwitchType.JumpCut)
 Path.FlushRoute
@@ -1127,6 +1184,7 @@ Car.SetAirResistanceMultiplier(63@, 0.1)
 :HOODS5_7458
 73@ = Blip.AddForCoord(2509.062, -1672.527, 12.386)
 Blip.SetAsFriendly(73@, True)
+gosub @HOODS5_COOP_CHECKPOINT_HOOD
 if and
   not Char.IsDead(75@)
   not Car.IsDead(59@)
@@ -1177,6 +1235,9 @@ Camera.SetBehindPlayer
 Camera.RestoreJumpcut
 Text.ClearPrints
 Text.Print('SW5_I', 5000, 1)
+set_lvar_text_label 409@s = 'SW5_I'
+411@ = 5000
+gosub @HOODS5_COOP_PRINT
 127@ = 6
 125@ = 1
 set_lvar_int_to_lvar_int 153@ = TIMERA
@@ -1331,6 +1392,11 @@ if
 goto_if_false @HOODS5_8609
 69@ = 1
 Text.Print('SW5_T', 4000, 1)
+set_lvar_text_label 409@s = 'SW5_T'
+411@ = 4000
+gosub @HOODS5_COOP_PRINT
+set_lvar_int_to_lvar_int 412@ = 75@
+gosub @HOODS5_COOP_BLIP_ON
 if 
   not Blip.DoesExist(71@)
 goto_if_false @HOODS5_8604
@@ -1339,6 +1405,7 @@ Blip.SetAsFriendly(71@, True)
 
 :HOODS5_8604
 Blip.Remove(73@)
+gosub @HOODS5_COOP_NO_CHECKPOINT
 
 :HOODS5_8609
 if and
@@ -1349,10 +1416,13 @@ goto_if_false @HOODS5_8712
 Group.SetMember(75@, $Players_Group)
 Char.ListenToPlayerGroupCommands(75@, False)
 Blip.Remove(71@)
+set_lvar_int_to_lvar_int 412@ = 75@
+gosub @HOODS5_COOP_BLIP_OFF
 if 
   70@ == 0
 goto_if_false @HOODS5_8712
 73@ = Blip.AddForCoord(2509.062, -1672.527, 12.386)
+gosub @HOODS5_COOP_CHECKPOINT_HOOD
 
 :HOODS5_8712
 if 
@@ -1366,6 +1436,11 @@ if
 goto_if_false @HOODS5_8824
 70@ = 1
 Text.Print('SW5_U', 4000, 1)
+set_lvar_text_label 409@s = 'SW5_U'
+411@ = 4000
+gosub @HOODS5_COOP_PRINT
+set_lvar_int_to_lvar_int 412@ = 43@
+gosub @HOODS5_COOP_BLIP_ON
 if 
   not Blip.DoesExist(72@)
 goto_if_false @HOODS5_8819
@@ -1374,6 +1449,7 @@ Blip.SetAsFriendly(72@, True)
 
 :HOODS5_8819
 Blip.Remove(73@)
+gosub @HOODS5_COOP_NO_CHECKPOINT
 
 :HOODS5_8824
 if and
@@ -1384,11 +1460,14 @@ goto_if_false @HOODS5_8934
 Group.SetMember(43@, $Players_Group)
 Char.ListenToPlayerGroupCommands(43@, False)
 Blip.Remove(72@)
+set_lvar_int_to_lvar_int 412@ = 43@
+gosub @HOODS5_COOP_BLIP_OFF
 if 
   69@ == 0
 goto_if_false @HOODS5_8934
 73@ = Blip.AddForCoord(2509.062, -1672.527, 12.386)
 Blip.SetAsFriendly(73@, True)
+gosub @HOODS5_COOP_CHECKPOINT_HOOD
 
 :HOODS5_8934
 if 
@@ -1562,6 +1641,7 @@ Car.SetCoordinates(59@, 2507.709, -1672.192, 13.458)
 Car.SetHeading(59@, 340.0)
 
 :HOODS5_10099
+gosub @HOODS5_COOP_END_LEAVE
 Camera.SetFixedPosition(2514.24, -1679.268, 14.5054, 0.0, 0.0, 0.0)
 Camera.PointAtPoint(2513.649, -1678.483, 14.3221, SwitchType.JumpCut)
 if 
@@ -1664,6 +1744,7 @@ Camera.SetFixedPosition(2509.713, -1671.558, 13.5033, 0.0, 0.0, 0.0)
 Camera.PointAtPoint(2510.19, -1672.389, 13.8387, SwitchType.JumpCut)
 Char.SetCoordinatesNoOffset($scplayer, 2509.892, -1672.469, 13.5032)
 Char.SetHeading($scplayer, 270.0)
+gosub @HOODS5_COOP_END_PLACE
 if and
   not Char.IsDead(75@)
   not Char.IsDead(43@)
@@ -1680,6 +1761,7 @@ Char.SetCoordinatesNoOffset(75@, 2510.792, -1672.469, 13.5032)
 Char.SetCoordinatesNoOffset(43@, 2510.792, -1673.469, 13.5032)
 Char.SetHeading(75@, 90.0)
 Char.SetHeading(43@, 90.0)
+gosub @HOODS5_COOP_WAIT_SWEET_ID
 Task.PlayAnimNonInterruptable(75@, "SWEET_ASS_SLAP", "SWEET", 4.0, False, False, False, False, -2)
 Task.PlayAnimNonInterruptable(43@, "HO_ASS_SLAPPED", "SWEET", 4.0, False, False, False, False, -2)
 
@@ -2231,6 +2313,13 @@ goto_if_false @HOODS5_14899
 Audio.PlayMissionAudio(351@)
 Text.ClearPrints
 Text.Print(228@(352@,40s), 10000, 1)
+for $temp_int = 0 to 2 // co-op: the subtitle for the others (the audio is replayed for them)
+  if
+    Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+  then
+    Coop.PrintForNetworkPlayer(228@(352@,40s), 10000, 1, $NETWORK_PLAYER[$temp_int])
+  end
+end
 355@ += 1
 404@ = 0
 352@ += 1
@@ -2443,8 +2532,245 @@ DecisionMaker.Remove(47@)
 DecisionMaker.Remove(99@)
 Game.SetCreateRandomGangMembers(True)
 Player.SetGroupToFollowAlways($player1, False)
+for $temp_int = 0 to 2 // co-op: no checkpoint or entity blip of this mission stays with the others
+  if
+    Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+  then
+    Coop.RemoveCheckpointForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+  end
+  $NETWORK_PLAYER[$temp_int] = 0
+end
 $onmission = 0
 $timer_mobile_start = Clock.GetGameTimer()
 Mission.Finish
 return 
+
+// ---- Co-op helpers of this mission (private build). They use mission locals 409@-419@ only:
+// 409@s text label and 411@ time for HOODS5_COOP_PRINT, 412@ a char for the blip helpers,
+// 413@ loop counter and scratch, 414@-418@ the attackers already blipped, 419@ scratch.
+
+:HOODS5_COOP_PRINT
+// Text.Print of 409@s for 411@ ms on the other players' screens
+for $temp_int = 0 to 2
+  if
+    Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+  then
+    Coop.PrintForNetworkPlayer(409@s, 411@, 1, $NETWORK_PLAYER[$temp_int])
+  end
+end
+return
+
+:HOODS5_COOP_SEVILLE_BLIPS
+// Red blips on the five Seville attackers (37@-41@) for the other players. A created ped gets its
+// network id a moment later, and a blip sent before that points at nothing, so each attacker is
+// blipped once it has one. The other players' games remove the blip when the attacker dies.
+for 413@ = 0 to 4
+  if
+    414@(413@,5i) == 0
+  then
+    if
+      not Char.IsDead(37@(413@,6i))
+    then
+      419@ = Coop.GetPedNetworkId(37@(413@,6i))
+      if
+        419@ <> -1
+      then
+        for $temp_int = 0 to 2
+          if
+            Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+          then
+            Coop.UpdateCharBlipForNetworkPlayer($NETWORK_PLAYER[$temp_int], 37@(413@,6i), False, BlipDisplay.Both, BlipColor.Red, 3)
+          end
+        end
+        414@(413@,5i) = 1
+      end
+    end
+  end
+end
+return
+
+:HOODS5_COOP_CHECKPOINT_PICKUP
+// the pickup spot in front of the flat (the host's locate sphere in HOODS5_5153)
+for $temp_int = 0 to 2
+  if
+    Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+  then
+    Coop.UpdateCheckpointForNetworkPlayer(2764.272, -1979.494, 12.5394, 4.0, 4.0, 4.0, $NETWORK_PLAYER[$temp_int])
+  end
+end
+return
+
+:HOODS5_COOP_CHECKPOINT_HOOD
+// Grove Street, shown while Sweet and his girl are both with CJ (like the host's blip 73@)
+for $temp_int = 0 to 2
+  if
+    Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+  then
+    Coop.UpdateCheckpointForNetworkPlayer(2509.062, -1672.527, 12.386, 4.0, 4.0, 4.0, $NETWORK_PLAYER[$temp_int])
+  end
+end
+return
+
+:HOODS5_COOP_NO_CHECKPOINT
+for $temp_int = 0 to 2
+  if
+    Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+  then
+    Coop.RemoveCheckpointForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+  end
+end
+return
+
+:HOODS5_COOP_BLIP_ON
+// friendly blip on 412@ (Sweet or his girl, left behind) for the other players
+for $temp_int = 0 to 2
+  if
+    Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+  then
+    Coop.UpdateCharBlipForNetworkPlayer($NETWORK_PLAYER[$temp_int], 412@, True, BlipDisplay.Both, BlipColor.Blue, 3)
+  end
+end
+return
+
+:HOODS5_COOP_BLIP_OFF
+for $temp_int = 0 to 2
+  if
+    Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+  then
+    Coop.RemoveCharBlipForNetworkPlayer($NETWORK_PLAYER[$temp_int], 412@)
+  end
+end
+return
+
+:HOODS5_COOP_SEAT
+// Pickup at the flat (black screen): Sweet and his girl take passenger seats 0 and 1 of CJ's car
+// 59@. A four door car (SW5_G) has a third passenger seat, so the other player rides in seat 2,
+// rear right. A gang member in seat 2 goes like the ones in seats 0 and 1; a player in seat 0 or
+// 1 gets out (Char.ClearTasksImmediately warps a ped out of its car); the first other player not
+// in seat 2 is put in: Task.EnterCarAsPassenger with a 1 ms limit warps at once, and both
+// commands are replayed in that player's game. Anyone else follows on their own.
+// 419@: the player in seat 2, -1 while the seat is free, -2 when the car has no seat 2.
+if
+  Car.IsDead(59@)
+then
+  return
+end
+419@ = -1
+413@ = Car.GetMaximumNumberOfPassengers(59@)
+if
+  2 >= 413@
+then
+  419@ = -2
+else
+  if
+    not Car.IsPassengerSeatFree(59@, SeatIndex.RearRight)
+  then
+    419@ = Car.GetCharInPassengerSeat(59@, 2)
+    if
+      not Coop.IsNetworkPlayerActorValid(419@)
+    then
+      Char.Delete(419@)
+      419@ = -1
+    end
+  end
+end
+for $temp_int = 0 to 2
+  if
+    Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+  then
+    if
+      419@ == -1
+    then
+      Char.ClearTasksImmediately($NETWORK_PLAYER[$temp_int])
+      Task.EnterCarAsPassenger($NETWORK_PLAYER[$temp_int], 59@, 2, 1)
+      008B: 419@ = $NETWORK_PLAYER[$temp_int]
+    else
+      if and
+        not is_int_var_equal_to_int_lvar $NETWORK_PLAYER[$temp_int] == 419@
+        Char.IsInCar($NETWORK_PLAYER[$temp_int], 59@)
+      then
+        Char.ClearTasksImmediately($NETWORK_PLAYER[$temp_int])
+      end
+    end
+  end
+end
+return
+
+:HOODS5_COOP_END_LEAVE
+// End scene at Grove Street: the checkpoint goes and the other players get out of their car
+// together with CJ
+for $temp_int = 0 to 2
+  if
+    Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+  then
+    Coop.RemoveCheckpointForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    if
+      Char.IsInAnyCar($NETWORK_PLAYER[$temp_int])
+    then
+      Task.LeaveAnyCar($NETWORK_PLAYER[$temp_int])
+    end
+  end
+end
+return
+
+:HOODS5_COOP_END_PLACE
+// The other players watch the handshake from behind the camera, on the Grove Street spots SWEET1
+// gives them. Out of any car first: Char.SetCoordinates on a ped in a car moves the car.
+if
+  Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[0])
+then
+  Char.ClearTasksImmediately($NETWORK_PLAYER[0])
+  if
+    not Char.IsInAnyCar($NETWORK_PLAYER[0])
+  then
+    Char.SetCoordinates($NETWORK_PLAYER[0], 2514.73, -1667.61, 13.56)
+    Char.SetHeading($NETWORK_PLAYER[0], 135.0)
+  end
+end
+if
+  Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[1])
+then
+  Char.ClearTasksImmediately($NETWORK_PLAYER[1])
+  if
+    not Char.IsInAnyCar($NETWORK_PLAYER[1])
+  then
+    Char.SetCoordinates($NETWORK_PLAYER[1], 2514.5, -1665.78, 13.58)
+    Char.SetHeading($NETWORK_PLAYER[1], 135.0)
+  end
+end
+if
+  Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[2])
+then
+  Char.ClearTasksImmediately($NETWORK_PLAYER[2])
+  if
+    not Char.IsInAnyCar($NETWORK_PLAYER[2])
+  then
+    Char.SetCoordinates($NETWORK_PLAYER[2], 2514.08, -1663.51, 13.6)
+    Char.SetHeading($NETWORK_PLAYER[2], 135.0)
+  end
+end
+return
+
+:HOODS5_COOP_WAIT_SWEET_ID
+// Sweet was just created again for the handshake: wait (at most a second) for his network id,
+// or his animations are not replayed in the other players' games
+if or
+  Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[0])
+  Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[1])
+  Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[2])
+then
+  TIMERB = 0
+
+  :HOODS5_COOP_WAIT_SWEET_ID_LOOP
+  419@ = Coop.GetPedNetworkId(75@)
+  if and
+    419@ == -1
+    1000 > TIMERB
+  then
+    wait 0
+    goto @HOODS5_COOP_WAIT_SWEET_ID_LOOP
+  end
+end
+return
 
