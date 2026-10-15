@@ -1,0 +1,924 @@
+DEFINE OBJECTS 389
+DEFINE OBJECT SANNY BUILDER 3.6.2     
+DEFINE OBJECT INFO                     // Object number -1
+DEFINE OBJECT KEYCARD                  // Object number -2
+DEFINE OBJECT AD_FLATDOOR              // Object number -3
+DEFINE OBJECT KB_BANDIT_U              // Object number -4
+DEFINE OBJECT ROULETTE_TBL             // Object number -5
+DEFINE OBJECT OTB_MACHINE              // Object number -6
+DEFINE OBJECT CJ_COIN_OP_3             // Object number -7
+DEFINE OBJECT CJ_COIN_OP_2             // Object number -8
+DEFINE OBJECT CJ_COIN_OP_1             // Object number -9
+DEFINE OBJECT CJ_COIN_OP               // Object number -10
+DEFINE OBJECT SWANK_CONSOLE            // Object number -11
+DEFINE OBJECT SNESISH                  // Object number -12
+DEFINE OBJECT LOW_CONSOLE              // Object number -13
+DEFINE OBJECT VENDMACHFD               // Object number -14
+DEFINE OBJECT VENDMACH                 // Object number -15
+DEFINE OBJECT VENDIN3                  // Object number -16
+DEFINE OBJECT CJ_SPRUNK1               // Object number -17
+DEFINE OBJECT CJ_CANDYVENDOR           // Object number -18
+DEFINE OBJECT CJ_EXT_CANDY             // Object number -19
+DEFINE OBJECT CJ_EXT_SPRUNK            // Object number -20
+DEFINE OBJECT ICESCART_PROP            // Object number -21
+DEFINE OBJECT CHILLIDOGCART            // Object number -22
+DEFINE OBJECT NOODLECART_PROP          // Object number -23
+DEFINE OBJECT GATE_AUTOL               // Object number -24
+DEFINE OBJECT GATE_AUTOR               // Object number -25
+DEFINE OBJECT GYM_BIKE                 // Object number -26
+DEFINE OBJECT GYM_BENCH1               // Object number -27
+DEFINE OBJECT GYM_TREADMILL            // Object number -28
+DEFINE OBJECT GYM_MAT1                 // Object number -29
+DEFINE OBJECT BSKBALL_LAX              // Object number -30
+DEFINE OBJECT BSKBALLHUB_LAX01         // Object number -31
+DEFINE OBJECT VGSXREFBBALLNET          // Object number -32
+DEFINE OBJECT VGSXREFBBALLNET2         // Object number -33
+DEFINE OBJECT K_POOLTABLESM            // Object number -34
+DEFINE OBJECT NEIL_SLOT                // Object number -35
+DEFINE OBJECT CJ_SLOT_BANK             // Object number -36
+DEFINE OBJECT BLCK_JACK                // Object number -37
+DEFINE OBJECT WHEEL_O_FORTUNE          // Object number -38
+DEFINE OBJECT CRACKFACT_SFS            // Object number -39
+DEFINE OBJECT CF_EXT_DEM_SFS           // Object number -40
+DEFINE OBJECT LODCRACKFACT_SFS         // Object number -41
+DEFINE OBJECT LODEXT_DEM_SFS           // Object number -42
+DEFINE OBJECT PICKUPSAVE               // Object number -43
+DEFINE OBJECT WOODENBOX                // Object number -44
+DEFINE OBJECT NF_BLACKBOARD            // Object number -45
+DEFINE OBJECT NF_LIST_1                // Object number -46
+DEFINE OBJECT NF_LIST_2                // Object number -47
+DEFINE OBJECT NF_LIST_3                // Object number -48
+DEFINE OBJECT WANTED_CROSS_OFF         // Object number -49
+DEFINE OBJECT WS_APGATE                // Object number -50
+DEFINE OBJECT GEN_DOOREXT03            // Object number -51
+DEFINE OBJECT GEN_DOOREXT07            // Object number -52
+DEFINE OBJECT GEN_DOORSHOP02           // Object number -53
+DEFINE OBJECT GEN_DOOREXT04            // Object number -54
+DEFINE OBJECT GEN_DOORSHOP3            // Object number -55
+DEFINE OBJECT CUNTGIRLDOOR             // Object number -56
+DEFINE OBJECT PIZZAHIGH                // Object number -57
+DEFINE OBJECT CJ_PIZZA_1               // Object number -58
+DEFINE OBJECT CJ_PIZZA_2               // Object number -59
+DEFINE OBJECT BURGERHIGH               // Object number -60
+DEFINE OBJECT CJ_BURG_1                // Object number -61
+DEFINE OBJECT CJ_BURG_2                // Object number -62
+DEFINE OBJECT CIGAR                    // Object number -63
+DEFINE OBJECT TRDCSGRGDOOR_LVS         // Object number -64
+DEFINE OBJECT MD_POSTER                // Object number -65
+DEFINE OBJECT CR_DOOR_01               // Object number -66
+DEFINE OBJECT CR_DOOR_03               // Object number -67
+DEFINE OBJECT SHUTTER_VEGAS            // Object number -68
+DEFINE OBJECT CR1_DOOR                 // Object number -69
+DEFINE OBJECT CT_GATEXR                // Object number -70
+DEFINE OBJECT A51_BLASTDOORR           // Object number -71
+DEFINE OBJECT A51_BLASTDOORL           // Object number -72
+DEFINE OBJECT A51_LABDOOR              // Object number -73
+DEFINE OBJECT A51_JETDOOR              // Object number -74
+DEFINE OBJECT PORTAKABIN               // Object number -75
+DEFINE OBJECT FREIGHT_SFW_DOOR         // Object number -76
+DEFINE OBJECT AB_CASDORLOK             // Object number -77
+DEFINE OBJECT IMY_SHASH_WALL           // Object number -78
+DEFINE OBJECT TWRCRANE_M_04            // Object number -79
+DEFINE OBJECT TWRCRANE_M_01            // Object number -80
+DEFINE OBJECT TWRCRANE_M_02            // Object number -81
+DEFINE OBJECT LODCRANE_M_04            // Object number -82
+DEFINE OBJECT LODCRANE_M_01            // Object number -83
+DEFINE OBJECT MAGNOCRANE_01            // Object number -84
+DEFINE OBJECT MAGNOCRANE_02            // Object number -85
+DEFINE OBJECT MAGNOCRANE_03            // Object number -86
+DEFINE OBJECT LODNOCRANE_01            // Object number -87
+DEFINE OBJECT LODNOCRANE_02            // Object number -88
+DEFINE OBJECT LODNOCRANE_03            // Object number -89
+DEFINE OBJECT QUARRY_CRANEBASE         // Object number -90
+DEFINE OBJECT QUARRY_CRANE             // Object number -91
+DEFINE OBJECT QUARRY_CRANEARM          // Object number -92
+DEFINE OBJECT BODYARMOUR               // Object number -93
+DEFINE OBJECT BRIBE                    // Object number -94
+DEFINE OBJECT A51_VENTCOVERB           // Object number -95
+DEFINE OBJECT CARRIER_DOOR_SFSE        // Object number -96
+DEFINE OBJECT CARRIER_LIFT2_SFSE       // Object number -97
+DEFINE OBJECT CARRIER_LIFT1_SFSE       // Object number -98
+DEFINE OBJECT GWFORUM1_LAE             // Object number -99
+DEFINE OBJECT GANGSHOPS4_LAE2          // Object number -100
+DEFINE OBJECT CE_HILLSEAST06           // Object number -101
+DEFINE OBJECT CUNTEGROUND23            // Object number -102
+DEFINE OBJECT HILLSEAST05_LAE          // Object number -103
+DEFINE OBJECT K_POOLQ                  // Object number -104
+DEFINE OBJECT K_POOLBALLCUE            // Object number -105
+DEFINE OBJECT K_POOLBALLSPT01          // Object number -106
+DEFINE OBJECT K_POOLBALLSPT02          // Object number -107
+DEFINE OBJECT K_POOLBALLSPT03          // Object number -108
+DEFINE OBJECT K_POOLBALLSPT04          // Object number -109
+DEFINE OBJECT K_POOLBALLSPT05          // Object number -110
+DEFINE OBJECT K_POOLBALLSPT06          // Object number -111
+DEFINE OBJECT K_POOLBALLSPT07          // Object number -112
+DEFINE OBJECT K_POOLBALL8              // Object number -113
+DEFINE OBJECT K_POOLBALLSTP01          // Object number -114
+DEFINE OBJECT K_POOLBALLSTP02          // Object number -115
+DEFINE OBJECT K_POOLBALLSTP03          // Object number -116
+DEFINE OBJECT K_POOLBALLSTP04          // Object number -117
+DEFINE OBJECT K_POOLBALLSTP05          // Object number -118
+DEFINE OBJECT K_POOLBALLSTP06          // Object number -119
+DEFINE OBJECT K_POOLBALLSTP07          // Object number -120
+DEFINE OBJECT K_POOLQ2                 // Object number -121
+DEFINE OBJECT CIGAR_GLOW               // Object number -122
+DEFINE OBJECT DYN_WINE_BIG             // Object number -123
+DEFINE OBJECT KB_BEER                  // Object number -124
+DEFINE OBJECT LAEROAD30                // Object number -125
+DEFINE OBJECT CASKET_LAW               // Object number -126
+DEFINE OBJECT LAEJEFFERSALPHA          // Object number -127
+DEFINE OBJECT LAELODPARK02             // Object number -128
+DEFINE OBJECT LAEMACPARK02             // Object number -129
+DEFINE OBJECT BD_WINDOW                // Object number -130
+DEFINE OBJECT BREAK_WALL_1B            // Object number -131
+DEFINE OBJECT BREAK_WALL_2B            // Object number -132
+DEFINE OBJECT BREAK_WALL_3B            // Object number -133
+DEFINE OBJECT BD_FIRE1_O               // Object number -134
+DEFINE OBJECT CR_AMMOBOX               // Object number -135
+DEFINE OBJECT BREAK_WALL_1A            // Object number -136
+DEFINE OBJECT BREAK_WALL_2A            // Object number -137
+DEFINE OBJECT BREAK_WALL_3A            // Object number -138
+DEFINE OBJECT BD_WINDOW_SHATTER        // Object number -139
+DEFINE OBJECT SEC_KEYPAD               // Object number -140
+DEFINE OBJECT KMB_RAMP                 // Object number -141
+DEFINE OBJECT IMCMPTRKDRL_LAS          // Object number -142
+DEFINE OBJECT IMCMPTRKDRR_LAS          // Object number -143
+DEFINE OBJECT IMCOMPMOVEDR1_LAS        // Object number -144
+DEFINE OBJECT BARREL4                  // Object number -145
+DEFINE OBJECT HEALTH                   // Object number -146
+DEFINE OBJECT IMY_BBOX                 // Object number -147
+DEFINE OBJECT IMY_LA_DOOR              // Object number -148
+DEFINE OBJECT DB_AMMO                  // Object number -149
+DEFINE OBJECT MED_BED_8                // Object number -150
+DEFINE OBJECT CR_GUNCRATE              // Object number -151
+DEFINE OBJECT GUNBOX                   // Object number -152
+DEFINE OBJECT TMP_BIN                  // Object number -153
+DEFINE OBJECT AMMOTRN_OBJ              // Object number -154
+DEFINE OBJECT KMB_FRONTGATE            // Object number -155
+DEFINE OBJECT WAREHOUSE_DOOR2B         // Object number -156
+DEFINE OBJECT WAREHOUSE_DOOR1          // Object number -157
+DEFINE OBJECT CJ_CARDBRD_PICKUP        // Object number -158
+DEFINE OBJECT NF_PED_COLL              // Object number -159
+DEFINE OBJECT CM_BOX                   // Object number -160
+DEFINE OBJECT FAKE_MULE_COL            // Object number -161
+DEFINE OBJECT CARDBOARDBOX2            // Object number -162
+DEFINE OBJECT LAE_SMOKECUTSCENE        // Object number -163
+DEFINE OBJECT IMMMCRAN                 // Object number -164
+DEFINE OBJECT TRNTRK8_LAS              // Object number -165
+DEFINE OBJECT IMY_TRACK_BARRIER        // Object number -166
+DEFINE OBJECT KMB_SKIP                 // Object number -167
+DEFINE OBJECT STORM_DRAIN_COVER        // Object number -168
+DEFINE OBJECT WHEEL_OR1                // Object number -169
+DEFINE OBJECT DYN_WOODPILE2            // Object number -170
+DEFINE OBJECT KMB_RHYMESBOOK           // Object number -171
+DEFINE OBJECT CJ_JUICE_CAN             // Object number -172
+DEFINE OBJECT DYN_ROADBARRIER_2        // Object number -173
+DEFINE OBJECT KMB_GOFLAG               // Object number -174
+DEFINE OBJECT IMY_SKYLIGHT             // Object number -175
+DEFINE OBJECT KMB_TROLLEY              // Object number -176
+DEFINE OBJECT LXR_MOTEL_DOORSIM        // Object number -177
+DEFINE OBJECT LXR_MOTELVENT            // Object number -178
+DEFINE OBJECT DYN_SCAFFOLD_4B          // Object number -179
+DEFINE OBJECT MUNCH_DONUT              // Object number -180
+DEFINE OBJECT CHOPCOP_ARMR             // Object number -181
+DEFINE OBJECT CHOPCOP_LEGR             // Object number -182
+DEFINE OBJECT CHOPCOP_HEAD             // Object number -183
+DEFINE OBJECT CHOPCOP_TORSO            // Object number -184
+DEFINE OBJECT WD_FENCE_ANIM            // Object number -185
+DEFINE OBJECT CHOPCOP_ARML             // Object number -186
+DEFINE OBJECT CHOPCOP_LEGL             // Object number -187
+DEFINE OBJECT DYN_SCAFFOLD_3B          // Object number -188
+DEFINE OBJECT ROADWORKBARRIER1         // Object number -189
+DEFINE OBJECT BRIEFCASE                // Object number -190
+DEFINE OBJECT KMB_ATM1                 // Object number -191
+DEFINE OBJECT KMB_ATM2                 // Object number -192
+DEFINE OBJECT KMB_ATM3                 // Object number -193
+DEFINE OBJECT MTSAFE                   // Object number -194
+DEFINE OBJECT CAT2_SAFE_COL            // Object number -195
+DEFINE OBJECT MAN_SAFENEW              // Object number -196
+DEFINE OBJECT KEV_SAFE                 // Object number -197
+DEFINE OBJECT RIDER1_DOOR              // Object number -198
+DEFINE OBJECT KMB_MARIJUANA            // Object number -199
+DEFINE OBJECT SW_HAYBREAK02            // Object number -200
+DEFINE OBJECT GRASSPLANT               // Object number -201
+DEFINE OBJECT PARKBENCH1               // Object number -202
+DEFINE OBJECT PORTALOO                 // Object number -203
+DEFINE OBJECT HUBHOLE1_SFSE            // Object number -204
+DEFINE OBJECT HUBHOLE2_SFSE            // Object number -205
+DEFINE OBJECT HUBHOLE3_SFSE            // Object number -206
+DEFINE OBJECT HUBHOLE4_SFSE            // Object number -207
+DEFINE OBJECT CLOTHESP                 // Object number -208
+DEFINE OBJECT LAMPPOST3                // Object number -209
+DEFINE OBJECT CT_STALL1                // Object number -210
+DEFINE OBJECT CT_TABLE                 // Object number -211
+DEFINE OBJECT CHINATGARAGEDOOR         // Object number -212
+DEFINE OBJECT CHINA_TOWN_GATEB         // Object number -213
+DEFINE OBJECT A51_SPOTBASE             // Object number -214
+DEFINE OBJECT A51_SPOTHOUSING          // Object number -215
+DEFINE OBJECT A51_SPOTBULB             // Object number -216
+DEFINE OBJECT KMB_CONTAINER_RED        // Object number -217
+DEFINE OBJECT CJ_CHRIS_CRATE           // Object number -218
+DEFINE OBJECT CJ_CHRIS_CRATE_LD        // Object number -219
+DEFINE OBJECT CJ_CHRIS_CRATE_RD        // Object number -220
+DEFINE OBJECT CJ_PADLOCK               // Object number -221
+DEFINE OBJECT KATANA_ANIM              // Object number -222
+DEFINE OBJECT KATANA_LHAND             // Object number -223
+DEFINE OBJECT MOBILE1993B              // Object number -224
+DEFINE OBJECT WONGS_GATE               // Object number -225
+DEFINE OBJECT DYN_RAMP                 // Object number -226
+DEFINE OBJECT SNIPER_ANIM              // Object number -227
+DEFINE OBJECT KMB_PACKET               // Object number -228
+DEFINE OBJECT NTO_B_S                  // Object number -229
+DEFINE OBJECT CARDBOARDBOX             // Object number -230
+DEFINE OBJECT DYN_ROADBARRIER_3        // Object number -231
+DEFINE OBJECT DYN_ROADBARRIER_4        // Object number -232
+DEFINE OBJECT DYN_DUMPSTER             // Object number -233
+DEFINE OBJECT KMB_CONTAINER_BLUE       // Object number -234
+DEFINE OBJECT KMB_CONTAINER_YEL        // Object number -235
+DEFINE OBJECT KMB_CONTAINER_OPEN       // Object number -236
+DEFINE OBJECT TEMP_STINGER2            // Object number -237
+DEFINE OBJECT TRAFFICCONE              // Object number -238
+DEFINE OBJECT AD_JUMP                  // Object number -239
+DEFINE OBJECT GARYS_LUV_RAMP           // Object number -240
+DEFINE OBJECT AD_ROADMARK1             // Object number -241
+DEFINE OBJECT AD_ROADMARK2             // Object number -242
+DEFINE OBJECT AD_FINISH                // Object number -243
+DEFINE OBJECT MINIGUN_BASE             // Object number -244
+DEFINE OBJECT WONGS_ERECTION           // Object number -245
+DEFINE OBJECT WONGS_ERECTION2          // Object number -246
+DEFINE OBJECT RCBOMB                   // Object number -247
+DEFINE OBJECT BARREL2                  // Object number -248
+DEFINE OBJECT MINI_MAGNET              // Object number -249
+DEFINE OBJECT KMB_PLANK                // Object number -250
+DEFINE OBJECT KMB_HOLDALL              // Object number -251
+DEFINE OBJECT KMB_PARACHUTE            // Object number -252
+DEFINE OBJECT AMMO_CAPSULE             // Object number -253
+DEFINE OBJECT BARREL1                  // Object number -254
+DEFINE OBJECT KB_BARREL                // Object number -255
+DEFINE OBJECT CR_CRATESTACK            // Object number -256
+DEFINE OBJECT D9_RUNWAY                // Object number -257
+DEFINE OBJECT CARGO_TEST               // Object number -258
+DEFINE OBJECT CARGO_STUFF              // Object number -259
+DEFINE OBJECT CARGO_STORE              // Object number -260
+DEFINE OBJECT KMILITARY_CRATE          // Object number -261
+DEFINE OBJECT KMILITARY_BASE           // Object number -262
+DEFINE OBJECT BLOCKPALLET              // Object number -263
+DEFINE OBJECT TEMP_CRATE1              // Object number -264
+DEFINE OBJECT K_SMASHBOXES             // Object number -265
+DEFINE OBJECT K_CARGO1                 // Object number -266
+DEFINE OBJECT K_CARGO4                 // Object number -267
+DEFINE OBJECT GREEN_GLOOP              // Object number -268
+DEFINE OBJECT BASEJUMP_TARGET          // Object number -269
+DEFINE OBJECT DES_QUARRYGATE2          // Object number -270
+DEFINE OBJECT DES_QUARRYGATE           // Object number -271
+DEFINE OBJECT CJ_DYN_PLUNGE_1          // Object number -272
+DEFINE OBJECT DYNAMITE                 // Object number -273
+DEFINE OBJECT DYNO_BOX_A               // Object number -274
+DEFINE OBJECT DYNO_BOX_B               // Object number -275
+DEFINE OBJECT PRIVATESIGN3             // Object number -276
+DEFINE OBJECT PRIVATESIGN1             // Object number -277
+DEFINE OBJECT BARRIER_4ANDY            // Object number -278
+DEFINE OBJECT CJ_CHIP_MAKER_BITS       // Object number -279
+DEFINE OBJECT CJ_CHIP_MAKER            // Object number -280
+DEFINE OBJECT CJ_WHEELCHAIR1           // Object number -281
+DEFINE OBJECT AB_CARCASS               // Object number -282
+DEFINE OBJECT AB_HOOK                  // Object number -283
+DEFINE OBJECT FREEZER_DOOR             // Object number -284
+DEFINE OBJECT CJ_MEAT_BAG_1            // Object number -285
+DEFINE OBJECT CJ_MEAT_1                // Object number -286
+DEFINE OBJECT CJ_MEAT_2                // Object number -287
+DEFINE OBJECT JET_BAGGAGE_DOOR         // Object number -288
+DEFINE OBJECT JET_INTERIOR             // Object number -289
+DEFINE OBJECT SMLPLANE_DOOR            // Object number -290
+DEFINE OBJECT JET_DOOR                 // Object number -291
+DEFINE OBJECT SMASH_BOX_STAY           // Object number -292
+DEFINE OBJECT SMASH_BOX_BRK            // Object number -293
+DEFINE OBJECT SMASHBOXPILE             // Object number -294
+DEFINE OBJECT ST_ARCH_PLAN             // Object number -295
+DEFINE OBJECT GEN_DOORINT01            // Object number -296
+DEFINE OBJECT KMB_LOCKEDDOOR           // Object number -297
+DEFINE OBJECT DYN_AIRCON               // Object number -298
+DEFINE OBJECT SW_BIT_09                // Object number -299
+DEFINE OBJECT GENERATOR_BIG            // Object number -300
+DEFINE OBJECT AB_VAULTDOOR             // Object number -301
+DEFINE OBJECT GENERATOR_BIG_D          // Object number -302
+DEFINE OBJECT CJ_MONEY_BAG             // Object number -303
+DEFINE OBJECT PARA_PACK                // Object number -304
+DEFINE OBJECT CARGO_REAR               // Object number -305
+DEFINE OBJECT D9_RAMP                  // Object number -306
+DEFINE OBJECT PARACHUTE                // Object number -307
+DEFINE OBJECT OPMANS01_CUNTE           // Object number -308
+DEFINE OBJECT CEHOLLYHIL06             // Object number -309
+DEFINE OBJECT SUNSET22_LAWN            // Object number -310
+DEFINE OBJECT DRG_NU_EXT               // Object number -311
+DEFINE OBJECT MISSILE_07_SFXR          // Object number -312
+DEFINE OBJECT KMB_KEYPAD               // Object number -313
+DEFINE OBJECT WATERJUMPX2              // Object number -314
+DEFINE OBJECT BBALL_INGAME             // Object number -315
+DEFINE OBJECT CJ_WIN_POP2              // Object number -316
+DEFINE OBJECT LA_FUCKCAR1              // Object number -317
+DEFINE OBJECT LA_FUCKCAR2              // Object number -318
+DEFINE OBJECT TARGET_FRAME             // Object number -319
+DEFINE OBJECT TARGET_LLEG              // Object number -320
+DEFINE OBJECT TARGET_RLEG              // Object number -321
+DEFINE OBJECT TARGET_LTORSO            // Object number -322
+DEFINE OBJECT TARGET_RTORSO            // Object number -323
+DEFINE OBJECT TARGET_LARM              // Object number -324
+DEFINE OBJECT TARGET_RARM              // Object number -325
+DEFINE OBJECT TARGET_HEAD              // Object number -326
+DEFINE OBJECT DEAD_TIED_COP            // Object number -327
+DEFINE OBJECT DYN_QUARRYROCK03         // Object number -328
+DEFINE OBJECT BLACKBAG2                // Object number -329
+DEFINE OBJECT DYN_WOODPILE             // Object number -330
+DEFINE OBJECT DYN_QUARRYROCK02         // Object number -331
+DEFINE OBJECT BOUY                     // Object number -332
+DEFINE OBJECT WATERJUMP1               // Object number -333
+DEFINE OBJECT LANDJUMP2                // Object number -334
+DEFINE OBJECT BB_PICKUP                // Object number -335
+DEFINE OBJECT PARA_COLLISION           // Object number -336
+DEFINE OBJECT CJ_WHEEL_1               // Object number -337
+DEFINE OBJECT CJ_WHEEL_02              // Object number -338
+DEFINE OBJECT CJ_WHEEL_03              // Object number -339
+DEFINE OBJECT CHIP_STACK07             // Object number -340
+DEFINE OBJECT CHIP_STACK08             // Object number -341
+DEFINE OBJECT CHIP_STACK12             // Object number -342
+DEFINE OBJECT CHIP_STACK09             // Object number -343
+DEFINE OBJECT CHIP_STACK11             // Object number -344
+DEFINE OBJECT WHEEL_WEE                // Object number -345
+DEFINE OBJECT ROULETTE_MARKER          // Object number -346
+DEFINE OBJECT PEDALS                   // Object number -347
+DEFINE OBJECT BEACHTOWEL01             // Object number -348
+DEFINE OBJECT KMB_BPRESS               // Object number -349
+DEFINE OBJECT BEACHTOWEL03             // Object number -350
+DEFINE OBJECT BEACHTOWEL04             // Object number -351
+DEFINE OBJECT KMB_DUMBBELL_R           // Object number -352
+DEFINE OBJECT KMB_DUMBBELL_L           // Object number -353
+DEFINE OBJECT BBALL_COL                // Object number -354
+DEFINE OBJECT KMB_ROCK                 // Object number -355
+DEFINE OBJECT CHIP_STACK10             // Object number -356
+DEFINE OBJECT CHIP_STACK13             // Object number -357
+DEFINE OBJECT CHIP_STACK14             // Object number -358
+DEFINE OBJECT WHEEL_SUPPORT            // Object number -359
+DEFINE OBJECT WHEEL_TABLE              // Object number -360
+DEFINE OBJECT CLICKER                  // Object number -361
+DEFINE OBJECT MONEY                    // Object number -362
+DEFINE OBJECT CJ_FF_TILL_QUE           // Object number -363
+DEFINE OBJECT CJ_BURG_CHAIR            // Object number -364
+DEFINE OBJECT CJ_PIZZA_CHAIR           // Object number -365
+DEFINE OBJECT CJ_PIZZA_CHAIR2          // Object number -366
+DEFINE OBJECT CJ_PIZZA_CHAIR3          // Object number -367
+DEFINE OBJECT TATTOO_KIT               // Object number -368
+DEFINE OBJECT CJ_BARSTOOL              // Object number -369
+DEFINE OBJECT CJ_BINCO_DOOR            // Object number -370
+DEFINE OBJECT CJ_SUBURB_DOOR_2         // Object number -371
+DEFINE OBJECT CJ_PRO_DOOR_01           // Object number -372
+DEFINE OBJECT CJ_GAP_DOOR_             // Object number -373
+DEFINE OBJECT CJ_VICTIM_DOOR           // Object number -374
+DEFINE OBJECT CJ_DS_DOOR               // Object number -375
+DEFINE OBJECT PIZZALOW                 // Object number -376
+DEFINE OBJECT PIZZAMED                 // Object number -377
+DEFINE OBJECT PIZZA_HEALTHY            // Object number -378
+DEFINE OBJECT CLUCKLOW                 // Object number -379
+DEFINE OBJECT CLUCKMED                 // Object number -380
+DEFINE OBJECT CLUCKHIGH                // Object number -381
+DEFINE OBJECT CLUCK_HEALTHY            // Object number -382
+DEFINE OBJECT BURGERLOW                // Object number -383
+DEFINE OBJECT BURGERMED                // Object number -384
+DEFINE OBJECT BURGER_HEALTHY           // Object number -385
+DEFINE OBJECT POLICE_BARRIER           // Object number -386
+DEFINE OBJECT KMB_SHUTTER              // Object number -387
+DEFINE OBJECT SFCOPDR                  // Object number -388
+
+DEFINE MISSIONS 135
+DEFINE MISSION 0 AT @INITIAL           // Initial 1
+DEFINE MISSION 1 AT @INITIL2           // Initial 2
+DEFINE MISSION 2 AT @INTRO             // Intro
+DEFINE MISSION 3 AT @NONE              // Video Game: They Crawled From Uranus
+DEFINE MISSION 4 AT @DUAL              // Video Game: Duality
+DEFINE MISSION 5 AT @SHTR              // Video Game: Go Go Space Monkey
+DEFINE MISSION 6 AT @GRAV              // Video Game: Let's Get Ready To Bumble
+DEFINE MISSION 7 AT @OTB               // Video Game: Inside Track Betting
+DEFINE MISSION 8 AT @POOL2             // Pool
+DEFINE MISSION 9 AT @LOWR              // Lowrider (Bet And Dance)
+DEFINE MISSION 10 AT @ZERO5            // Beefy Baron
+DEFINE MISSION 11 AT @INTRO1           // Big Smoke
+DEFINE MISSION 12 AT @INTRO2           // Ryder
+DEFINE MISSION 13 AT @SWEET1           // Tagging Up Turf
+DEFINE MISSION 14 AT @SWEET1B          // Cleaning The Hood
+DEFINE MISSION 15 AT @SWEET3           // Drive-Thru
+DEFINE MISSION 16 AT @SWEET2           // Nines And AK's
+DEFINE MISSION 17 AT @SWEET4           // Drive-By
+DEFINE MISSION 18 AT @HOODS5           // Sweet's Girl
+DEFINE MISSION 19 AT @SWEET6           // Cesar Vialpando
+DEFINE MISSION 20 AT @SWEET7           // Los Sepulcros
+DEFINE MISSION 21 AT @CRASH4           // Doberman
+DEFINE MISSION 22 AT @CRASH1           // Burning Desire
+DEFINE MISSION 23 AT @DRUGS3           // Gray Imports
+DEFINE MISSION 24 AT @GUNS1            // Home Invasion
+DEFINE MISSION 25 AT @RYDER3           // Catalyst
+DEFINE MISSION 26 AT @RYDER2           // Robbing Uncle Sam
+DEFINE MISSION 27 AT @TWAR7            // OG Loc
+DEFINE MISSION 28 AT @SMOKE2           // Running Dog
+DEFINE MISSION 29 AT @SMOKE3           // Wrong Side of the Tracks
+DEFINE MISSION 30 AT @DRUGS1           // Just Business
+DEFINE MISSION 31 AT @MUSIC1           // Life's a Beach
+DEFINE MISSION 32 AT @MUSIC2           // Madd Dogg's Rhymes
+DEFINE MISSION 33 AT @MUSIC3           // Management Issues
+DEFINE MISSION 34 AT @MUSIC5           // House Party
+DEFINE MISSION 35 AT @CPRACE           // Race Tournament / 8-track / Dirt Track
+DEFINE MISSION 36 AT @CESAR1           // Lowrider (High Stakes)
+DEFINE MISSION 37 AT @DRUGS4           // Reuniting The Families
+DEFINE MISSION 38 AT @LA1FIN2          // The Green Sabre
+DEFINE MISSION 39 AT @BCRASH1          // Badlands
+DEFINE MISSION 40 AT @CATALIN          // First Date
+DEFINE MISSION 41 AT @CAT1             // Local Liquor Store
+DEFINE MISSION 42 AT @CAT2             // Small Town Bank
+DEFINE MISSION 43 AT @CAT3             // Tanker Commander
+DEFINE MISSION 44 AT @CAT4             // Against All Odds
+DEFINE MISSION 45 AT @CATCUT           // King in Exile
+DEFINE MISSION 46 AT @TRUTH1           // Body Harvest
+DEFINE MISSION 47 AT @TRUTH2           // Are you going to San Fierro?
+DEFINE MISSION 48 AT @BCESAR4          // Wu Zi Mu / Farewell, My Love...
+DEFINE MISSION 49 AT @GARAG1           // Wear Flowers In Your Hair
+DEFINE MISSION 50 AT @DECON            // Deconstruction
+DEFINE MISSION 51 AT @SCRASH3          // 555 WE TIP
+DEFINE MISSION 52 AT @SCRASH2          // Snail Trail
+DEFINE MISSION 53 AT @WUZI1            // Mountain Cloud Boys
+DEFINE MISSION 54 AT @FARLIE4          // Ran Fa Li
+DEFINE MISSION 55 AT @DRIV6            // Lure
+DEFINE MISSION 56 AT @WUZI2            // Amphibious Assault
+DEFINE MISSION 57 AT @WUZI5            // The Da Nang Thang
+DEFINE MISSION 58 AT @SYN1             // Photo Opportunity
+DEFINE MISSION 59 AT @SYN2             // Jizzy
+DEFINE MISSION 60 AT @SYN3             // Outrider
+DEFINE MISSION 61 AT @SYND4            // Ice Cold Killa
+DEFINE MISSION 62 AT @SYN6             // Toreno's Last Flight
+DEFINE MISSION 63 AT @SYN7             // Yay Ka-Boom-Boom
+DEFINE MISSION 64 AT @SYN5             // Pier 69
+DEFINE MISSION 65 AT @DRIV2            // T-Bone Mendez
+DEFINE MISSION 66 AT @DRIV3            // Mike Toreno
+DEFINE MISSION 67 AT @STEAL1           // Zeroing In
+DEFINE MISSION 68 AT @STEAL2           // Test Drive
+DEFINE MISSION 69 AT @STEAL4           // Customs Fast Track
+DEFINE MISSION 70 AT @STEAL5           // Puncture Wounds
+DEFINE MISSION 71 AT @DSKOOL           // Back to School
+DEFINE MISSION 72 AT @ZERO1            // Air Raid
+DEFINE MISSION 73 AT @ZERO2            // Supply Lines...
+DEFINE MISSION 74 AT @ZERO4            // New Model Army
+DEFINE MISSION 75 AT @TORENO1          // Monster
+DEFINE MISSION 76 AT @TORENO2          // Highjack
+DEFINE MISSION 77 AT @DES3             // Interdiction
+DEFINE MISSION 78 AT @DESERT4          // Verdant Meadows
+DEFINE MISSION 79 AT @DESERT6          // N.O.E.
+DEFINE MISSION 80 AT @DESERT9          // Stowaway
+DEFINE MISSION 81 AT @MAF4             // Black Project
+DEFINE MISSION 82 AT @DES10            // Green Goo
+DEFINE MISSION 83 AT @DESERT5          // Learning to Fly
+DEFINE MISSION 84 AT @CASINO1          // Fender Ketchup
+DEFINE MISSION 85 AT @CASINO2          // Explosive Situation
+DEFINE MISSION 86 AT @CASINO3          // You've Had Your Chips
+DEFINE MISSION 87 AT @CASINO7          // Fish in a Barrel
+DEFINE MISSION 88 AT @CASINO4          // Don Peyote
+DEFINE MISSION 89 AT @CASINO5          // Intensive Care
+DEFINE MISSION 90 AT @CASINO6          // The Meat Business
+DEFINE MISSION 91 AT @CASINO9          // Freefall
+DEFINE MISSION 92 AT @CASIN10          // Saint Mark's Bistro
+DEFINE MISSION 93 AT @VCRASH1          // Misappropriation
+DEFINE MISSION 94 AT @VCR2             // High Noon
+DEFINE MISSION 95 AT @DOC2             // Madd Dogg
+DEFINE MISSION 96 AT @HEIST1           // Architectural Espionage
+DEFINE MISSION 97 AT @HEIST3           // Key To Her Heart
+DEFINE MISSION 98 AT @HEIST2           // Dam And Blast
+DEFINE MISSION 99 AT @HEIST4           // Cop Wheels
+DEFINE MISSION 100 AT @HEIST5          // Up, Up and Away!
+DEFINE MISSION 101 AT @HEIST9          // Breaking the Bank at Caligula's
+DEFINE MISSION 102 AT @MANSIO1         // A Home In The Hills
+DEFINE MISSION 103 AT @MANSIO2         // Vertical Bird
+DEFINE MISSION 104 AT @MANSIO3         // Home Coming
+DEFINE MISSION 105 AT @MANSON5         // Cut Throat Business
+DEFINE MISSION 106 AT @GROVE1          // Beat Down on B Dup
+DEFINE MISSION 107 AT @GROVE2          // Grove 4 Life
+DEFINE MISSION 108 AT @RIOT1           // Riot
+DEFINE MISSION 109 AT @RIOT2           // Los Desperados
+DEFINE MISSION 110 AT @FINALEA         // End Of The Line (1)
+DEFINE MISSION 111 AT @FINALEB         // End Of The Line (2)
+DEFINE MISSION 112 AT @FINALEC         // End Of The Line (3)
+DEFINE MISSION 113 AT @SHRANGE         // Shooting range
+DEFINE MISSION 114 AT @GYMLS           // Los Santos Gym Fight School
+DEFINE MISSION 115 AT @GYMSF           // San Fierro Gym Fight School
+DEFINE MISSION 116 AT @GYMLV           // Las Venturas Gym Fight School
+DEFINE MISSION 117 AT @TRUCK           // Trucking
+DEFINE MISSION 118 AT @QUARRY          // Quarry
+DEFINE MISSION 119 AT @BOAT            // Boat School
+DEFINE MISSION 120 AT @BSKOOL          // Bike School
+DEFINE MISSION 121 AT @TAXIODD         // Taxi-Driver Sub-Mission
+DEFINE MISSION 122 AT @AMBULAN         // Paramedic Sub-Mission
+DEFINE MISSION 123 AT @FIRETRU         // Firefighter Sub-Mission
+DEFINE MISSION 124 AT @COPCAR          // Vigilante Sub-Mission
+DEFINE MISSION 125 AT @BURGJB          // Burglary Sub-Mission
+DEFINE MISSION 126 AT @FREIGHT         // Freight Train Sub-Mission
+DEFINE MISSION 127 AT @PIMP            // Pimping Sub-Mission
+DEFINE MISSION 128 AT @BLOOD           // Arena Mission: Blood Ring
+DEFINE MISSION 129 AT @KICKSTA         // Arena Mission: Kickstart
+DEFINE MISSION 130 AT @TRIA            // Beat the Cock!
+DEFINE MISSION 131 AT @BCOUR           // Courier
+DEFINE MISSION 132 AT @MTBIKER         // The Chiliad Challenge
+DEFINE MISSION 133 AT @STUNT           // BMX / NRG-500 STUNT Mission
+DEFINE MISSION 134 AT @BUYPRO1         // Buy Properties Mission
+
+DEFINE EXTERNAL_SCRIPTS 78 // Use -1 in order not to compile AAA script
+DEFINE SCRIPT PLAYER_PARACHUTE AT @PLCHUTE // 0
+DEFINE SCRIPT PARACHUTE AT @PARACH     // 1
+DEFINE SCRIPT BCESAR2 AT @BCESAR2      // 2
+DEFINE SCRIPT BCESAR3 AT @COKEC        // 3
+DEFINE SCRIPT SLOT_MACHINE AT @BANDIT  // 4
+DEFINE SCRIPT ROULETTE AT @ROULETE     // 5
+DEFINE SCRIPT OTB_SCRIPT AT @OTB_MSC   // 6
+DEFINE SCRIPT ARCADE AT @ARCADE        // 7
+DEFINE SCRIPT VENDING_MACHINE AT @VENDING // 8
+DEFINE SCRIPT FOOD_VENDOR AT @FODVEND  // 9
+DEFINE SCRIPT GATES_SCRIPT AT @GATEOS  // 10
+DEFINE SCRIPT GYMBIKE AT @GYMBIKE      // 11
+DEFINE SCRIPT GYMBENCH AT @GYMBENC     // 12
+DEFINE SCRIPT GYMTREAD AT @GYMTREA     // 13
+DEFINE SCRIPT GYMDUMB AT @GYMDUMB      // 14
+DEFINE SCRIPT BASKETB AT @BBALL        // 15
+DEFINE SCRIPT VIDPOK AT @VIDPOK        // 16
+DEFINE SCRIPT BLACKJ AT @BLACKJ        // 17
+DEFINE SCRIPT WHEELO AT @WOF           // 18
+DEFINE SCRIPT DEALER AT @DEALER        // 19
+DEFINE SCRIPT HOME_BRAINS AT @HMLES    // 20
+DEFINE SCRIPT POOL_SCRIPT AT @POOL     // 21
+DEFINE SCRIPT LOWR_CONT AT @LOWRCON    // 22
+DEFINE SCRIPT BURG_BRAINS AT @BURGLAR  // 23
+DEFINE SCRIPT GF_MEETING AT @GFMEET    // 24
+DEFINE SCRIPT GF_DATE AT @GFDATE       // 25
+DEFINE SCRIPT GF_SEX AT @GFSEX         // 26
+DEFINE SCRIPT CASINO_AMBIENCE AT @CASAMB // 27
+DEFINE SCRIPT BAR_AMBIENCE AT @BAR     // 28
+DEFINE SCRIPT FOODBRAINS AT @PSHOP     // 29
+DEFINE SCRIPT OTB_AMBIENCE AT @OTBSHP  // 30
+DEFINE SCRIPT STRIP_AMBIENCE AT @STRIP // 31
+DEFINE SCRIPT PLANES AT @PLANES        // 32
+DEFINE SCRIPT TRAINS AT @TRAINS        // 33
+DEFINE SCRIPT ZERO_AMBIENCE AT @RCSHOP // 34
+DEFINE SCRIPT DANCE AT @DANCE          // 35
+DEFINE SCRIPT SHOPKEEPER AT @SKBRAIN   // 36
+DEFINE SCRIPT CUSTOMER_PANIC AT @FFPNC // 37
+DEFINE SCRIPT BAR_STAFF AT @BARSTAF    // 38
+DEFINE SCRIPT BOUNCER AT @BOUNCER      // 39
+DEFINE SCRIPT OTB_STAFF AT @OTBSTAF    // 40
+DEFINE SCRIPT PCHAIR AT @PCHAIR        // 41
+DEFINE SCRIPT PCUSTOM AT @PCUSTOM      // 42
+DEFINE SCRIPT OTBWTCH AT @OTBWTCH      // 43
+DEFINE SCRIPT OTBSLP AT @OTBSLP        // 44
+DEFINE SCRIPT OTBTILL AT @OTBTILL      // 45
+DEFINE SCRIPT FBOOTHR AT @FBOOTHR      // 46
+DEFINE SCRIPT FBOOTHL AT @FBOOTHL      // 47
+DEFINE SCRIPT BARGUY AT @BARGUY        // 48
+DEFINE SCRIPT PEDROUL AT @PEDROUL      // 49
+DEFINE SCRIPT PEDCARD AT @PEDCARD      // 50
+DEFINE SCRIPT PEDSLOT AT @PEDSLOT      // 51
+DEFINE SCRIPT DANCER AT @DANCER        // 52
+DEFINE SCRIPT STRIPW AT @STRIPW        // 53
+DEFINE SCRIPT STRIPM AT @STRIPM        // 54
+DEFINE SCRIPT BROWSE AT @BROWSE        // 55
+DEFINE SCRIPT COPSIT AT @COPSIT        // 56
+DEFINE SCRIPT COPLOOK AT @COPLOOK      // 57
+DEFINE SCRIPT TICKET AT @TICKET        // 58
+DEFINE SCRIPT SHOPPER AT @SHOPPER      // 59
+DEFINE SCRIPT AMMU AT @AMUNAT          // 60
+DEFINE SCRIPT TATTOO AT @TATTO         // 61
+DEFINE SCRIPT BARBER AT @BARB          // 62
+DEFINE SCRIPT WARDROBE AT @WARROBE     // 63
+DEFINE SCRIPT CLOTHES AT @CLOTH        // 64
+DEFINE SCRIPT JUNKFUD AT @JFUD         // 65
+DEFINE SCRIPT CARMOD1 AT @CARMOD       // 66
+DEFINE SCRIPT CRANE1 AT @CRANE1        // 67
+DEFINE SCRIPT CRANE2 AT @CRANE2        // 68
+DEFINE SCRIPT CRANE3 AT @CRANE3        // 69
+DEFINE SCRIPT CARPARK1 AT @CARPRK1     // 70
+DEFINE SCRIPT IMPOUND AT @IMPND        // 71
+DEFINE SCRIPT VALET AT @VALET          // 72
+DEFINE SCRIPT PHOTO AT @PHOTO          // 73
+DEFINE SCRIPT PRISONR AT @PRISONR      // 74
+DEFINE SCRIPT CAMERA AT @CAMERA        // 75
+DEFINE SCRIPT DEBT AT @DEBT            // 76
+DEFINE SCRIPT HOTDOG AT @HOTDOGV       // 77
+
+DEFINE UNKNOWN_EMPTY_SEGMENT 0
+
+DEFINE UNKNOWN_THREADS_MEMORY 574
+
+{$USE CoopAndreas}
+{$USE debug}
+
+var
+$NETWORK_PLAYER: array 3 of integer
+$NETWORK_PLAYER_VEHICLE: array 3 of integer
+$temp_int: integer
+end
+
+{$INCLUDE scripts/MAIN.txt}
+{$INCLUDE scripts/INT.txt}
+{$INCLUDE scripts/SWEET.txt}
+{$INCLUDE scripts/CRASH.txt}
+{$INCLUDE scripts/RYDER.txt}
+{$INCLUDE scripts/SMOKE.txt}
+{$INCLUDE scripts/STRAP.txt}
+{$INCLUDE scripts/CESAR.txt}
+{$INCLUDE scripts/LA1FIN.txt}
+{$INCLUDE scripts/BCRASH.txt}
+{$INCLUDE scripts/CAT.txt}
+{$INCLUDE scripts/TRU.txt}
+{$INCLUDE scripts/BCESAR.txt}
+{$INCLUDE scripts/GARAGE.txt}
+{$INCLUDE scripts/SCRASH.txt}
+{$INCLUDE scripts/WUZI.txt}
+{$INCLUDE scripts/SYND.txt}
+{$INCLUDE scripts/STEAL.txt}
+{$INCLUDE scripts/TRACE.txt}
+{$INCLUDE scripts/ZERO.txt}
+{$INCLUDE scripts/DESERT.txt}
+{$INCLUDE scripts/PSCH.txt}
+{$INCLUDE scripts/CASINO.txt}
+{$INCLUDE scripts/VCRASH.txt}
+{$INCLUDE scripts/DOC.txt}
+{$INCLUDE scripts/HEIST.txt}
+{$INCLUDE scripts/MANSION.txt}
+{$INCLUDE scripts/GROVE.txt}
+{$INCLUDE scripts/RIOT.txt}
+{$INCLUDE scripts/SHOOT.txt}
+{$INCLUDE scripts/GYM.txt}
+{$INCLUDE scripts/TRUCKS.txt}
+{$INCLUDE scripts/QUARRYS.txt}
+{$INCLUDE scripts/BSCHOO.txt}
+{$INCLUDE scripts/BIKES.txt}
+{$INCLUDE scripts/R3.txt}
+{$INCLUDE scripts/FRTEXT.txt}
+{$INCLUDE scripts/BLOODR.txt}
+{$INCLUDE scripts/HOTR.txt}
+{$INCLUDE scripts/KICKS.txt}
+{$INCLUDE scripts/TRI.txt}
+{$INCLUDE scripts/ODDVEH.txt}
+{$INCLUDE scripts/BUY1.txt}
+{$INCLUDE scripts/BUY2.txt}
+{$INCLUDE scripts/BUY3.txt}
+{$INCLUDE scripts/BUY_PRO.txt}
+{$INCLUDE scripts/IMPND_L.txt}
+{$INCLUDE scripts/VALET_L.txt}
+{$INCLUDE scripts/TRAINSL.txt}
+{$INCLUDE scripts/ADPLANE.txt}
+{$INCLUDE scripts/COLLS.txt}
+{$INCLUDE scripts/TCASH.txt}
+{$INCLUDE scripts/KEYCARD.txt}
+{$INCLUDE scripts/PSAVE1.txt}
+{$INCLUDE scripts/HELP.txt}
+{$INCLUDE scripts/INTROST.txt}
+{$INCLUDE scripts/FLOW.txt}
+{$INCLUDE scripts/DOORS.txt}
+{$INCLUDE scripts/BACKON.txt}
+{$INCLUDE scripts/CASHWIN.txt}
+{$INCLUDE scripts/CRANES.txt}
+{$INCLUDE scripts/ENTEXT.txt}
+{$INCLUDE scripts/OPENUP.txt}
+{$INCLUDE scripts/LITCAS.txt}
+{$INCLUDE scripts/PROJECT.txt}
+{$INCLUDE scripts/BBCHAL.txt}
+{$INCLUDE scripts/LOWGAME.txt}
+{$INCLUDE scripts/AUDIOL.txt}
+{$INCLUDE scripts/CLEANAU.txt}
+{$INCLUDE scripts/BDISPLY.txt}
+{$INCLUDE scripts/IMPEXPM.txt}
+{$INCLUDE scripts/IMPEXPC.txt}
+{$INCLUDE scripts/APCHECK.txt}
+{$INCLUDE scripts/APGUARD.txt}
+{$INCLUDE scripts/APGATE.txt}
+{$INCLUDE scripts/GFINIT.txt}
+{$INCLUDE scripts/GFAGNT.txt}
+{$INCLUDE scripts/INTMAN.txt}
+{$INCLUDE scripts/A_CONT.txt}
+{$INCLUDE scripts/A_ALAP.txt}
+{$INCLUDE scripts/A_TERM.txt}
+{$INCLUDE scripts/HJ.txt}
+{$INCLUDE scripts/CELLFON.txt}
+{$INCLUDE scripts/MOB_LA1.txt}
+{$INCLUDE scripts/MOB_CAT.txt}
+{$INCLUDE scripts/MOB_SF.txt}
+{$INCLUDE scripts/MOB_VEG.txt}
+{$INCLUDE scripts/MOB_LA2.txt}
+{$INCLUDE scripts/MOB_RAN.txt}
+{$INCLUDE scripts/MOB_GF.txt}
+{$INCLUDE scripts/INITIAL.txt}
+{$INCLUDE scripts/INITIL2.txt}
+{$INCLUDE scripts/INTRO.txt}
+{$INCLUDE scripts/NONE.txt}
+{$INCLUDE scripts/DUAL.txt}
+{$INCLUDE scripts/SHTR.txt}
+{$INCLUDE scripts/GRAV.txt}
+{$INCLUDE scripts/OTB.txt}
+{$INCLUDE scripts/POOL2.txt}
+{$INCLUDE scripts/LOWR.txt}
+{$INCLUDE scripts/ZERO5.txt}
+{$INCLUDE scripts/INTRO1.txt}
+{$INCLUDE scripts/INTRO2.txt}
+{$INCLUDE scripts/SWEET1.txt}
+{$INCLUDE scripts/SWEET1B.txt}
+{$INCLUDE scripts/SWEET3.txt}
+{$INCLUDE scripts/SWEET2.txt}
+{$INCLUDE scripts/SWEET4.txt}
+{$INCLUDE scripts/HOODS5.txt}
+{$INCLUDE scripts/SWEET6.txt}
+{$INCLUDE scripts/SWEET7.txt}
+{$INCLUDE scripts/CRASH4.txt}
+{$INCLUDE scripts/CRASH1.txt}
+{$INCLUDE scripts/DRUGS3.txt}
+{$INCLUDE scripts/GUNS1.txt}
+{$INCLUDE scripts/RYDER3.txt}
+{$INCLUDE scripts/RYDER2.txt}
+{$INCLUDE scripts/TWAR7.txt}
+{$INCLUDE scripts/SMOKE2.txt}
+{$INCLUDE scripts/SMOKE3.txt}
+{$INCLUDE scripts/DRUGS1.txt}
+{$INCLUDE scripts/MUSIC1.txt}
+{$INCLUDE scripts/MUSIC2.txt}
+{$INCLUDE scripts/MUSIC3.txt}
+{$INCLUDE scripts/MUSIC5.txt}
+{$INCLUDE scripts/CPRACE.txt}
+{$INCLUDE scripts/CESAR1.txt}
+{$INCLUDE scripts/DRUGS4.txt}
+{$INCLUDE scripts/LA1FIN2.txt}
+{$INCLUDE scripts/BCRASH1.txt}
+{$INCLUDE scripts/CATALIN.txt}
+{$INCLUDE scripts/CAT1.txt}
+{$INCLUDE scripts/CAT2.txt}
+{$INCLUDE scripts/CAT3.txt}
+{$INCLUDE scripts/CAT4.txt}
+{$INCLUDE scripts/CATCUT.txt}
+{$INCLUDE scripts/TRUTH1.txt}
+{$INCLUDE scripts/TRUTH2.txt}
+{$INCLUDE scripts/BCESAR4.txt}
+{$INCLUDE scripts/GARAG1.txt}
+{$INCLUDE scripts/DECON.txt}
+{$INCLUDE scripts/SCRASH3.txt}
+{$INCLUDE scripts/SCRASH2.txt}
+{$INCLUDE scripts/WUZI1.txt}
+{$INCLUDE scripts/FARLIE4.txt}
+{$INCLUDE scripts/DRIV6.txt}
+{$INCLUDE scripts/WUZI2.txt}
+{$INCLUDE scripts/WUZI5.txt}
+{$INCLUDE scripts/SYN1.txt}
+{$INCLUDE scripts/SYN2.txt}
+{$INCLUDE scripts/SYN3.txt}
+{$INCLUDE scripts/SYND4.txt}
+{$INCLUDE scripts/SYN6.txt}
+{$INCLUDE scripts/SYN7.txt}
+{$INCLUDE scripts/SYN5.txt}
+{$INCLUDE scripts/DRIV2.txt}
+{$INCLUDE scripts/DRIV3.txt}
+{$INCLUDE scripts/STEAL1.txt}
+{$INCLUDE scripts/STEAL2.txt}
+{$INCLUDE scripts/STEAL4.txt}
+{$INCLUDE scripts/STEAL5.txt}
+{$INCLUDE scripts/DSKOOL.txt}
+{$INCLUDE scripts/ZERO1.txt}
+{$INCLUDE scripts/ZERO2.txt}
+{$INCLUDE scripts/ZERO4.txt}
+{$INCLUDE scripts/TORENO1.txt}
+{$INCLUDE scripts/TORENO2.txt}
+{$INCLUDE scripts/DES3.txt}
+{$INCLUDE scripts/DESERT4.txt}
+{$INCLUDE scripts/DESERT6.txt}
+{$INCLUDE scripts/DESERT9.txt}
+{$INCLUDE scripts/MAF4.txt}
+{$INCLUDE scripts/DES10.txt}
+{$INCLUDE scripts/DESERT5.txt}
+{$INCLUDE scripts/CASINO1.txt}
+{$INCLUDE scripts/CASINO2.txt}
+{$INCLUDE scripts/CASINO3.txt}
+{$INCLUDE scripts/CASINO7.txt}
+{$INCLUDE scripts/CASINO4.txt}
+{$INCLUDE scripts/CASINO5.txt}
+{$INCLUDE scripts/CASINO6.txt}
+{$INCLUDE scripts/CASINO9.txt}
+{$INCLUDE scripts/CASIN10.txt}
+{$INCLUDE scripts/VCRASH1.txt}
+{$INCLUDE scripts/VCR2.txt}
+{$INCLUDE scripts/DOC2.txt}
+{$INCLUDE scripts/HEIST1.txt}
+{$INCLUDE scripts/HEIST3.txt}
+{$INCLUDE scripts/HEIST2.txt}
+{$INCLUDE scripts/HEIST4.txt}
+{$INCLUDE scripts/HEIST5.txt}
+{$INCLUDE scripts/HEIST9.txt}
+{$INCLUDE scripts/MANSIO1.txt}
+{$INCLUDE scripts/MANSIO2.txt}
+{$INCLUDE scripts/MANSIO3.txt}
+{$INCLUDE scripts/MANSON5.txt}
+{$INCLUDE scripts/GROVE1.txt}
+{$INCLUDE scripts/GROVE2.txt}
+{$INCLUDE scripts/RIOT1.txt}
+{$INCLUDE scripts/RIOT2.txt}
+{$INCLUDE scripts/FINALEA.txt}
+{$INCLUDE scripts/FINALEB.txt}
+{$INCLUDE scripts/FINALEC.txt}
+{$INCLUDE scripts/SHRANGE.txt}
+{$INCLUDE scripts/GYMLS.txt}
+{$INCLUDE scripts/GYMSF.txt}
+{$INCLUDE scripts/GYMLV.txt}
+{$INCLUDE scripts/TRUCK.txt}
+{$INCLUDE scripts/QUARRY.txt}
+{$INCLUDE scripts/BOAT.txt}
+{$INCLUDE scripts/BSKOOL.txt}
+{$INCLUDE scripts/TAXIODD.txt}
+{$INCLUDE scripts/AMBULAN.txt}
+{$INCLUDE scripts/FIRETRU.txt}
+{$INCLUDE scripts/COPCAR.txt}
+{$INCLUDE scripts/BURGJB.txt}
+{$INCLUDE scripts/FREIGHT.txt}
+{$INCLUDE scripts/PIMP.txt}
+{$INCLUDE scripts/BLOOD.txt}
+{$INCLUDE scripts/KICKSTA.txt}
+{$INCLUDE scripts/TRIA.txt}
+{$INCLUDE scripts/BCOUR.txt}
+{$INCLUDE scripts/MTBIKER.txt}
+{$INCLUDE scripts/STUNT.txt}
+{$INCLUDE scripts/BUYPRO1.txt}
+{$INCLUDE scripts/PLCHUTE.txt}
+{$INCLUDE scripts/PARACH.txt}
+{$INCLUDE scripts/BCESAR2.txt}
+{$INCLUDE scripts/COKEC.txt}
+{$INCLUDE scripts/BANDIT.txt}
+{$INCLUDE scripts/ROULETE.txt}
+{$INCLUDE scripts/OTB_MSC.txt}
+{$INCLUDE scripts/ARCADE.txt}
+{$INCLUDE scripts/VENDING.txt}
+{$INCLUDE scripts/FODVEND.txt}
+{$INCLUDE scripts/GATEOS.txt}
+{$INCLUDE scripts/GYMBIKE.txt}
+{$INCLUDE scripts/GYMBENC.txt}
+{$INCLUDE scripts/GYMTREA.txt}
+{$INCLUDE scripts/GYMDUMB.txt}
+{$INCLUDE scripts/BBALL.txt}
+{$INCLUDE scripts/VIDPOK.txt}
+{$INCLUDE scripts/BLACKJ.txt}
+{$INCLUDE scripts/WOF.txt}
+{$INCLUDE scripts/DEALER.txt}
+{$INCLUDE scripts/HMLES.txt}
+{$INCLUDE scripts/POOL.txt}
+{$INCLUDE scripts/LOWRCON.txt}
+{$INCLUDE scripts/BURGLAR.txt}
+{$INCLUDE scripts/GFMEET.txt}
+{$INCLUDE scripts/GFDATE.txt}
+{$INCLUDE scripts/GFSEX.txt}
+{$INCLUDE scripts/CASAMB.txt}
+{$INCLUDE scripts/BAR.txt}
+{$INCLUDE scripts/PSHOP.txt}
+{$INCLUDE scripts/OTBSHP.txt}
+{$INCLUDE scripts/STRIP.txt}
+{$INCLUDE scripts/PLANES.txt}
+{$INCLUDE scripts/TRAINS.txt}
+{$INCLUDE scripts/RCSHOP.txt}
+{$INCLUDE scripts/DANCE.txt}
+{$INCLUDE scripts/SKBRAIN.txt}
+{$INCLUDE scripts/FFPNC.txt}
+{$INCLUDE scripts/BARSTAF.txt}
+{$INCLUDE scripts/BOUNCER.txt}
+{$INCLUDE scripts/OTBSTAF.txt}
+{$INCLUDE scripts/PCHAIR.txt}
+{$INCLUDE scripts/PCUSTOM.txt}
+{$INCLUDE scripts/OTBWTCH.txt}
+{$INCLUDE scripts/OTBSLP.txt}
+{$INCLUDE scripts/OTBTILL.txt}
+{$INCLUDE scripts/FBOOTHR.txt}
+{$INCLUDE scripts/FBOOTHL.txt}
+{$INCLUDE scripts/BARGUY.txt}
+{$INCLUDE scripts/PEDROUL.txt}
+{$INCLUDE scripts/PEDCARD.txt}
+{$INCLUDE scripts/PEDSLOT.txt}
+{$INCLUDE scripts/DANCER.txt}
+{$INCLUDE scripts/STRIPW.txt}
+{$INCLUDE scripts/STRIPM.txt}
+{$INCLUDE scripts/BROWSE.txt}
+{$INCLUDE scripts/COPSIT.txt}
+{$INCLUDE scripts/COPLOOK.txt}
+{$INCLUDE scripts/TICKET.txt}
+{$INCLUDE scripts/SHOPPER.txt}
+{$INCLUDE scripts/AMUNAT.txt}
+{$INCLUDE scripts/TATTO.txt}
+{$INCLUDE scripts/BARB.txt}
+{$INCLUDE scripts/WARROBE.txt}
+{$INCLUDE scripts/CLOTH.txt}
+{$INCLUDE scripts/JFUD.txt}
+{$INCLUDE scripts/CARMOD.txt}
+{$INCLUDE scripts/CRANE1.txt}
+{$INCLUDE scripts/CRANE2.txt}
+{$INCLUDE scripts/CRANE3.txt}
+{$INCLUDE scripts/CARPRK1.txt}
+{$INCLUDE scripts/IMPND.txt}
+{$INCLUDE scripts/VALET.txt}
+{$INCLUDE scripts/PHOTO.txt}
+{$INCLUDE scripts/PRISONR.txt}
+{$INCLUDE scripts/CAMERA.txt}
+{$INCLUDE scripts/DEBT.txt}
+{$INCLUDE scripts/HOTDOGV.txt}
