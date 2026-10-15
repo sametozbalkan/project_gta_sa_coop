@@ -33,6 +33,21 @@ paketten pakete açılmaya devam eder (derleme hattı her pakette denetler). Lis
 - Sonra Badlands (#29–#39), San Fierro (#40–#65), çöl (#66–#74), Las Venturas (#75–#92), Los Santos'a dönüş (#93–#103).
 - #1–#5 upstream'de uyarlanmış; sizin testiniz bekleniyor.
 
+## Grup 1 testinden sonra, grup 2'den önce: mimari iyileştirmeler (kullanıcıyla konuşuldu, onaylanırsa)
+Temel model kalıyor: görev host'ta çalışır, arkadaş yansımasını görür. İki iyileştirme önerildi; grup 1 testi
+bitince öneri olarak sunulacak, kullanıcı onaylarsa grup 2 yeni kalıpla başlar.
+1. **Genel görev yansıtma katmanı** (2-3 gtasa-coder-high işi): host'un görev betiğinin ekranda gösterdiği her şey
+   (hedef yazıları, araç/karakter işaretleri, kontrol noktaları, zamanlayıcı ve sayaçlar, görev ekranı göstergeleri)
+   istemci kodunda otomatik olarak arkadaşa da gider; görev betiğine satır eklenmez. Kazanç: uyarlanmamış görevler bile
+   "arkadaş hedefleri görüp yardım edebiliyor" düzeyine çıkar, uyarlama sadece oyun kararlarına (koltuk, ara sahnede
+   konum, başarısızlık koşulları) iner, görev boyutu şişmez (69.000 bayt sorunu hafifler). Dikkat: arkadaşa ait
+   olmayan mesajlar da görünür (ekip olarak sorun değil); elle uyarlanmış görevlerde aynı yazı iki kez çıkmasın diye
+   bir kural gerekir; uyarlama rehberi buna göre güncellenir.
+2. **Dünya durumu kaydı:** host'un dünyasının kurallarını belirleyen şeyler (şehir kilidi, harita nesne grupları ve köprü
+   bariyerleri, çete bölgeleri, en yüksek aranma seviyesi, garajlar vb.) tek bir yerde tanımlanır; değiştikçe ve biri
+   oyuna katıldığında otomatik gönderilir. Şehir kilidi bu kalıpla yapıldı; farkları tek tek kovalamak yerine genel yapı.
+   Köprü bariyerleri işi bunun içinde yapılır.
+
 ## Sonraki işler (öncelik sırasıyla)
 - **Sağlamlık:** geçersiz oyuncu tutamacı verilen co-op komutları host'u çökertiyor (ör. arkadaş görev ortasında
   düşerse); görevi kimin başlatabileceğini denetleyen host kontrolü (`CanPlayerStartMission`) upstream'de yorum satırı.
