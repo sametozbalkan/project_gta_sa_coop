@@ -4,59 +4,54 @@ Durum (2026-10-15): host (oveRange) ve arkadaşı ilk co-op oturumunu Steam tün
 Proje GitHub'da: github.com/sametozbalkan/project_gta_sa_coop. Bu oturum projenin mimarı; işler `gtasa-coder`
 (Opus 5.5 medium) ve `gtasa-coder-high` (Opus 5.5 high) ajanlarına gidiyor (`CLAUDE.md` > "Working model").
 
-## 1. dalga (2026-10-15'te başladı)
+## 1. dalga (bitti; test paketi 0.3.100-alpha, test listesi `docs/test-dalga-1.md`)
 | İş | Ajan | Durum |
 |---|---|---|
 | Alt+Tab'da sunucudan düşmeyi düzelt | gtasa-coder-high | birleştirildi (1f159e8) |
 | Tagging Up Turf: arkadaşın sıktığı tag sayılmıyor | gtasa-coder-high | birleştirildi (fff678f) |
 | Radyo senkronu (aynı araçta aynı istasyon) | gtasa-coder-high | birleştirildi (98fff3d) |
-| Görev derleme hattı, görev uyarlama rehberi ve görev envanteri | gtasa-coder-high | çalışıyor |
+| Görev derleme hattı, görev uyarlama rehberi ve görev envanteri | gtasa-coder-high | birleştirildi (5d7d80a) |
 | Tünel yayın betiği, yeni repo düzeni için paketleme, pakete yama arşivi seçeneği | gtasa-coder | birleştirildi (35db590) |
 | Discord Rich Presence'ı kapat, dış bağlantıları denetle | gtasa-coder | birleştirildi (294dc4f) |
 | Gizlilik kalıntıları: çökme raporu yüklemesi, ImGui linkleri, eski Discord kaydı, sunucu `bind` ayarı | gtasa-coder | birleştirildi (2322d12) |
+| Upstream PR #106 incelemesi (para, aranma, hileler) | gtasa-coder-high | alınmadı, aşağıya bak |
 
-Dalga bitince: birleştir, derle, oyuna kur, arkadaş için yeni paket; sonra ikiniz oyunda test edersiniz.
+## 2. dalga (çalışıyor)
+| İş | Ajan | Durum |
+|---|---|---|
+| Görevlerin aranma komutları host'tan iki oyuncuya; San Fierro/Las Venturas kilidi arkadaşa da (sürüm 0.3.101) | gtasa-coder-high | çalışıyor |
+| Görev grubu 1: #6 Drive-Thru, #7 Nines And AK's, #8 Drive-By, #9 Sweet's Girl, #10 Cesar Vialpando | gtasa-coder / -high | çalışıyor |
 
-## Sonraki dalgalar (öncelik sırasıyla)
-- **Bağımsız proje (yeniden adlandırma), isim bekleniyor.** Kullanıcı projenin CoopAndreas'tan ayrı, kendi adıyla
-  bir proje olmasını istiyor (isim sonra, yaratıcı bir şey). Plan: oyuncunun gördüğü her yerde yeni ad (oyundaki
-  sürüm yazısı ve mesajlar, DLL/klasör/ini adları, kısayollar, kurulum, README), kendi sürüm numaramız, upstream
-  otomatik takip edilmez (işe yarayan bir şey gerekirse elle alınır). İç kod adları kalır. Lisans gereği kalanlar:
-  GPL-3.0, LICENSE, kaynak dosyalarındaki orijinal telif satırları ve README'de tek satırlık teşekkür. Kurulum
-  programı eski adları yenilerine taşır, kayıtlar etkilenmez. İsim gelince görev grupları arasında tek seferde yapılır.
-- Görevleri hikâye sırasıyla, **gruplar halinde** uyarlamak (rehber çıkınca). Her grup bir bölümün birkaç
-  görevi; görevler ajanlarda paralel uyarlanır, grup tek pakette gelir. Host ve arkadaşı test etmeyi dert etmiyor,
-  grupları aralıksız deneyecekler; onlar bir grubu oynarken sıradaki grup hazırlanır, buldukları hatalar sonraki
-  pakete girer.
-  - Görev sırası bozulmaz (kullanıcının kuralı): açılma sırası, başlatma tetikleri ve ilerleme bayraklarına
-    dokunulmaz; bir uyarlama sadece kendi görevinin içini değiştirir.
-  - Kayıtlar paketten pakete çalışmaya devam etmeli: global değişken eklenmez, MAIN'e dokunulmaz; derleme hattı
-    bunu her pakette denetler.
-  95 hikâye görevinden yalnızca ilk 4'ü uyarlanmış; asıl darboğaz bu.
-- Upstream PR #106 (para, aranma seviyesi, hileler): **alınmadı** (2026-10-15 incelemesi). Oyuna sonradan katılan
-  oyuncu diğerinin parasını sıfırlıyor, aynı anda kazanılan para kayboluyor, hileler (intihar, arabaları patlatma)
-  iki oyunda birden çalışıyor. Yerine:
-  - **2. dalga, çalışıyor:** görevlerin aranma komutları (yıldız ver, temizle, üst sınır) host'tan iki oyuncuya
-    uygulanır; suçlar herkesin kendine kalır. San Fierro/Las Venturas kilidi açılınca arkadaşın oyunu da açık sayar
-    (şu an orada arkadaşa 4 yıldız veriyor). Sürüm 0.3.101.
-  - Para: herkesin cüzdanı ayrı kalır; uyarlanmış görevlerin ödülü zaten ikinize de ödeniyor.
-  - Hileler: herkesin kendi oyununda kalır.
-- Upstream README'de yapılmamış diğerleri, hikâyede gerektikleri sırayla: para, nefes çubuğu, max HP,
-  araç kornası/sireni (NPC), yangın, pickup'lar, aranma seviyesi, çete savaşları, paraşüt, trailer, hidrolik.
+## Görev grupları (plan)
+Görevler hikâye sırasıyla, gruplar halinde uyarlanıyor; her grup tek pakette gelir, siz bir grubu oynarken sıradaki
+hazırlanır. Kurallar: görev sırası bozulmaz (açılma sırası, tetikler, ilerleme bayraklarına dokunulmaz) ve kayıtlar
+paketten pakete açılmaya devam eder (derleme hattı her pakette denetler). Liste ve riskler: `docs/missions.md`.
+- Los Santos: grup 1 #6–#10 (Sweet), grup 2 #11–#17 (Smoke, Ryder), grup 3 #18–#22 (müzik ve Cesar),
+  grup 4 #23–#28 (Crash, Doberman, Los Sepulcros, Reuniting The Families, The Green Sabre).
+- Sonra Badlands (#29–#39), San Fierro (#40–#65), çöl (#66–#74), Las Venturas (#75–#92), Los Santos'a dönüş (#93–#103).
+- #1–#5 upstream'de uyarlanmış; sizin testiniz bekleniyor.
 
-## Oyunda görülen eksikler (ayrıntı)
-- **Radyo senkronu yok.** Aynı araçtaki oyuncular farklı istasyon duyuyor. Kodda sadece tuş durumundaki
-  `m_bRadioTrackSkip` taşınıyor (`client/src/CUtil.cpp`); README'de "radio sync" yapılmamış.
-- **Görevde arkadaşın sıktığı sprey sayılmıyor** (Tagging Up Turf, `scm/scripts/SWEET1.txt`): arkadaşın
-  sıktığı tag görünüyor ama host'un görev sayacına yansımadı, host da üstüne sıkmak zorunda kaldı.
-  Bakılacak yerler: `client/src/Hooks/WorldHooks.cpp` (`CTagManager__SetAlpha_Hook`, 0x565C5E),
-  `client/src/game_sa/CTagManager.*` (`CTagSync`), `shared/network/packets/world.h` (`TagUpdate`,
-  `UpdateAllTags`), görevin tag'leri nasıl saydığı (SWEET1.txt) ve `COMMAND_SET_TAG_STATUS_IN_AREA` opcode senkronu.
+## Sonraki işler (öncelik sırasıyla)
+- **Sağlamlık:** geçersiz oyuncu tutamacı verilen co-op komutları host'u çökertiyor (ör. arkadaş görev ortasında
+  düşerse); görevi kimin başlatabileceğini denetleyen host kontrolü (`CanPlayerStartMission`) upstream'de yorum satırı.
+- **Görev boyutu sınırı:** Reuniting The Families (#27) 69.000 baytlık sınıra 561 bayt uzakta; #27'den önce ya görev
+  içinde kısaltma ya da sınırı yükselten istemci yaması.
+- **Görevlerin isteyeceği istemci özellikleri** (sırası gelince): yangın (#23), çete savaşları (#25, #98), römork (#31),
+  RC araçlar (#44–#46), paraşüt (#72, #81, #89), jetpack (#73). Tek kişilik mini oyunlarda (#10 lowrider, #18 dans,
+  #43 sürücü okulu, #70 uçuş okulu) ikinci oyuncu izler.
+- **Bağımsız proje (yeniden adlandırma), isim bekleniyor.** Oyuncunun gördüğü her yerde yeni ad (oyundaki sürüm
+  yazısı ve mesajlar, DLL/klasör/ini adları, kısayollar, kurulum, README), kendi sürüm numaramız, upstream otomatik
+  takip edilmez. İç kod adları kalır. Lisans gereği kalanlar: GPL-3.0, LICENSE, kaynak dosyalarındaki orijinal telif
+  satırları ve README'de tek satırlık teşekkür. Kurulum eski adları taşır, kayıtlar etkilenmez. İsim gelince grup arasında.
+- Alt+Tab'a küçük ek: pencere arka plana geçerken "tuşlar bırakıldı" bilgisi gönderilsin (diğer ekranda basılı kalan
+  tuşla yürümeye devam etmesin).
+- Upstream PR #106 **alınmadı**: sonradan katılan oyuncu diğerinin parasını sıfırlıyor, aynı anda kazanılan para
+  kayboluyor, hileler iki oyunda birden çalışıyor. Para herkesin kendine kalıyor (uyarlanmış görevlerin ödülü ikinize de
+  ödeniyor), hileler yerel kalıyor; aranma seviyesi 2. dalgada host'un görev komutlarıyla geliyor.
 
 ## Bilinen sınırlamalar
-- Alt+Tab'da ~30 sn sonra sunucudan düşme (oyun arka planda ENet'i işlemiyor). 1. dalgada.
-- Eski (Steam) kayıtlar yüklenemez; her zaman New Game.
+- Eski (Steam) kayıtlar yüklenemez; her zaman New Game. Co-op kaydını host alır: güvenli evde, görev dışındayken.
+- Alt+Tab'da oyun duraklar (host'taysa görev de bekler); bağlantı kopmaz.
 
 ## Bakım
-- Pakete doğrulanmış `.tools/patches/Patches_v2.zip`'i koyma seçeneği (yazarın sunucusu kapanırsa diye). 1. dalgada.
 - Arkadaşın Wi-Fi'ı ~90 ms sıçramalar yapıyor olabilir (güç tasarrufu); kablo ya da Maksimum Performans.
