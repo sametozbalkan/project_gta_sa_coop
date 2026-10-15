@@ -97,6 +97,7 @@ players; the host ignores every other opcode it receives.
 | Camera | `015F` set_fixed_camera_position, `0160` point_camera_at_point, `02EB` restore_camera_jumpcut, `0373` set_camera_behind_player, `0920`, `0925`, `092F`, `0930`, `0936` (vector move/track), `0A0B` load_scene_in_direction, `052C` set_player_drunkenness |
 | Scenes | `016A` do_fade, `02A3` switch_widescreen, `02E4` load_cutscene, `02E7` start_cutscene (deferred until loaded), `02EA` clear_cutscene |
 | World, interiors | `0703` set_tag_status_in_area, `04BB` set_area_visible, `084D` activate_interior_peds |
+| Mission wanted commands | `010D`, `010E`, `0110`, `01F7`, `01F0`, `03C7`, `0A24` (fork 0.3.101); PLAYER means the receiver's local player. Mission wanted checks still read the host. |
 | Weapons | `06AB` hide_char_weapon_for_scripted_cutscene, `07A7` task_jetpack, `01B2` give_weapon_to_char, `01B9` set_current_char_weapon, `0555` remove_weapon_from_char |
 | Tasks | `05C0` look_at_vehicle, `05CA`/`05CB` enter car as passenger/driver, `0603` go_to_coord_any_means, `0634`, `0673`, `0713` drive_by, `0792` clear_char_tasks_immediately, `0967`/`0968` facial talk |
 | Tasks (T) | `05BA`, `05BC`, `05BD`, `05BF`, `05C9`, `05CD`, `05D3`, `05D4`, `05DE`, `0605`, `0633`, `0639`, `0647`, `0668`, `0687`, `06A9`, `0804`, `0812`, `0829`, `088A`, `0A1A`; task sequences (`open_sequence_task` … `perform_sequence_task`) of synced peds go through `CTaskSequenceSync` |
@@ -115,9 +116,9 @@ weapons and teleports given to `$NETWORK_PLAYER[i]`, and tasks of synced peds.
 Not replayed, so the other player doesn't see them unless the port adds co-op commands: `print_now` and
 `print` (objective texts, dialogue subtitles), blips on entities, locate spheres and checkpoints. Not
 replayed and without any co-op command today: on-screen timers and counters (`display_onscreen_timer`,
-`display_onscreen_counter*`), wanted levels (`alter_wanted_level`, `clear_wanted_level`; the README lists
-wanted-level sync as open), `play_mission_passed_tune`, mission-specific HUD (bars, meters), and
+`display_onscreen_counter*`), `play_mission_passed_tune`, mission-specific HUD (bars, meters), and
 `Coop.AddChatMessage` itself. Flag those in the port's report.
+Crimes and the resulting wanted level remain per player; only the host's scripted wanted commands are replayed.
 
 ## Co-op commands (opcodes 0x1D00–0x1D1C)
 
@@ -392,7 +393,7 @@ committed `main.scm` and `script.img` except the compiler signature in the objec
 7. Mission end: leave the passed block's progression untouched, add the co-op cleanup.
 8. New state only in mission locals; no new globals, no edits outside the mission's file.
 9. Compile with `scripts/compile-scm.ps1`; it must pass the size and save checks. Note the free bytes.
-10. Report: what the other player sees and does in each phase, what they can't (timers, wanted level,
+10. Report: what the other player sees and does in each phase, what they can't (timers, wanted checks,
     solo minigames), anything that needed rule 3, and the in-game test steps below.
 
 ## In-game test (by the user and the friend)

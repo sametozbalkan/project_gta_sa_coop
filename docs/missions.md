@@ -16,6 +16,7 @@ column belong to MAIN and stay as they are.
 | Status | Meaning |
 |---|---|
 | **Adapted** | Upstream ported it with co-op commands; `CoopAndreas/README.md` lists it as checked. Still needs our in-game test. |
+| **Ported (test pending)** | Our fork ported and compiled it with the size/save checks passing. Two-player acceptance is still pending (`docs/test-grup-1.md`). |
 | **Skipped** | Upstream replaced the mission body with the state the mission leaves behind (In the Beginning). |
 | **Warning** | Vanilla mission plus two `Coop.AddChatMessage` lines ("This mission is currently unsupported…") after `script_name`. The chat line shows only on the host (`1D00` is not synced). |
 | **Warning (lost)** | The warning lines sit before the mission's label, so they compile into the tail of the previous mission after its last `return` and never run (upstream bug). They add 210 bytes to the previous mission. |
@@ -44,11 +45,11 @@ check the source before porting.
 | 3 | Ryder | `INTRO2` | 12 | 19,958 (49,042) | **Adapted** | INT =1 | Barber: stores every player's hair (`GetNetworkPlayerInternalId`). |
 | 4 | Tagging Up Turf | `SWEET1` | 13 | 20,795 (48,205) | **Adapted** | SWEET =0 | Tag counting relies on our fork's tag sync. Two players ride in Sweet's car, a third in Ryder's. |
 | 5 | Cleaning The Hood | `SWEET1B` | 14 | 22,116 (46,884) | **Adapted** | SWEET =1 | Uses `TeleportPlayersToHostSafely`. |
-| 6 | Drive-Thru | `SWEET3` | 15 | 16,639 (52,361) | **Warning** | SWEET =2 | Greenwood with CJ + Sweet + Smoke + Ryder: all four seats taken; drive-by chase. |
-| 7 | Nines And AK's | `SWEET2` | 16 | 23,208 (45,792) | **Warning** | SWEET =3 | Emmet's shooting practice (per-player targets); car bomb. |
-| 8 | Drive-By | `SWEET4` | 17 | 24,886 (44,114) | **Warning** | SWEET =4 | Full car of homies, drive-by on a gang. |
-| 9 | Sweet's Girl | `HOODS5` | 18 | 15,862 (53,138) | Untouched | SWEET =5 | Rescue and car chase with Sweet. |
-| 10 | Cesar Vialpando | `SWEET6` | 19 | 36,995 (32,005) | **Warning** | SWEET =6 | Lowrider bounce minigame (solo rhythm game), car mod shop. |
+| 6 | Drive-Thru | `SWEET3` | 15 | 20,096 (48,904) | **Ported (test pending)** | SWEET =2 | Friend gets a separate Greenwood and joins the chase; all seats in Sweet's car remain occupied by the original cast. Arrivals mainly follow the host. |
+| 7 | Nines And AK's | `SWEET2` | 16 | 25,902 (43,098) | **Ported (test pending)** | SWEET =3 | Friend rides in the rear and joins the gas-tank shot. Bottle practice remains host-only (script objects aren't synced). |
+| 8 | Drive-By | `SWEET4` | 17 | 26,581 (42,419) | **Ported (test pending)** | SWEET =4 | Separate Greenwood and Tec-9 for the friend; departure/arrival gates include them. Vehicle-health counter remains host-only; wanted checks read the host. |
+| 9 | Sweet's Girl | `HOODS5` | 18 | 17,925 (51,075) | **Ported (test pending)** | SWEET =5 | Friend helps clear attackers, then uses rear-right seat in a four-door rescue car. Sweet's health counter remains host-only. |
+| 10 | Cesar Vialpando | `SWEET6` | 19 | 38,358 (30,642) | **Ported (test pending)** | SWEET =6 | Mod shop, betting and lowrider rhythm game remain host-only; friend rides along or watches, and receives the shared outcome. |
 | 11 | OG Loc | `TWAR7` | 27 | 32,711 (36,289) | Untouched | SMOKE =0 | Chase Freddy on a bike; carries the lost SMOKE2 warning. |
 | 12 | Running Dog | `SMOKE2` | 28 | 12,075 (56,925) | **Warning (lost)** | SMOKE =1 | Chase with Smoke in the car; carries the lost SMOKE3 warning. |
 | 13 | Wrong Side of the Tracks | `SMOKE3` | 29 | 20,874 (48,126) | **Warning (lost)** | SMOKE =2 | Bike + train chase, Smoke shoots from the back seat: the bike's two seats are taken. |

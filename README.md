@@ -12,4 +12,8 @@ GTA San Andreas hikâyesini bir arkadaşla iki kişi oynamak için [CoopAndreas]
 
 Derlemek için Visual Studio 2026 (MSVC x86) ve `.tools/` altında xmake 3.1.1 (portable) gerekir; ayrıntılar `CLAUDE.md`'de.
 
+Grup 1 (#6–#10) iki oyunculu test bekliyor: [test listesi](docs/test-grup-1.md).
+Arkadaş paketini PowerShell 7 ile hazırlama: `pwsh -File scripts/package.ps1 -TestPlan docs/test-grup-1.md`.
+Paket test listesini, kaynak commit'ini ve dosya SHA-256'larını içerir; arşivin yanında `.zip.sha256` bulunur.
+
 Lisans: GPL-3.0 (`LICENSE`).

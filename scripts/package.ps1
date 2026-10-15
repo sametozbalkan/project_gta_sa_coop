@@ -1,4 +1,5 @@
-﻿<#
+﻿#Requires -Version 7.0
+<#
 .SYNOPSIS
     Builds dist\CoopAndreas-Kurulum (+ .zip) for a friend's PC: the installer, our CoopAndreas build,
     CoopTunnel, the official xdelta3 and the GPL source of our CoopAndreas changes.
@@ -8,8 +9,12 @@
 .PARAMETER IncludePatches
     Also bundles .tools\patches\Patches_v2.zip (~880 MB) next to Kur.ps1, so the installer doesn't need the
     download server. Without it Kur.ps1 downloads the archive; either way it checks the pinned SHA-256.
+.PARAMETER TestPlan
+    Optional test checklist (relative to the repository root or absolute). Included as TEST-LISTESI.md.
+    manifest.json identifies the source commit, version and every payload file by SHA-256; the zip gets
+    a .sha256 sidecar. Use PowerShell 7 for portable zip entry names.
 #>
-param([switch]$IncludePatches)
+param([switch]$IncludePatches, [string]$TestPlan)
 
 $ErrorActionPreference = 'Stop'
 $root  = Split-Path -Parent $PSScriptRoot
@@ -17,6 +22,10 @@ $repo  = Join-Path $root 'CoopAndreas'
 $build = Join-Path $repo 'build\windows\x86\release'
 $out   = Join-Path $root 'dist\CoopAndreas-Kurulum'
 $tools = Join-Path $root '.tools'
+if ($TestPlan) {
+    if (-not [IO.Path]::IsPathRooted($TestPlan)) { $TestPlan = Join-Path $root $TestPlan }
+    if (-not (Test-Path -LiteralPath $TestPlan -PathType Leaf)) { throw "Test plan not found: $TestPlan" }
+}
 if (-not (Test-Path -LiteralPath (Join-Path $tools 'xdelta3\xdelta3.exe'))) {
     # In a linked git worktree (agents) the git-ignored .tools exists only in the main checkout
     $commonDir = git -C $root rev-parse --path-format=absolute --git-common-dir
@@ -29,10 +38,10 @@ foreach ($f in 'CoopAndreasSA.dll', 'proxy.dll', 'server.exe') {
 if (-not (Test-Path -LiteralPath (Join-Path $root 'dist\CoopTunnel\CoopTunnel.exe'))) { throw 'dist\CoopTunnel is missing; run scripts\publish-tunnel.ps1 first' }
 if (-not (Test-Path -LiteralPath (Join-Path $tools 'xdelta3\xdelta3.exe'))) { throw "xdelta3.exe is missing in $tools\xdelta3" }
 
-# KAYNAK is made from commits, so it only matches the build when nothing under CoopAndreas\ is uncommitted
-$dirty = git -C $root status --porcelain -- CoopAndreas
+# The manifest names HEAD and KAYNAK is made from commits; all packaged sources must match that commit.
+$dirty = git -C $root status --porcelain -- CoopAndreas tunnel installer scripts docs
 if ($LASTEXITCODE) { throw "git status failed (exit $LASTEXITCODE)" }
-if ($dirty) { throw "CoopAndreas\ has uncommitted changes; commit them first:`n$($dirty -join "`n")" }
+if ($dirty) { throw "Package sources have uncommitted changes; commit them first:`n$($dirty -join "`n")" }
 # GPL-3.0 source of the shipped build: the latest subtree import is a squash commit holding the upstream tree
 # of its git-subtree-split commit, so the diff from that tree to HEAD:CoopAndreas is all of our changes
 $import = @(git -C $root log -1 --no-show-signature --format='%H%n%B' --grep='^git-subtree-dir: CoopAndreas/*$')
@@ -64,6 +73,10 @@ foreach ($name in 'Kur.ps1', 'OKU-BENI.txt') {
 }
 $bat = [IO.File]::ReadAllText((Join-Path $root 'installer\Kur.bat')) -replace "`r?`n", "`r`n"
 [IO.File]::WriteAllText((Join-Path $out 'Kur.bat'), $bat, [Text.Encoding]::ASCII)
+if ($TestPlan) {
+    $text = [IO.File]::ReadAllText($TestPlan) -replace "`r?`n", "`r`n"
+    [IO.File]::WriteAllText((Join-Path $out 'TEST-LISTESI.md'), $text, $utf8Bom)
+}
 
 Copy-Item -LiteralPath (Join-Path $build 'CoopAndreasSA.dll') -Destination (Join-Path $out 'files')
 Copy-Item -LiteralPath (Join-Path $build 'proxy.dll') -Destination (Join-Path $out 'files\eax.dll')
@@ -96,7 +109,29 @@ xdelta3      : https://github.com/jmacd/xdelta-gpl/releases/tag/v3.1.0 (tools\SO
 "@
 [IO.File]::WriteAllText((Join-Path $source 'OKU.txt'), ($note -replace "`r?`n", "`r`n"), $utf8Bom)
 
+$version = [regex]::Match([IO.File]::ReadAllText((Join-Path $repo 'shared\config.h')),
+    '(?m)^#define COOPANDREAS_VERSION "([^"]+)"').Groups[1].Value
+if (-not $version) { throw 'COOPANDREAS_VERSION is missing from shared\config.h' }
+$manifest = [ordered]@{
+    formatVersion = 1
+    version = $version
+    sourceCommit = $head
+    testPlan = $(if ($TestPlan) { 'TEST-LISTESI.md' } else { $null })
+    files = @(Get-ChildItem -LiteralPath $out -Recurse -File | Sort-Object FullName | ForEach-Object {
+        [ordered]@{
+            path = $_.FullName.Substring($out.Length + 1).Replace('\', '/')
+            size = $_.Length
+            sha256 = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+        }
+    })
+}
+[IO.File]::WriteAllText((Join-Path $out 'manifest.json'),
+    ($manifest | ConvertTo-Json -Depth 4) + "`n", [Text.UTF8Encoding]::new($false))
+
 $zip = "$out.zip"
 Compress-Archive -Path (Join-Path $out '*') -DestinationPath $zip -Force
+$zipHash = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+[IO.File]::WriteAllText("$zip.sha256", "$zipHash  $([IO.Path]::GetFileName($zip))`n", [Text.Encoding]::ASCII)
 Get-ChildItem -LiteralPath $out -Recurse -File | ForEach-Object { '{0,-45} {1,10:N0}' -f $_.FullName.Substring($out.Length + 1), $_.Length }
 'zip: {0} ({1:N1} MB)' -f $zip, ((Get-Item -LiteralPath $zip).Length / 1MB)
+"SHA-256: $zipHash"

@@ -1,8 +1,9 @@
 # Yapılacaklar
 
 Durum (2026-10-15): host (oveRange) ve arkadaşı ilk co-op oturumunu Steam tüneliyle oynadı, çalışıyor.
-Proje GitHub'da: github.com/sametozbalkan/project_gta_sa_coop. Bu oturum projenin mimarı; işler `gtasa-coder`
-(Opus 5.5 medium) ve `gtasa-coder-high` (Opus 5.5 high) ajanlarına gidiyor (`CLAUDE.md` > "Working model").
+Proje GitHub'da: github.com/sametozbalkan/project_gta_sa_coop. Grup 1 teslimatı kullanıcının isteğiyle
+`codex/group1-delivery` branch'inde hazırlanıyor; bu teslimatta Codex ve `gpt-6.1-sol / high` ajanları kullanılıyor.
+Önceki görev uyarlamaları `main` üzerinde duruyor.
 
 ## 1. dalga (bitti; test paketi 0.3.100-alpha, test listesi `docs/test-dalga-1.md`)
 | İş | Ajan | Durum |
@@ -16,11 +17,20 @@ Proje GitHub'da: github.com/sametozbalkan/project_gta_sa_coop. Bu oturum projeni
 | Gizlilik kalıntıları: çökme raporu yüklemesi, ImGui linkleri, eski Discord kaydı, sunucu `bind` ayarı | gtasa-coder | birleştirildi (2322d12) |
 | Upstream PR #106 incelemesi (para, aranma, hileler) | gtasa-coder-high | alınmadı, aşağıya bak |
 
-## 2. dalga (çalışıyor)
+## 2. dalga (grup 1 iki oyunculu test bekliyor)
 | İş | Ajan | Durum |
 |---|---|---|
 | Görevlerin aranma komutları host'tan iki oyuncuya; San Fierro/Las Venturas kilidi arkadaşa da (sürüm 0.3.101) | gtasa-coder-high | birleştirildi (59d055e) |
-| Görev grubu 1: #6 Drive-Thru, #7 Nines And AK's, #8 Drive-By, #9 Sweet's Girl, #10 Cesar Vialpando | gtasa-coder / -high | çalışıyor |
+| Görev grubu 1: #6 Drive-Thru, #7 Nines And AK's, #8 Drive-By, #9 Sweet's Girl, #10 Cesar Vialpando | gtasa-coder / -high | kaynaklar main'de (ecbab75, e4f12f7, 2f9cfda, c297af5, 14b15e9); birlikte derlendi, test onayı bekliyor |
+
+Grup 1 teslimatı **0.3.101-alpha**: `main.scm` ve `script.img` güncel kaynaklardan üretildi; kayıt uyumluluğu
+ve boyut denetimleri geçti. C++ derlemesi ve tünel yayını başarılı; mod `C:\Games\GTASA_Coop` içine kuruldu,
+beş dosyanın SHA-256'sı derleme çıktısıyla eşleşiyor. Oyun/sunucu/tünel başlatılmadı; oyun içi kabul yapılmadı.
+Test listesi: `docs/test-grup-1.md` (pakette `TEST-LISTESI.md`). Arkadaş paketi:
+`dist/CoopAndreas-Kurulum.zip`; `manifest.json` kaynak commit'ini ve dosya SHA-256'larını, yanındaki
+`.zip.sha256` arşiv özetini verir. Eski paket/kurulum ve yerel doğrulama günlükleri
+`backups/group1-delivery-20261015/` altında tutulur (git dışında).
+Bu paket mevcut 1.0 US kurulumu günceller; ~880 MB ilk kurulum yamaları pakete eklenmez.
 
 ## Görev grupları (plan)
 Görevler hikâye sırasıyla, gruplar halinde uyarlanıyor; her grup tek pakette gelir. **Bir grup bitince paket size
