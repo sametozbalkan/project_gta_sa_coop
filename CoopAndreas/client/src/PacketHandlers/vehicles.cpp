@@ -3,6 +3,7 @@
 #include "stdafx.h"
 #include <CCarEnterExit.h>
 #include <CTaskSimpleCarSetPedOut.h>
+#include "CRadioSync.h"
 
 PACKET_HANDLER(ePacketType::VEHICLE_SPAWN, Packets::Vehicles::VehicleSpawn* pVehicleSpawn)
 {
@@ -422,4 +423,14 @@ PACKET_HANDLER(ePacketType::SET_VEHICLE_CREATED_BY, Packets::Vehicles::SetVehicl
             }
         }
     }
+}
+
+// private build (radio sync)
+PACKET_HANDLER(ePacketType::VEHICLE_RADIO_STATION, Packets::Vehicles::VehicleRadioStation* pVehicleRadioStation)
+{
+#ifdef PACKET_DEBUG_MESSAGES
+    CChat::AddMessage("VEHICLE RADIO %d %d", pVehicleRadioStation->vehicleid, pVehicleRadioStation->station);
+#endif
+
+    CRadioSync::OnStationReceived(pVehicleRadioStation->vehicleid, pVehicleRadioStation->station);
 }

@@ -32,6 +32,7 @@
 #include <CWeatherSync.h>
 #include <network/packets/scripts.h>
 #include <CNetworkEntityBlip.h>
+#include <CRadioSync.h>
 
 unsigned int lastOnFootSyncTickRate = 0;
 unsigned int lastDriverSyncTickRate = 0;
@@ -88,6 +89,7 @@ public:
             CEntryExitTransitionSync::Process();
             CDiscordRPCMgr::Update();
             CDebugVehicleSpawner::Process();
+            CRadioSync::Process();
 
             if (/*CNetwork::m_bConnected*/ CNetwork::m_bAuthenticated)
             {

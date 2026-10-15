@@ -86,7 +86,13 @@ void __fastcall CVehicle__ProcessControl_Hook()
 
     player->m_pPed->m_nPedType = PED_TYPE_CIVMALE;
 
+    // private build (radio sync): service the audio in the local player's context. CAEVehicleAudioEntity::Service
+    // (0x502280) treats the vehicle as the player's when CAEAudioUtility::FindVehicleOfPlayer (0x4D9E10, which asks
+    // FindPlayerVehicle(CWorld::PlayerInFocus)) returns it, so with the network player in focus every vehicle a network
+    // player drove turned the local radio on, wherever the local player was, and off again when they got out
+    CWorld::PlayerInFocus = 0;
     plugin::CallMethod<0x502280, CAEVehicleAudioEntity*>(&vehicle->m_vehicleAudio);
+    CWorld::PlayerInFocus = playerNum;
 
     player->m_pPed->m_nPedType = PED_TYPE_PLAYER1;
 

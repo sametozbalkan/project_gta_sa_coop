@@ -14,6 +14,7 @@ public:
 	int m_nBlipHandle = -1;
 	Packets::Vehicles::VehicleDriverUpdate m_playerDriverSnapshot{};
 	CDamageManager m_oldDamageState{};
+	int8_t m_nRadioStation = -1; // private build: the station its driver last sent (CRadioSync), -1 = unknown
 
 	~CNetworkVehicle();
 	CNetworkVehicle(int vehicleid, int modelid, CVector pos, float rotation, unsigned char color1, unsigned char color2, unsigned char createdBy);

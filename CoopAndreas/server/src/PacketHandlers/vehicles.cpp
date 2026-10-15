@@ -215,3 +215,17 @@ PACKET_HANDLER(ePacketType::SET_VEHICLE_CREATED_BY, Packets::Vehicles::SetVehicl
         }
     }
 }
+
+// private build (radio sync): the driver's radio station, relayed to everyone else
+PACKET_HANDLER(ePacketType::VEHICLE_RADIO_STATION, Packets::Vehicles::VehicleRadioStation* pVehicleRadioStation,
+    CNetworkPlayer* pNetworkPlayer)
+{
+    if (CNetworkVehicleManager::GetVehicle(pVehicleRadioStation->vehicleid))
+    {
+        GetPacketFactory().SendToAll(*pVehicleRadioStation, pNetworkPlayer);
+    }
+    else
+    {
+        logger::warn("%s tried to sync the radio of a vehicle that didn't exist", pNetworkPlayer->GetName().c_str());
+    }
+}

@@ -446,4 +446,25 @@ private:
         return true;
     }
 };
+
+// private build (radio sync): the radio station the driver of a vehicle listens to, sent when it changes, when the
+// driver gets in and when a network player gets in as a passenger; the server relays it to everyone else
+class VehicleRadioStation : public Packet
+{
+    DEFINE_PACKET_TYPE(VehicleRadioStation, ePacketType::VEHICLE_RADIO_STATION, ePacketChannel::EVENT);
+
+public:
+    int vehicleid{};
+    int8_t station{};  // eRadioID: 1-11 radio stations, 12 user track player, 13 radio off
+
+private:
+    template <typename Stream>
+    bool Serialize(Stream& stream)
+    {
+        serialize_int(stream, vehicleid, 0, Config::MAX_SERVER_VEHICLES - 1);
+        serialize_int(stream, station, 1, 13);
+
+        return true;
+    }
+};
 }  // namespace Packets::Vehicles

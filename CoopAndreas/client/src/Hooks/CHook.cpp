@@ -15,10 +15,12 @@
 #include "DamageHooks.h"
 #include "ShadowHooks.h"
 #include "CNetworkKeepAlive.h"
+#include "CRadioSync.h"
 
 void CHook::Init()
 {
     CDriveBy::InitHooks();
+    CRadioSync::InjectHooks();
     VehicleHooks::InjectHooks();
     PlayerHooks::InjectHooks();
     TaskHooks::InjectHooks();
