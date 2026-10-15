@@ -1,0 +1,166 @@
+#include "../client/src/CPedSyncState.h"
+#include <cstdio>
+#include <cstdlib>
+#include <limits>
+
+#define CHECK(condition) do { if (!(condition)) { std::fprintf(stderr, "line %d: %s\n", __LINE__, #condition); std::exit(1); } } while (false)
+
+struct Ped { unsigned char storage[24]; };
+struct FakePool
+{
+    Ped* m_pObjects;
+    unsigned char* m_byteMap;
+    int m_nSize;
+    int metadataReads = 0;
+    unsigned int GetObjectSize() { return sizeof(Ped); }
+    bool IsFreeSlotAtIndex(int index) { ++metadataReads; return (m_byteMap[index] & 0x80) != 0; }
+    int GetRef(Ped* ped) { ++metadataReads; const int index = static_cast<int>(ped - m_pObjects); return (index << 8) | m_byteMap[index]; }
+    Ped* GetAtRef(int ref) { ++metadataReads; return m_byteMap[ref >> 8] == (ref & 0xFF) ? &m_pObjects[ref >> 8] : nullptr; }
+};
+
+void PoolLifetime()
+{
+    Ped objects[2]{};
+    unsigned char flags[2]{1, 2};
+    FakePool pool{objects, flags, 2};
+    CPedPoolReference captured;
+    CHECK(captured.Capture(&pool, &objects[1]));
+    CHECK(captured.GetRef() == 258);
+    CHECK(captured.Matches(&pool, &objects[1])); // No world-membership dependency.
+    CHECK(!captured.Matches(&pool, &objects[0]));
+    flags[1] = 0x82; // Deleted, even if memory and vtable bytes remain intact.
+    CHECK(!captured.Matches(&pool, &objects[1]));
+    flags[1] = 3; // New ped occupies the same pointer.
+    CHECK(!captured.Matches(&pool, &objects[1]));
+    flags[1] = 2;
+    Ped replacement[2]{};
+    FakePool replacementPool{replacement, flags, 2};
+    CHECK(!captured.Matches(&replacementPool, &objects[1]));
+    unsigned char replacementFlags[2]{1, 2};
+    replacementPool = {objects, replacementFlags, 2};
+    CHECK(!captured.Matches(&replacementPool, &objects[1]));
+    pool.m_nSize = 1;
+    CHECK(!captured.Matches(&pool, &objects[1]));
+    CHECK(!captured.Matches(static_cast<FakePool*>(nullptr), &objects[1]));
+
+    pool.m_nSize = 2;
+    CPedPoolReference invalid;
+    pool.metadataReads = 0;
+    CHECK(!invalid.Capture(&pool, reinterpret_cast<Ped*>(reinterpret_cast<uintptr_t>(objects) + 1)));
+    CHECK(!invalid.Capture(&pool, &objects[2]));
+    CHECK(!invalid.Capture(&pool, reinterpret_cast<Ped*>(reinterpret_cast<uintptr_t>(objects) - 1)));
+    CHECK(pool.metadataReads == 0); // No flags read before range/alignment checks.
+    flags[1] |= 0x80;
+    CHECK(!invalid.Capture(&pool, &objects[1]));
+}
+
+struct Visual { int weapon; bool aim; bool duck; };
+
+void LatestAndReadiness()
+{
+    CLatestPedSnapshot<Visual> state;
+    bool valid = true;
+    bool clump = false;
+    bool intelligence = true;
+    int engineCalls = 0;
+    Visual applied{};
+    auto process = [&](uint32_t now) {
+        return state.Process(now, [&] { return valid; }, [&] { return clump && intelligence; },
+            [&](const Visual& value) { ++engineCalls; applied = value; return true; });
+    };
+    state.Submit({25, true, true}, 100);
+    CHECK(process(100) == ePedSnapshotResult::Deferred);
+    CHECK(engineCalls == 0);
+    state.Submit({22, false, false}, 110);
+    CHECK(process(111) == ePedSnapshotResult::Deferred);
+    clump = true;
+    intelligence = false;
+    CHECK(process(112) == ePedSnapshotResult::Deferred);
+    CHECK(engineCalls == 0);
+    intelligence = true;
+    CHECK(process(113) == ePedSnapshotResult::Applied);
+    CHECK(engineCalls == 1 && applied.weapon == 22 && !applied.aim && !applied.duck);
+    CHECK(process(114) == ePedSnapshotResult::Idle);
+    CHECK(engineCalls == 1); // Snapshot consumed once, no replay queue.
+
+    state.Submit({25, true, true}, 200);
+    valid = false;
+    CHECK(process(201) == ePedSnapshotResult::Invalid);
+    valid = true;
+    CHECK(process(202) == ePedSnapshotResult::Idle);
+    CHECK(engineCalls == 1);
+}
+
+void ExpiryAndWrap()
+{
+    CLatestPedSnapshot<int> state;
+    int calls = 0;
+    auto process = [&](uint32_t now, bool ready) {
+        return state.Process(now, [] { return true; }, [=] { return ready; },
+            [&](int) { ++calls; return true; });
+    };
+    state.Submit(1, 100);
+    CHECK(process(2099, true) == ePedSnapshotResult::Applied);
+    state.Submit(2, 100);
+    CHECK(process(2100, true) == ePedSnapshotResult::Expired);
+    CHECK(process(2101, true) == ePedSnapshotResult::Idle);
+    CHECK(calls == 1);
+    const uint32_t beforeWrap = std::numeric_limits<uint32_t>::max() - 100;
+    state.Submit(3, beforeWrap);
+    CHECK(process(1898, false) == ePedSnapshotResult::Deferred); // Age 1999.
+    CHECK(process(1899, true) == ePedSnapshotResult::Expired); // Age 2000.
+    state.Submit(4, 1900);
+    CHECK(process(1901, true) == ePedSnapshotResult::Applied); // Fresh state resumes.
+}
+
+void CancellationAndStreamingLoss()
+{
+    CLatestPedSnapshot<int> state;
+    int calls = 0;
+    // Test the shared cancellation operation; packet-handler wiring requires
+    // source review and the actual ownership/vehicle transitions require GTA.
+    state.Submit(1, 100);
+    CHECK(state.Cancel());
+    CHECK(!state.Cancel());
+    CHECK(state.Process(101, [] { return true; }, [] { return true; },
+        [&](int) { ++calls; return true; }) == ePedSnapshotResult::Idle);
+    CHECK(calls == 0);
+
+    bool valid = true;
+    bool ready = true;
+    state.Submit(5, 100);
+    CHECK(state.Process(101, [&] { return valid; }, [&] { return ready; }, [&](int value) {
+        CHECK(value == 5); ++calls; ready = false; return false;
+    }) == ePedSnapshotResult::Deferred);
+    CHECK(state.Process(102, [&] { return valid; }, [&] { return ready; }, [&](int) {
+        ++calls; return true;
+    }) == ePedSnapshotResult::Deferred);
+    CHECK(calls == 1);
+    state.Submit(6, 103); // Replaces partially applied visual state.
+    ready = true;
+    CHECK(state.Process(104, [&] { return valid; }, [&] { return ready; }, [&](int value) {
+        CHECK(value == 6); ++calls; return true;
+    }) == ePedSnapshotResult::Applied);
+
+    state.Submit(7, 105);
+    CHECK(state.Process(106, [&] { return valid; }, [] { return true; }, [&](int value) {
+        valid = false;
+        state.Cancel(); // Mirrors GetLivePed invalidation during streaming.
+        CHECK(value == 7); // Apply owns a copy despite cancellation.
+        return false;
+    }) == ePedSnapshotResult::Invalid);
+    valid = true;
+    CHECK(state.Process(107, [&] { return valid; }, [] { return true; }, [&](int) {
+        ++calls; return true;
+    }) == ePedSnapshotResult::Idle);
+    CHECK(calls == 2);
+}
+
+int main()
+{
+    PoolLifetime();
+    LatestAndReadiness();
+    ExpiryAndWrap();
+    CancellationAndStreamingLoss();
+    std::puts("ped_sync_state: all checks passed");
+}

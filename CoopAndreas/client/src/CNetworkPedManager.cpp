@@ -24,7 +24,7 @@ CNetworkPed* CNetworkPedManager::GetPed(CEntity* entity)
 
     for (int i = 0; i != m_pPeds.size(); i++)
     {
-        if (m_pPeds[i]->m_pPed == entity)
+        if (m_pPeds[i]->GetLivePed() == entity)
         {
             return m_pPeds[i];
         }
@@ -56,11 +56,12 @@ void CNetworkPedManager::Update()
         if (!pNetworkPed->m_bSyncing)
             continue;
 
-        CPed* pPed = pNetworkPed->m_pPed;
-        if (!pPed)
+        CPed* pPed = pNetworkPed->GetLivePed();
+        if (!pPed || !pNetworkPed->IsModelReady())
             continue;
 
         CVehicle* pVehicle = pPed->m_pVehicle;
+        if (pVehicle && !pVehicle->IsVTableValid()) continue;
         CNetworkVehicle* pNetworkVehicle = pVehicle ? CNetworkVehicleManager::GetVehicle(pVehicle) : nullptr;
 
         if (pNetworkVehicle && pPed->m_nPedFlags.bInVehicle)
@@ -76,6 +77,7 @@ void CNetworkPedManager::Update()
                 packet.pedid = pNetworkPed->m_nPedId;
                 packet.vehicleid = pNetworkVehicle->m_nVehicleId;
 
+                if (!pVehicle->IsVTableValid() || !pVehicle->m_matrix) continue;
                 packet.pos = pVehicle->m_matrix->pos;
                 packet.roll = pVehicle->m_matrix->right;
                 packet.rot = pVehicle->m_matrix->up;
@@ -154,7 +156,7 @@ void CNetworkPedManager::Update()
             Packets::Peds::PedOnFoot packet{};
 
             packet.pedid = pNetworkPed->m_nPedId;
-            packet.pos = pPed->m_matrix->pos;
+            packet.pos = pPed->GetPosition();
             packet.velocity = pPed->m_vecMoveSpeed;
 
             packet.healthSnapshot.iHealth = static_cast<uint8_t>(std::clamp(pPed->m_fHealth, 0.0f, 255.0f));
@@ -196,7 +198,8 @@ void CNetworkPedManager::Process()
         if (networkPed->m_bSyncing)
             continue;
 
-        CPed* ped = networkPed->m_pPed;
+        networkPed->ProcessPendingOnFoot();
+        CPed* ped = networkPed->GetLivePed();
 
         if (ped == nullptr)
             continue;
@@ -246,8 +249,7 @@ void CNetworkPedManager::RemoveHostedUnused()
     {
         if ((*it)->m_bSyncing)
         {
-            CPed* ped = (*it)->m_pPed;
-            if (!IsPedPointerValid(ped))
+            if (!(*it)->GetLivePed())
             {
                 delete *it;
                 it = m_pPeds.erase(it);

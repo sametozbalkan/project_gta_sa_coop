@@ -1,8 +1,26 @@
 #pragma once
+#include "CPedSyncState.h"
 class CNetworkPed
 {
 private:
 	CNetworkPed() {}
+	CPedPoolReference m_poolReference;
+	struct OnFootVisualSnapshot
+	{
+		Packets::Players::SWeaponSnapshot weapon;
+		CVector aim;
+		bool ducked;
+		bool aiming;
+		unsigned char fightingStyle;
+		CVector position;
+	};
+	CLatestPedSnapshot<OnFootVisualSnapshot> m_pendingOnFoot;
+	bool m_bVisualDeferred = false;
+	bool m_abLoggedSyncDiagnostic[4]{};
+	uint32_t m_anLastSyncDiagnostic[4]{};
+	void LogSyncDiagnostic(const char* phase, const char* reason);
+	bool ApplyOnFootVisual(const OnFootVisualSnapshot& snapshot);
+	bool ApplyWeapon(unsigned char weapon, unsigned short ammo, bool select);
 public:
 	int m_nPedId = -1;
 	CPed* m_pPed = nullptr;
@@ -31,7 +49,12 @@ public:
 	void ClaimOnRelease();
 	void CancelClaim();
 
-	void ApplyWeaponSnapshot(Packets::Players::SWeaponSnapshot& weaponSnapshot);
+	CPed* GetLivePed();
+	bool IsModelReady();
+	void ReceiveOnFoot(const Packets::Peds::PedOnFoot& snapshot);
+	void ProcessPendingOnFoot();
+	void CancelPendingOnFoot(const char* reason);
+	bool ApplyWeaponSnapshot(const Packets::Players::SWeaponSnapshot& weaponSnapshot);
 
 	CNetworkPed(int pedid, int modelId, ePedType pedType, CVector pos, unsigned char createdBy, char specialModelName[]);
 	~CNetworkPed();

@@ -22,6 +22,7 @@ Proje GitHub'da: github.com/sametozbalkan/project_gta_sa_coop. Grup 1 teslimatı
 |---|---|---|
 | Görevlerin aranma komutları host'tan iki oyuncuya; San Fierro/Las Venturas kilidi arkadaşa da (sürüm 0.3.101) | gtasa-coder-high | birleştirildi (59d055e) |
 | Görev grubu 1: #6 Drive-Thru, #7 Nines And AK's, #8 Drive-By, #9 Sweet's Girl, #10 Cesar Vialpando | gtasa-coder / -high | kaynaklar main'de (ecbab75, e4f12f7, 2f9cfda, c297af5, 14b15e9); birlikte derlendi, test onayı bekliyor |
+| Ryder restoran/pompalı sahnesinde arkadaşın çökmesi (0x4D68BA) | gpt-6.1-sol / high | 0.3.102-alpha: NPC yaşam süresi/model koruması ve en güncel durumu erteleme kodlandı; C++ derlemesi ve yerel politika testleri geçti, iki oyunculu tekrar testi bekliyor |
 
 Grup 1 teslimatı **0.3.101-alpha**: `main.scm` ve `script.img` güncel kaynaklardan üretildi; kayıt uyumluluğu
 ve boyut denetimleri geçti. C++ derlemesi ve tünel yayını başarılı; mod `C:\Games\GTASA_Coop` içine kuruldu,
@@ -31,6 +32,15 @@ Test listesi: `docs/test-grup-1.md` (pakette `TEST-LISTESI.md`). Arkadaş paketi
 `.zip.sha256` arşiv özetini verir. Eski paket/kurulum ve yerel doğrulama günlükleri
 `backups/group1-delivery-20261015/` altında tutulur (git dışında).
 Bu paket mevcut 1.0 US kurulumu günceller; ~880 MB ilk kurulum yamaları pakete eklenmez.
+
+Güncel düzeltme paketi **0.3.102-alpha**: NPC'nin oyun havuzu referansı nesil bilgisiyle doğrulanır;
+model veya animasyon altyapısı hazır değilken silah/çömelme/nişan işlemleri bekler. Yalnızca son durum
+en fazla 2 saniye saklanır; silinme, sahiplik ve araç durumu değişimlerinde iptal edilir.
+Görev betikleri ve kayıt biçimi değişmez. Aynı paket yolundan dağıtılır; iki tarafta yeni sürüm kurulmalıdır.
+Öncelikli kabul testi Ryder'ın restoran çıkışıdır (`docs/test-grup-1.md`); çökme yolunun kodda korunması,
+sahnenin oyunda doğrulandığı anlamına gelmez. `--coopdiag` ile olay oluşursa `CoopAndreas_ped_sync.log`
+yerel tanı dosyasına yazılır. Önceki paket/kurulum ve bu düzeltmenin doğrulamaları
+`backups/npc-sync-fix-20261015/` altındadır (git dışında).
 
 ## Görev grupları (plan)
 Görevler hikâye sırasıyla, gruplar halinde uyarlanıyor; her grup tek pakette gelir. **Bir grup bitince paket size

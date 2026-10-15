@@ -58,6 +58,7 @@ PACKET_HANDLER(ePacketType::ASSIGN_PED, Packets::Peds::AssignPedSyncer* pAssignP
         return;
     }
 
+    pNetworkPed->CancelPendingOnFoot("ownership");
     if (pNetworkPed->m_bSyncing)
     {
 #ifdef PACKET_DEBUG_MESSAGES
@@ -65,7 +66,7 @@ PACKET_HANDLER(ePacketType::ASSIGN_PED, Packets::Peds::AssignPedSyncer* pAssignP
 #endif
         pNetworkPed->m_bSyncing = false;
 
-        if (auto pPed = pNetworkPed->m_pPed)
+        if (auto pPed = pNetworkPed->GetLivePed())
         {
             pPed->SetCharCreatedBy(MISSION_CHAR);
         }
@@ -78,7 +79,7 @@ PACKET_HANDLER(ePacketType::ASSIGN_PED, Packets::Peds::AssignPedSyncer* pAssignP
         pNetworkPed->m_bSyncing = true;
         pNetworkPed->m_bClaimOnRelease = false;
 
-        if (auto pPed = pNetworkPed->m_pPed)
+        if (auto pPed = pNetworkPed->GetLivePed())
         {
             pPed->SetCharCreatedBy(pNetworkPed->m_nCreatedBy);
         }
@@ -88,77 +89,16 @@ PACKET_HANDLER(ePacketType::ASSIGN_PED, Packets::Peds::AssignPedSyncer* pAssignP
 PACKET_HANDLER(ePacketType::PED_ONFOOT, Packets::Peds::PedOnFoot* pPedOnFoot)
 {
     CNetworkPed* pNetworkPed = CNetworkPedManager::GetPed(pPedOnFoot->pedid);
-
-    if (!pNetworkPed)
-    {
-        return;
-    }
-
-    CPed* pPed = pNetworkPed->m_pPed;
-    if (!pPed)
-    {
-        return;
-    }
-
-    CVehicle* pVehicle = pPed->m_pVehicle;
-    if (pVehicle && pPed->m_nPedFlags.bInVehicle && pVehicle->IsVTableValid())
-    {
-        // plugin::Command<Commands::TASK_LEAVE_CAR>(CPools::GetPedRef(ped->m_pPed),
-        // CPools::GetVehicleRef(ped->m_pPed->m_pVehicle));
-        // plugin::Command<Commands::WARP_CHAR_FROM_CAR_TO_COORD>(CPools::GetPedRef(ped->m_pPed), packet->pos.x,
-        // packet->pos.y, packet->pos.z);
-        pNetworkPed->RemoveFromVehicle(pVehicle);
-    }
-
-    pNetworkPed->ApplyWeaponSnapshot(pPedOnFoot->weaponSnapshot);
-    pPed->SetPosn(pPedOnFoot->pos);
-
-    pNetworkPed->m_fCurrentRotation = pPed->m_fCurrentRotation = pPedOnFoot->currentRotation.m_angle;
-    pNetworkPed->m_fAimingRotation = pPed->m_fAimingRotation = pPedOnFoot->aimingRotation.m_angle;
-    pNetworkPed->m_fLookDirection = pPed->m_fLookDirection = pPedOnFoot->lookDirection.m_angle;
-
-    pNetworkPed->m_fHealth = pPed->m_fHealth = pPedOnFoot->healthSnapshot.iHealth;
-    pPed->m_fArmour = pPedOnFoot->healthSnapshot.iArmour;
-
-    pNetworkPed->m_vecVelocity = pPedOnFoot->velocity;
-    pNetworkPed->m_nMoveState = pPedOnFoot->moveState;
-
-    if (CUtil::IsDucked(pPed) != pPedOnFoot->bDucked)
-    {
-        CTaskSimpleDuckToggle task = CTaskSimpleDuckToggle(pPedOnFoot->bDucked);
-        task.ProcessPed(pPed);
-    }
-
-    // TODO reimplement ped aim sync
-    if (pPedOnFoot->bAiming)
-    {
-        CTaskSimpleUseGun* useGun = pPed->m_pIntelligence->GetTaskUseGun();
-        if (!useGun)
-        {
-            auto* taskUseGun = new CTaskSimpleUseGun(pPed->m_pTargetedObject, CVector(0.0f, 0.0f, 0.f), 1, 1, false);
-            pPed->m_pIntelligence->m_TaskMgr.SetTaskSecondary(taskUseGun, TASK_SECONDARY_ATTACK);
-        }
-
-        useGun = pPed->m_pIntelligence->GetTaskUseGun();
-
-        if (useGun)
-        {
-            useGun->m_vecTarget = pPedOnFoot->weaponAim;
-        }
-    }
-    else
-    {
-        if (auto useGun = pPed->m_pIntelligence->GetTaskUseGun())
-        {
-            useGun->MakeAbortable(pPed, ABORT_PRIORITY_URGENT, nullptr);
-        }
-    }
-
-    pPed->m_nFightingStyle = pPedOnFoot->fightingStyle;
+    if (pNetworkPed) pNetworkPed->ReceiveOnFoot(*pPedOnFoot);
 }
 
 PACKET_HANDLER(ePacketType::PED_DRIVER_UPDATE, Packets::Peds::PedDriverUpdate* pPedDriverUpdate)
 {
+    CNetworkPed* pNetworkPed = CNetworkPedManager::GetPed(pPedDriverUpdate->pedid);
+    if (!pNetworkPed) return;
+    pNetworkPed->CancelPendingOnFoot("driver");
+    if (pNetworkPed->m_bSyncing) return;
+
     CNetworkVehicle* pNetworkVehicle = CNetworkVehicleManager::GetVehicle(pPedDriverUpdate->vehicleid);
     if (pNetworkVehicle == nullptr)
     {
@@ -171,14 +111,8 @@ PACKET_HANDLER(ePacketType::PED_DRIVER_UPDATE, Packets::Peds::PedDriverUpdate* p
         return;
     }
 
-    CNetworkPed* pNetworkPed = CNetworkPedManager::GetPed(pPedDriverUpdate->pedid);
-    if (pNetworkPed == nullptr)
-    {
-        return;
-    }
-
-    CPed* pPed = pNetworkPed->m_pPed;
-    if (pPed == nullptr || !pPed->IsVTableValid())
+    CPed* pPed = pNetworkPed->GetLivePed();
+    if (pPed == nullptr)
     {
         return;
     }
@@ -187,6 +121,7 @@ PACKET_HANDLER(ePacketType::PED_DRIVER_UPDATE, Packets::Peds::PedDriverUpdate* p
     {
         pNetworkPed->WarpIntoVehicleDriver(pVehicle);
     }
+    if (!pNetworkPed->GetLivePed() || !pVehicle->m_matrix) return;
     pVehicle->m_matrix->pos = pPedDriverUpdate->pos;
     pVehicle->m_matrix->right = pPedDriverUpdate->roll;
     pVehicle->m_matrix->up = pPedDriverUpdate->rot;
@@ -195,6 +130,8 @@ PACKET_HANDLER(ePacketType::PED_DRIVER_UPDATE, Packets::Peds::PedDriverUpdate* p
     pVehicle->m_vecTurnSpeed = pPedDriverUpdate->turnSpeed;
 
     pNetworkPed->ApplyWeaponSnapshot(pPedDriverUpdate->pedWeapon);
+    pPed = pNetworkPed->GetLivePed();
+    if (!pPed) return;
 
     pNetworkPed->m_fHealth = pPed->m_fHealth = pPedDriverUpdate->pedHealth.iHealth;
     pPed->m_fArmour = pPedDriverUpdate->pedHealth.iArmour;
@@ -237,8 +174,11 @@ PACKET_HANDLER(ePacketType::PED_DRIVER_UPDATE, Packets::Peds::PedDriverUpdate* p
 
 PACKET_HANDLER(ePacketType::PED_PASSENGER_UPDATE, Packets::Peds::PedPassengerSync* pPedPassengerSync)
 {
-    CNetworkVehicle* pNetworkVehicle = CNetworkVehicleManager::GetVehicle(pPedPassengerSync->vehicleid);
     CNetworkPed* pNetworkPed = CNetworkPedManager::GetPed(pPedPassengerSync->pedid);
+    if (!pNetworkPed) return;
+    pNetworkPed->CancelPendingOnFoot("passenger");
+    if (pNetworkPed->m_bSyncing) return;
+    CNetworkVehicle* pNetworkVehicle = CNetworkVehicleManager::GetVehicle(pPedPassengerSync->vehicleid);
 
     if (pNetworkVehicle == nullptr || pNetworkPed == nullptr)
         return;
@@ -246,10 +186,10 @@ PACKET_HANDLER(ePacketType::PED_PASSENGER_UPDATE, Packets::Peds::PedPassengerSyn
     if (pNetworkVehicle->m_pVehicle == nullptr)
         return;
 
-    if (pNetworkPed->m_pPed == nullptr)
+    if (!pNetworkPed->GetLivePed())
         return;
 
-    if (!pNetworkVehicle->m_pVehicle->IsVTableValid() || !pNetworkPed->m_pPed->IsVTableValid())
+    if (!pNetworkVehicle->m_pVehicle->IsVTableValid())
         return;
 
     if (!pNetworkPed->m_pPed->m_nPedFlags.bInVehicle || pNetworkVehicle->m_pVehicle->m_pDriver == pNetworkPed->m_pPed)
@@ -258,6 +198,7 @@ PACKET_HANDLER(ePacketType::PED_PASSENGER_UPDATE, Packets::Peds::PedPassengerSyn
     }
 
     pNetworkPed->ApplyWeaponSnapshot(pPedPassengerSync->weaponSnapshot);
+    if (!pNetworkPed->GetLivePed()) return;
 
     pNetworkPed->m_fHealth = pNetworkPed->m_pPed->m_fHealth = pPedPassengerSync->healthSnapshot.iHealth;
     pNetworkPed->m_pPed->m_fArmour = pPedPassengerSync->healthSnapshot.iArmour;
@@ -267,12 +208,13 @@ PACKET_HANDLER(ePacketType::PED_SHOT_SYNC, Packets::Peds::PedShotSync* pPedShotS
 {
     CNetworkPed* pNetworkPed = CNetworkPedManager::GetPed(pPedShotSync->pedid);
 
-    if (pNetworkPed && pNetworkPed->m_pPed)
+    if (pNetworkPed && pNetworkPed->IsModelReady())
     {
         if (pNetworkPed->m_pPed->GetWeapon().m_eWeaponType != pPedShotSync->weaponType)
         {
             pNetworkPed->m_pPed->SetCurrentWeapon(pPedShotSync->weaponType);
         }
+        if (!pNetworkPed->IsModelReady()) return;
         pNetworkPed->m_pPed->GetWeapon().Fire(
             pNetworkPed->m_pPed, &pPedShotSync->origin, &pPedShotSync->effect, nullptr, &pPedShotSync->target, nullptr);
     }

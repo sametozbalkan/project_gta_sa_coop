@@ -1,6 +1,6 @@
 # Grup 1 — iki oyunculu kabul testi (#1–#10)
 
-Hedef sürüm: **CoopAndreas 0.3.101-alpha**. Bu belge kaynak kodundan çıkarılan beklenen davranışları ve
+Hedef sürüm: **CoopAndreas 0.3.102-alpha**. Bu belge kaynak kodundan çıkarılan beklenen davranışları ve
 oyuncuların uygulayacağı testleri içerir. **İki oyunculu oyun testi bekliyor.**
 Kutular yalnızca iki bilgisayarda gözlendikten sonra işaretlenir.
 
@@ -19,7 +19,7 @@ Kutular yalnızca iki bilgisayarda gözlendikten sonra işaretlenir.
    `CoopAndreas Tünel - Host` / `1-Host-ac.bat` tünelini açar. **Host oyuna ilk bağlanır**; ilk bağlanan
    oyuncu görev host'u seçilir. Sonra arkadaş `CoopAndreas Tünel - Bağlan` / `3-Oyuna-baglan.bat` ile bağlanır.
 4. İkiniz `CoopAndreas` kısayolundan (`gta_sa.exe --coop`) açın; Connect: `127.0.0.1:6767`, farklı takma adlar.
-   Sol altta ikinizde de **0.3.101-alpha** görünmeli. `Version mismatch` varsa teste başlamayın, aynı paketi kurun.
+   Sol altta ikinizde de **0.3.102-alpha** görünmeli. `Version mismatch` varsa teste başlamayın, aynı paketi kurun.
 5. Bu tam sıra testi **New Game** ile başlar. **Eski Steam/tek oyunculu kaydı yüklemeyin**: farklı SCM nedeniyle
    çökebilir. Bu uyarı, aynı co-op hattında oluşturulan kayıtların paketten pakete korunması hedefinden ayrıdır.
    Co-op kaydını yalnız host, görev dışında güvenli evde alır; arkadaşın kaydı host ilerlemesinin yerine kullanılmaz.
@@ -52,12 +52,42 @@ geçersiz oyuncu tutamacı sağlamlığı ayrı bilinen iştir.
 |---|---|---|
 | #1 In the Beginning (`INTRO`) | New Game Grove Street başlangıcına ulaşır. Bu pakette havaalanı ara sahnesi ve ilk BMX yolculuğu upstream tarafından atlanır; oynanmış kabul etmeyin. | ☐ geçti ☐ kaldı |
 | #2 Big Smoke (`INTRO1`) | İkiniz birlikte başlayın; arkadaşın ayrı BMX'i ve işareti gelir. Bisiklet yolunu, ara sahneleri ve eve dönüşü kilitlenmeden bitirin. | ☐ geçti ☐ kaldı |
-| #3 Ryder (`INTRO2`) | Berber/pizza akışı, içeri girip çıkma ve Grove'a dönüş biter; arkadaş kontrolünü geri alır. | ☐ geçti ☐ kaldı |
+| #3 Ryder (`INTRO2`) | Berber/pizza akışı, aşağıdaki öncelikli restoran/tüfek regresyonu ve Grove'a dönüş biter; arkadaş kontrolünü geri alır. | ☐ geçti ☐ kaldı |
 | #4 Tagging Up Turf (`SWEET1`) | Bir Grove tag'ini arkadaş tek başına tamamlasın; host tekrar sıkmadan görev ilerlesin. Idlewood/çatı tag'lerini paylaşın; aynı tag'e birlikte sıkınca tamamlanma gerilemesin. İki kişiyken Sweet'in arabasında birlikte gidin. | ☐ geçti ☐ kaldı |
 | #5 Cleaning The Hood (`SWEET1B`) | Dövüş ve ev içi çatışmasına birlikte katılın; giriş/çıkış konumlandırması ve bitişte serbest kontrol düzgün olsun. | ☐ geçti ☐ kaldı |
 
 Önceki dalganın ayrıntılı listesi repoda `docs/test-dalga-1.md`. Bu belgedeki #4, o listedeki
 “görev 3” ifadesinin yerine envanterdeki hikâye numarasıdır.
+
+### Öncelik: #3 Ryder — restoran/tüfek çökmesi
+
+**0.3.102-alpha düzeltmesinin iki oyunculu oyun kabulü bekliyor; çökme giderildi diye doğrulanmış değildir.**
+New Game'den #1–#2'yi normal sırada tamamlayarak #3'e gelin. İkinci geçiş türünü denemek için uygun host co-op
+kaydı/yeniden normal oynama kullanın; görev tetiklerini, NPC oluşturmayı veya hikâye bayraklarını zorla atlamayın.
+Arkadaş bu denemeyi `--coopdiag` ile açsın; Windows Çalıştır penceresinde:
+`"C:\Games\GTASA_Coop\gta_sa.exe" --coop --coopdiag` (`--coop` modun yüklenmesi için gereklidir).
+Erteleme veya geçersiz NPC gibi bir tanı olayı oluşursa oyun klasörüne **`CoopAndreas_ped_sync.log`** yazılır.
+Çökme veya NPC'nin normale dönmemesi durumunda
+bu dosyayı varsa çökme loguyla birlikte alın. Kayıt `deferred/resumed/invalid/cancelled` olaylarını ve NPC'nin
+kimlik/model, havuz referansı, alan ve hazır olma bilgilerini içerir; süreçte 512 satır, dosyada 1 MiB ve NPC
+ve olay türü başına saniyede bir satır sınırları olduğundan her olayın yazıldığı varsayılmaz.
+
+- [ ] Host ve arkadaş restoran akışını birlikte oynasın. Restoran görevlisinin tüfeğe geçtiği, nişan aldığı ve
+  ateş ettiği geçişi **ara sahneleri normal izleyerek**, ayrı denemede **oyunun sunduğu sahne atlama tuşuyla**
+  tamamlayın. İki ekranda çökme, donma veya süresiz kararma olmamalı; her iki denemenin sonucunu kaydedin.
+- [ ] Restorandan normal çıkışı, tüfekli NPC'nin dışarıdaki davranışını ve görevin Grove'a dönüşünü kontrol edin.
+  Akış izin verirse restoran çevresine geri yaklaşın; NPC'nin kaybolup/yeniden görünmesi, yeniden nişan alması
+  veya silah değiştirmesi çökme üretmemeli. Dönüş için görevi bozmayın; mümkün değilse bu gözlemi “uygulanamadı” yazın.
+- [ ] Arkadaş ekranındaki uzak NPC'nin görünümü, silahı, nişanı ve ateşi tekrar sürmeli. Geçişte durum uygulaması
+  ertelenmişse, güvenli duruma dönünce **en son alınan durum** uygulanmalı; eski tüfek/nişan/çömelme durumu
+  sonradan gelip kalıcılaşmamalı. Erteleme gerçekleştiği gözlenemiyorsa bunu doğrulanmış işaretlemeyin.
+- [ ] NPC'nin ölümü, sahne sonunda temizlenmesi veya kontrolünün başka oyuncuya geçmesi normal oynanışta
+  gözlenirse eski NPC'ye ait silah/nişan durumu başka NPC'ye taşınmamalı ve çökme olmamalı.
+  Bu durumları üretmek için yapay NPC silme/oluşturma ya da sahiplik komutu kullanmayın; gözlenmeyeni “bekliyor” bırakın.
+- [ ] Görev sonunda iki tarafta kamera ve kontroller geri gelsin; #4 normal sırada başlayabilsin.
+  Sorunda normal/atlanan sahne, host/arkadaş, son görülen NPC/silah ve saat ile belgenin sonundaki yerel logları kaydedin.
+
+Normal sahne `____` · atlanan sahne `____` · ertelenen son durum `____` · doğal NPC yaşam döngüsü `____`.
 
 ## #6 Drive-Thru — `SWEET3`
 
