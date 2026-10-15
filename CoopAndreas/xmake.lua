@@ -82,6 +82,8 @@ target("client", function()
 
     -- private build: no launcher serial key, start with `gta_sa.exe --coop`
     add_defines("COOP_NO_SERIAL_CHECK")
+    -- private build: no Discord Rich Presence (no Discord IPC, no discord-<appid> URL handler in the registry)
+    add_defines("COOP_NO_DISCORD_RPC")
 
     if is_mode("debug") then
         add_defines("DEBUG")

@@ -46,6 +46,7 @@ Repository: github.com/sametozbalkan/project_gta_sa_coop (public), branch `main`
 ## Fork changes (keep them small for upstream merges)
 Committed on top of the upstream import.
 - `COOP_NO_SERIAL_CHECK` (defined in `xmake.lua`, used in `client/src/CLaunchManager.cpp`): no launcher serial check.
+- `COOP_NO_DISCORD_RPC` (defined in `xmake.lua`, used in `client/src/CDiscordRPC.cpp` and `CDiscordRPCMgr.cpp`): no Discord Rich Presence. `Discord_Initialize` (named-pipe IPC to the Discord client, `discord-<appid>` URL handler written to HKCU) and the presence updates are compiled out, so no discord-rpc code is linked into the client; the `discordrpc` target still builds.
 - Crash reports are opt-in: defaults in `client/src/CConfigLoader.h`, `CConfigLoader.cpp` and `CCrashReporter.h` are `false` (`report-crashlogs` in `coopandreas.ini`).
 - Frame limiter always on (`CPatch::PatchFramerate`, byte patch at `0x748D68`). Upstream removes the 14 ms frame delay and relies on the menu's Frame Limiter; with it off the game runs at ~2000+ FPS, per-frame time rounds to 0 ms and New Game sits on a black screen.
 - `--coopdiag` (`client/src/Debug/CDiagLog.*`, started from `CCore::Init`): writes `CoopAndreas_diag.log` in the game folder every 2 s (frame counter, game time, pause/menu/fade, network, focus, script IPs). It keeps writing if the game loop hangs.

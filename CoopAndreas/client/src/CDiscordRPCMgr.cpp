@@ -419,6 +419,8 @@ std::string GetNextDetails()
 
 void CDiscordRPCMgr::Update()
 {
+	// COOP_NO_DISCORD_RPC: private build, no Discord Rich Presence, so nothing to build every 15 s
+#ifndef COOP_NO_DISCORD_RPC
 	size_t tickCount = GetTickCount();
 
 	if (tickCount < m_nLastUpdateTickRate + RPC_UPDATE_TICKRATE)
@@ -429,4 +431,5 @@ void CDiscordRPCMgr::Update()
 	std::string details = GetNextDetails();
 	std::string state = GetNextState();
 	CDiscordRPC::SetDetailsAndState(details, state);
+#endif
 }
