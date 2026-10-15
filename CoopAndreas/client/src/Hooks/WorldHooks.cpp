@@ -172,14 +172,22 @@ int CWorld__SprayPaintWorld_Hook(CVector* posn, CVector* outDir, float radius, b
         }
     }
 
-    int result = CWorld::SprayPaintWorld(*posn, *outDir, radius, processTagAlphaState);
+    // private build: plugin-sdk declares CWorld::SprayPaintWorld as bool, but 0x565B70 returns 0 (no tag),
+    // 1 (tag sprayed) or 2 (a tag reached alpha 255) in eax (`mov eax,2` at 0x565C8C, and CShotInfo::Update
+    // checks `cmp eax,2` at 0x73A10F). Through the bool the compiler dropped the `result == 2` branch below, so
+    // the final TagUpdate was never sent and the other players kept the tag at the last throttled alpha, often
+    // not above ALPHA_TAGGED, so the host's mission script (GET_PERCENTAGE_TAGGED_IN_AREA) didn't count it.
+    int result = plugin::CallAndReturn<int, 0x565B70, CVector&, CVector&, float, bool>(
+        *posn, *outDir, radius, processTagAlphaState);
     if (result == 1 && LastTagAlpha != 255)
     {
         /*CChat::AddMessage("CWorld__SprayPaintWorld_Hook posn {%f %f %f} outDir {%f %f %f} radius %f
            processTagAlphaState %d", posn->x, posn->y, posn->y, outDir->x, outDir->y, outDir->y, radius,
            processTagAlphaState);*/
         int tickCount = GetTickCount();
-        if (tickCount > SprayPaintWorld_LastCalled + 150)
+        // private build: hits on a tag that already counts as tagged (232, 240, 248 with the step of 8 at
+        // 0x8CDEF0) go out unthrottled, so the other players count the tag as soon as the sprayer does
+        if (tickCount > SprayPaintWorld_LastCalled + 150 || LastTagAlpha > CTagManager::ALPHA_TAGGED)
         {
             // CChat::AddMessage("1 %d %d", ++calls, LastTagAlpha);
             SprayPaintWorld_LastCalled = tickCount;

@@ -31,6 +31,14 @@ PACKET_HANDLER(ePacketType::TAG_UPDATE, Packets::World::TagUpdate* pTagUpdate)
 			static_cast<int16_t>(floor(pos.y)) == pTagUpdate->payload.pos_y &&
 			static_cast<int16_t>(floor(pos.z)) == pTagUpdate->payload.pos_z)
 		{
+			// private build: spraying only adds paint, so a remote spray update never lowers a tag. Otherwise
+			// a late update from one player undoes the other player's finished tag when both spray the same
+			// one. Resets still arrive through SET_TAG_STATUS_IN_AREA (opcode sync) and UpdateAllTags.
+			if (pTagUpdate->payload.alpha < tagDesc.m_nAlpha)
+			{
+				continue;
+			}
+
 			CTagManager::SetAlpha(tagDesc.m_pEntity, pTagUpdate->payload.alpha);
 		}
 	}
