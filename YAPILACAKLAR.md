@@ -19,7 +19,7 @@ Proje GitHub'da: github.com/sametozbalkan/project_gta_sa_coop. Bu oturum projeni
 ## 2. dalga (çalışıyor)
 | İş | Ajan | Durum |
 |---|---|---|
-| Görevlerin aranma komutları host'tan iki oyuncuya; San Fierro/Las Venturas kilidi arkadaşa da (sürüm 0.3.101) | gtasa-coder-high | çalışıyor |
+| Görevlerin aranma komutları host'tan iki oyuncuya; San Fierro/Las Venturas kilidi arkadaşa da (sürüm 0.3.101) | gtasa-coder-high | birleştirildi (59d055e) |
 | Görev grubu 1: #6 Drive-Thru, #7 Nines And AK's, #8 Drive-By, #9 Sweet's Girl, #10 Cesar Vialpando | gtasa-coder / -high | çalışıyor |
 
 ## Görev grupları (plan)
@@ -38,6 +38,10 @@ paketten pakete açılmaya devam eder (derleme hattı her pakette denetler). Lis
   düşerse); görevi kimin başlatabileceğini denetleyen host kontrolü (`CanPlayerStartMission`) upstream'de yorum satırı.
 - **Görev boyutu sınırı:** Reuniting The Families (#27) 69.000 baytlık sınıra 561 bayt uzakta; #27'den önce ya görev
   içinde kısaltma ya da sınırı yükselten istemci yaması.
+- **Köprü bariyerleri (The Green Sabre #28'den önce):** San Fierro/Las Venturas köprülerindeki bariyerler bir harita
+  nesne grubu; host'un görevleri kaldırınca arkadaşın oyununda fiziksel olarak duruyor. Çözüm: ilgili IPL komutları
+  (0776/0777/0778) uyarlanmış görevlerde senkron + oyuna sonradan katılana anlık durum. Aynı pakete: sonradan
+  katılanın en yüksek aranma seviyesi (Verdant Meadows 6'ya çıkarıyor) ve çete bölgesi gücü.
 - **Görevlerin isteyeceği istemci özellikleri** (sırası gelince): yangın (#23), çete savaşları (#25, #98), römork (#31),
   RC araçlar (#44–#46), paraşüt (#72, #81, #89), jetpack (#73). Tek kişilik mini oyunlarda (#10 lowrider, #18 dans,
   #43 sürücü okulu, #70 uçuş okulu) ikinci oyuncu izler.

@@ -24,8 +24,8 @@ OYNAMA (host oveRange; sen ona bağlanırsın)
 NOTLAR
 - Eski kayıtlar CoopAndreas'ta yüklenemez; her zaman New Game.
 - Alt+Tab yapınca oyun duraklar ama bağlantı kopmaz. Host Alt+Tab'dayken görev de bekler.
-- Oyunun sol alt köşesinde sürüm yazar (CoopAndreas 0.3.100-alpha gibi). İki tarafta aynı olmalı;
-  "Version mismatch" görürsen yeni paketi kur.
+- Oyunun sol alt köşesinde sürüm yazar. İki tarafta aynı olmalı; "Version mismatch" görürsen
+  host'un gönderdiği son paketi kur.
 - Wi-Fi'da gecikme dalgalanıyorsa kablo kullan ya da güç tasarrufunu kapat.
 - Güncelleme gelince yeni paketi yine "Kur.bat" ile kur; oyun tekrar indirilmez, sadece mod dosyaları yenilenir.
 - KAYNAK klasörü: CoopAndreas GPL-3.0 lisanslı; bu derlemedeki değişikliklerin kaynağı orada.
