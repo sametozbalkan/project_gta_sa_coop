@@ -43,11 +43,11 @@ bitince öneri olarak sunulacak, kullanıcı onaylarsa grup 2 yeni kalıpla baş
    konum, başarısızlık koşulları) iner, görev boyutu şişmez (69.000 bayt sorunu hafifler). Dikkat: arkadaşa ait
    olmayan mesajlar da görünür (ekip olarak sorun değil); elle uyarlanmış görevlerde aynı yazı iki kez çıkmasın diye
    bir kural gerekir; uyarlama rehberi buna göre güncellenir.
-   - İlk 10 görev (#1–#10, elle yazı/işaret satırlarıyla uyarlanmış): katman, görevin zaten gösterdiğini tekrar
-     göstermeyecek şekilde tasarlanır (aynı varlığın işareti, aynı yazı atlanır; olmazsa görev başına "yansıtma"
-     kapatma anahtarı). Bu görevler düzenlenmez, yeniden test gerekmez; ileride birinde hata düzeltilirken yeni kalıba
-     geçirilir. `docs/missions.md`'de hangi görevin hangi kalıpla yapıldığı yazılır. Tam tutarlılık istenirse #1–#10
-     ayrı bir New Game'de yeniden test edilerek sadeleştirilebilir.
+   - İlk 10 görev (#1–#10, elle yazı/işaret satırlarıyla uyarlanmış): kullanıcı kaydı dert etmiyor, New Game'den
+     baştan oynamak sorun değil. Bu yüzden tam tutarlılık: katman gelince #1–#10 da yeni kalıba geçirilir (gereksiz
+     kalan yazı/işaret satırları çıkar, oyun mantığı kalır), New Game'de yeniden test edilir. Katmanın "tekrar
+     gösterme" ayıklamasına gerek kalmaz, daha sade olur. İsteğe bağlı: aynı turda atlanan giriş görevi (havaalanı +
+     Grove'a BMX) co-op olarak geri getirilebilir.
 2. **Dünya durumu kaydı:** host'un dünyasının kurallarını belirleyen şeyler (şehir kilidi, harita nesne grupları ve köprü
    bariyerleri, çete bölgeleri, en yüksek aranma seviyesi, garajlar vb.) tek bir yerde tanımlanır; değiştikçe ve biri
    oyuna katıldığında otomatik gönderilir. Şehir kilidi bu kalıpla yapıldı; farkları tek tek kovalamak yerine genel yapı.
