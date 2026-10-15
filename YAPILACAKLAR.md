@@ -18,6 +18,12 @@ Proje GitHub'da: github.com/sametozbalkan/project_gta_sa_coop. Bu oturum projeni
 Dalga bitince: birleştir, derle, oyuna kur, arkadaş için yeni paket; sonra ikiniz oyunda test edersiniz.
 
 ## Sonraki dalgalar (öncelik sırasıyla)
+- **Bağımsız proje (yeniden adlandırma), isim bekleniyor.** Kullanıcı projenin CoopAndreas'tan ayrı, kendi adıyla
+  bir proje olmasını istiyor (isim sonra, yaratıcı bir şey). Plan: oyuncunun gördüğü her yerde yeni ad (oyundaki
+  sürüm yazısı ve mesajlar, DLL/klasör/ini adları, kısayollar, kurulum, README), kendi sürüm numaramız, upstream
+  otomatik takip edilmez (işe yarayan bir şey gerekirse elle alınır). İç kod adları kalır. Lisans gereği kalanlar:
+  GPL-3.0, LICENSE, kaynak dosyalarındaki orijinal telif satırları ve README'de tek satırlık teşekkür. Kurulum
+  programı eski adları yenilerine taşır, kayıtlar etkilenmez. İsim gelince görev grupları arasında tek seferde yapılır.
 - Görevleri hikâye sırasıyla, **gruplar halinde** uyarlamak (rehber çıkınca). Her grup bir bölümün birkaç
   görevi; görevler ajanlarda paralel uyarlanır, grup tek pakette gelir. Host ve arkadaşı test etmeyi dert etmiyor,
   grupları aralıksız deneyecekler; onlar bir grubu oynarken sıradaki grup hazırlanır, buldukları hatalar sonraki
