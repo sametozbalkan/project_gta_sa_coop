@@ -4,7 +4,7 @@
 class CCrashReporter
 {
 public:
-	static inline bool ms_bReportingEnabled = true;
+	static inline bool ms_bReportingEnabled = false;
 	static inline std::atomic<bool> ms_bReady = false;
 	static inline std::string ms_sAddress = "";
 	static inline std::thread ms_postThread;

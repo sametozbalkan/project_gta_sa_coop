@@ -69,12 +69,12 @@ void CConfigLoader::Load()
 
     char szReports[6];
     DWORD result = GetPrivateProfileString(
-        CONFIG_SECTION.c_str(), "report-crashlogs", "true", szReports, sizeof(szReports), ms_sDataPath.c_str());
+        CONFIG_SECTION.c_str(), "report-crashlogs", "false", szReports, sizeof(szReports), ms_sDataPath.c_str());
     szReports[5] = 0;
 
     if (result == 0)
     {
-        CCrashReporter::ms_bReportingEnabled = true;
+        CCrashReporter::ms_bReportingEnabled = false;
         Save();
     }
     else

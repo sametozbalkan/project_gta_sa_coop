@@ -80,6 +80,9 @@ target("client", function()
         "RW"
     )
 
+    -- private build: no launcher serial key, start with `gta_sa.exe --coop`
+    add_defines("COOP_NO_SERIAL_CHECK")
+
     if is_mode("debug") then
         add_defines("DEBUG")
     else

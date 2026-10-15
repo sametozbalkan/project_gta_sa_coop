@@ -16,7 +16,7 @@ private:
 		{"nickname", ""},
 		{"ip", ""},
 		{"port", std::to_string(Config::DEFAULT_PORT)},
-		{"report-crashlogs", "true"}
+		{"report-crashlogs", "false"} // private build: crash reports are opt-in
 	};
 	
 public:

@@ -55,6 +55,8 @@ char* Encrypt(const char* id) {
 
 void CLaunchManager::CollectCommandLineArgs()
 {
+    // COOP_NO_SERIAL_CHECK: private build, started directly with `gta_sa.exe --coop` (no launcher serial key)
+#ifndef COOP_NO_SERIAL_CHECK
     LPSTR commandLine = GetCommandLineA();
 
     const int maxArgs = 200;
@@ -92,4 +94,5 @@ void CLaunchManager::CollectCommandLineArgs()
     }
 
     delete[] encrypted;
+#endif
 }

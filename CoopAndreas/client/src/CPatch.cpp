@@ -80,6 +80,9 @@ void CPatch::PatchFramerate()
     }
 
     patch::SetUChar(0x53E94C, 0);           // remove 14 ms frame delay
+    // Without that delay, "Frame Limiter: Off" lets the game run at thousands of FPS; each frame's time step
+    // rounds down to 0 ms, game time stops and New Game hangs on a black screen. Always apply the limiter.
+    patch::SetUChar(0x748D68, 0xEB);        // WinMain: jne -> jmp to the frame limiter check
     patch::SetUChar(0x619626, fps);         // init value
     patch::SetUChar(0xC1704C, fps, false);  // current value
     RwD3D9EngineSetRefreshRate(fps);        // update refresh rate

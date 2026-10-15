@@ -7,6 +7,7 @@
 #include <winuser.h>
 #include <CLaunchManager.h>
 #include <Debug/CImGui.h>
+#include <Debug/CDiagLog.h>
 
 semver_t CCore::Version;
 
@@ -62,6 +63,10 @@ void CCore::Init()
     }
 
     gvm.Detect();
+    if (strstr(cmd, "--coopdiag") != nullptr)
+    {
+        CDiagLog::Start();
+    }
 #ifdef _DEV
     CCore::AllocateConsole();
 #endif
