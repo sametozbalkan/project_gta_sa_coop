@@ -18,9 +18,14 @@ Proje GitHub'da: github.com/sametozbalkan/project_gta_sa_coop. Bu oturum projeni
 Dalga bitince: birleştir, derle, oyuna kur, arkadaş için yeni paket; sonra ikiniz oyunda test edersiniz.
 
 ## Sonraki dalgalar (öncelik sırasıyla)
-- Görevleri hikâye sırasıyla uyarlamak (rehber çıkınca; görev başına bir iş, her biri oyunda test ister).
-  Görev sırası bozulmaz (kullanıcının kuralı): açılma sırası, başlatma tetikleri ve ilerleme bayraklarına
-  dokunulmaz; bir uyarlama sadece kendi görevinin içini değiştirir.
+- Görevleri hikâye sırasıyla, **gruplar halinde** uyarlamak (rehber çıkınca). Her grup bir bölümün birkaç
+  görevi; görevler ajanlarda paralel uyarlanır, grup tek pakette gelir. Host ve arkadaşı test etmeyi dert etmiyor,
+  grupları aralıksız deneyecekler; onlar bir grubu oynarken sıradaki grup hazırlanır, buldukları hatalar sonraki
+  pakete girer.
+  - Görev sırası bozulmaz (kullanıcının kuralı): açılma sırası, başlatma tetikleri ve ilerleme bayraklarına
+    dokunulmaz; bir uyarlama sadece kendi görevinin içini değiştirir.
+  - Kayıtlar paketten pakete çalışmaya devam etmeli: global değişken eklenmez, MAIN'e dokunulmaz; derleme hattı
+    bunu her pakette denetler.
   95 hikâye görevinden yalnızca ilk 4'ü uyarlanmış; asıl darboğaz bu.
 - Upstream PR #106 (para, aranma seviyesi, hileler; açık, 11 dosya): önce salt-okunur kontrol, iyiyse fork'a al.
 - Upstream README'de yapılmamış diğerleri, hikâyede gerektikleri sırayla: para, nefes çubuğu, max HP,
