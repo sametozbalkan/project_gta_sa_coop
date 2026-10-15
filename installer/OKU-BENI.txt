@@ -3,7 +3,7 @@ CoopAndreas kurulumu
 GEREKENLER
 - Steam'de GTA San Andreas kurulu olmalı (Steam sürümü).
 - Seçilen sürücüde en az 7 GB boş alan.
-- İlk kurulumda internet: yaklaşık 880 MB yama indirilir.
+- İlk kurulumda internet: yaklaşık 880 MB yama indirilir (paketin içinde Patches_v2.zip varsa indirilmez).
 
 KURULUM
 1. Zip'in tamamını bir klasöre çıkar.
@@ -14,7 +14,7 @@ KURULUM
    - Başka bir klasör için: Kur.bat -GameDir D:\GTASA_Coop
 3. Windows "bilgisayarınız korundu" derse: "Ek bilgi" > "Yine de çalıştır".
 
-OYNAMA (host oveRange)
+OYNAMA (host oveRange; sen ona bağlanırsın)
 1. Host sunucuyu ve tüneli açmış olmalı.
 2. Masaüstünden "CoopAndreas Tünel - Bağlan" > host'u kendisi bulur, pencere açık kalsın.
 3. Masaüstünden "CoopAndreas" > Start Game > Connect (127.0.0.1 : 6767 hazır gelir) > New Game.
@@ -23,7 +23,9 @@ OYNAMA (host oveRange)
 
 NOTLAR
 - Eski kayıtlar CoopAndreas'ta yüklenemez; her zaman New Game.
-- Oyunu 30 saniyeden uzun Alt+Tab'da bırakma, sunucudan düşersin.
+- Alt+Tab yapınca oyun duraklar ama bağlantı kopmaz. Host Alt+Tab'dayken görev de bekler.
+- Oyunun sol alt köşesinde sürüm yazar (CoopAndreas 0.3.100-alpha gibi). İki tarafta aynı olmalı;
+  "Version mismatch" görürsen yeni paketi kur.
 - Wi-Fi'da gecikme dalgalanıyorsa kablo kullan ya da güç tasarrufunu kapat.
 - Güncelleme gelince yeni paketi yine "Kur.bat" ile kur; oyun tekrar indirilmez, sadece mod dosyaları yenilenir.
 - KAYNAK klasörü: CoopAndreas GPL-3.0 lisanslı; bu derlemedeki değişikliklerin kaynağı orada.

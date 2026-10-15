@@ -7,9 +7,9 @@ Proje GitHub'da: github.com/sametozbalkan/project_gta_sa_coop. Bu oturum projeni
 ## 1. dalga (2026-10-15'te başladı)
 | İş | Ajan | Durum |
 |---|---|---|
-| Alt+Tab'da sunucudan düşmeyi düzelt | gtasa-coder-high | çalışıyor |
+| Alt+Tab'da sunucudan düşmeyi düzelt | gtasa-coder-high | birleştirildi (1f159e8) |
 | Tagging Up Turf: arkadaşın sıktığı tag sayılmıyor | gtasa-coder-high | birleştirildi (fff678f) |
-| Radyo senkronu (aynı araçta aynı istasyon) | gtasa-coder-high | çalışıyor |
+| Radyo senkronu (aynı araçta aynı istasyon) | gtasa-coder-high | birleştirildi (98fff3d) |
 | Görev derleme hattı, görev uyarlama rehberi ve görev envanteri | gtasa-coder-high | çalışıyor |
 | Tünel yayın betiği, yeni repo düzeni için paketleme, pakete yama arşivi seçeneği | gtasa-coder | birleştirildi (35db590) |
 | Discord Rich Presence'ı kapat, dış bağlantıları denetle | gtasa-coder | birleştirildi (294dc4f) |
