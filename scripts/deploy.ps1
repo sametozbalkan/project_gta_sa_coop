@@ -56,9 +56,17 @@ if (-not (Test-Path -LiteralPath (Join-Path $GameDir 'eax_orig.dll'))) {
     }
 }
 
+function Get-Sha256([string]$Path) {
+    # not Get-FileHash: under -WhatIf in Windows PowerShell 5.1 it returns nothing, so every file looked unchanged
+    $sha = [Security.Cryptography.SHA256]::Create()
+    $stream = [IO.File]::OpenRead($Path)
+    try { [BitConverter]::ToString($sha.ComputeHash($stream)) }
+    finally { $stream.Dispose(); $sha.Dispose() }
+}
+
 function Copy-One([string]$From, [string]$To) {
     # unchanged files are skipped, so a running server.exe doesn't block a client-only redeploy
-    if ((Test-Path -LiteralPath $To) -and (Get-FileHash -LiteralPath $From).Hash -eq (Get-FileHash -LiteralPath $To).Hash) {
+    if ((Test-Path -LiteralPath $To) -and (Get-Sha256 $From) -eq (Get-Sha256 $To)) {
         return
     }
     if ($PSCmdlet.ShouldProcess($To, "Copy $From")) {
