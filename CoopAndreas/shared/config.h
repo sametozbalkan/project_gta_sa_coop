@@ -3,8 +3,9 @@
 #include <cstdint>
 
 // private build: upstream 0.3.0 + patch 100 and up, bumped with every protocol change so that mixed builds get
-// "Version mismatch" instead of misreading packets (100 = radio sync, VEHICLE_RADIO_STATION)
-#define COOPANDREAS_VERSION "0.3.100-alpha"
+// "Version mismatch" instead of misreading packets (100 = radio sync, VEHICLE_RADIO_STATION; 101 = wanted level opcodes
+// from the host's missions and city unlock sync, UPDATE_CITY_UNLOCKED)
+#define COOPANDREAS_VERSION "0.3.101-alpha"
 struct Config
 {
     static constexpr uint16_t DEFAULT_PORT = 6767;

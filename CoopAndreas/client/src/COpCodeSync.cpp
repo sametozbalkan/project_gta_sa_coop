@@ -156,6 +156,18 @@ const SSyncedOpCode syncedOpcodes[] =
     {0x01B4, true, {eSyncedParamType::PLAYER}}, // set_player_control[Player] {state}[bool]
     {COMMAND_ADD_SCORE, true, {eSyncedParamType::PLAYER}},
 
+    // Wanted level (private build): the host's mission sets, raises, clears and caps the stars of every player; crimes
+    // and the stars they bring stay per player. The PLAYER parameter is replayed as player 0, the local player:
+    // 010D/010E/0110 change CWorld::Players[param]'s wanted level and 01F7 its police back-off flag, 03C7 changes the
+    // player in focus (the local player while packets are handled), 01F0 and 0A24 set globals.
+    {0x010D, true, {eSyncedParamType::PLAYER}}, // alter_wanted_level [Player] {wantedLevel} [int]
+    {0x010E, true, {eSyncedParamType::PLAYER}}, // alter_wanted_level_no_drop [Player] {wantedLevel} [int]
+    {0x0110, true, {eSyncedParamType::PLAYER}}, // clear_wanted_level [Player]
+    {0x01F0}, // set_max_wanted_level {wantedLevel} [int]
+    {0x01F7, true, {eSyncedParamType::PLAYER}}, // set_police_ignore_player {player} [Player] {state} [bool]
+    {0x03C7}, // set_wanted_multiplier {multiplier} [float]
+    {0x0A24}, // set_disable_military_zones {state} [bool]
+
     {COMMAND_REQUEST_MODEL}
 };
 

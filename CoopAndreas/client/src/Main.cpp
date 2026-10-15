@@ -33,6 +33,7 @@
 #include <network/packets/scripts.h>
 #include <CNetworkEntityBlip.h>
 #include <CRadioSync.h>
+#include <CCityUnlockSync.h>
 
 unsigned int lastOnFootSyncTickRate = 0;
 unsigned int lastDriverSyncTickRate = 0;
@@ -90,6 +91,7 @@ public:
             CDiscordRPCMgr::Update();
             CDebugVehicleSpawner::Process();
             CRadioSync::Process();
+            CCityUnlockSync::Process();
 
             if (/*CNetwork::m_bConnected*/ CNetwork::m_bAuthenticated)
             {

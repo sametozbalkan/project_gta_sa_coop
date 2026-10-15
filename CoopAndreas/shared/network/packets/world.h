@@ -202,4 +202,23 @@ private:
     }
 };
 
+// private build (city unlock sync): the host's STAT_CITY_UNLOCKED (181, "CitiesPassed" in the scripts), sent when
+// it changes and to every player who connects; the server relays it from the host only
+class UpdateCityUnlocked : public Packet
+{
+    DEFINE_PACKET_TYPE(UpdateCityUnlocked, ePacketType::UPDATE_CITY_UNLOCKED, ePacketChannel::EVENT);
+
+public:
+    // the story scripts set 0 (new game) to 4: at 0 San Fierro and Las Venturas are closed, at 1 Las Venturas
+    uint8_t cityUnlocked{};
+
+private:
+    template <typename Stream>
+    bool Serialize(Stream& stream)
+    {
+        serialize_int(stream, cityUnlocked, 0, UINT8_MAX);
+        return true;
+    }
+};
+
 }  // namespace Packets::World

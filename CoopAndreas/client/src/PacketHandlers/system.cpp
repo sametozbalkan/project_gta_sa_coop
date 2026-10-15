@@ -6,6 +6,7 @@
 #include <CWeatherSync.h>
 #include <CMoonSync.h>
 #include <game_sa/CTagManager.h>
+#include <CCityUnlockSync.h>
 
 PACKET_HANDLER(ePacketType::PLAYER_CONNECTED, Packets::System::PlayerConnected* pPlayerConnected)
 {
@@ -28,6 +29,7 @@ PACKET_HANDLER(ePacketType::PLAYER_CONNECTED, Packets::System::PlayerConnected* 
         CEntryExitMarkerSync::ms_bUpdateAfterProcessingThisFrame = true;
         CTagSync::SyncCurrentState();
         CMoonSync::SyncCurrentState();
+        CCityUnlockSync::SyncCurrentState(); // private build: city unlock sync
     }
 }
 

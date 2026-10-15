@@ -36,3 +36,13 @@ PACKET_HANDLER(ePacketType::UPDATE_MOON_SIZE, Packets::World::UpdateMoonSize* pU
 {
 	GetPacketFactory().SendToAll(*pUpdateMoonSize, pNetworkPlayer);
 }
+
+// private build (city unlock sync): the host's STAT_CITY_UNLOCKED, relayed to everyone else
+PACKET_HANDLER(ePacketType::UPDATE_CITY_UNLOCKED, Packets::World::UpdateCityUnlocked* pUpdateCityUnlocked,
+	CNetworkPlayer* pNetworkPlayer)
+{
+	if (pNetworkPlayer->m_bIsHost)
+	{
+		GetPacketFactory().SendToAll(*pUpdateCityUnlocked, pNetworkPlayer);
+	}
+}
