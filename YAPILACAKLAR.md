@@ -33,7 +33,14 @@ Dalga bitince: birleştir, derle, oyuna kur, arkadaş için yeni paket; sonra ik
   - Kayıtlar paketten pakete çalışmaya devam etmeli: global değişken eklenmez, MAIN'e dokunulmaz; derleme hattı
     bunu her pakette denetler.
   95 hikâye görevinden yalnızca ilk 4'ü uyarlanmış; asıl darboğaz bu.
-- Upstream PR #106 (para, aranma seviyesi, hileler; açık, 11 dosya): önce salt-okunur kontrol, iyiyse fork'a al.
+- Upstream PR #106 (para, aranma seviyesi, hileler): **alınmadı** (2026-10-15 incelemesi). Oyuna sonradan katılan
+  oyuncu diğerinin parasını sıfırlıyor, aynı anda kazanılan para kayboluyor, hileler (intihar, arabaları patlatma)
+  iki oyunda birden çalışıyor. Yerine:
+  - **2. dalga, çalışıyor:** görevlerin aranma komutları (yıldız ver, temizle, üst sınır) host'tan iki oyuncuya
+    uygulanır; suçlar herkesin kendine kalır. San Fierro/Las Venturas kilidi açılınca arkadaşın oyunu da açık sayar
+    (şu an orada arkadaşa 4 yıldız veriyor). Sürüm 0.3.101.
+  - Para: herkesin cüzdanı ayrı kalır; uyarlanmış görevlerin ödülü zaten ikinize de ödeniyor.
+  - Hileler: herkesin kendi oyununda kalır.
 - Upstream README'de yapılmamış diğerleri, hikâyede gerektikleri sırayla: para, nefes çubuğu, max HP,
   araç kornası/sireni (NPC), yangın, pickup'lar, aranma seviyesi, çete savaşları, paraşüt, trailer, hidrolik.
 
