@@ -51,6 +51,7 @@ Committed on top of the upstream import.
 - Crash reports are opt-in: defaults in `client/src/CConfigLoader.h`, `CConfigLoader.cpp` and `CCrashReporter.h` are `false` (`report-crashlogs` in `coopandreas.ini`).
 - Frame limiter always on (`CPatch::PatchFramerate`, byte patch at `0x748D68`). Upstream removes the 14 ms frame delay and relies on the menu's Frame Limiter; with it off the game runs at ~2000+ FPS, per-frame time rounds to 0 ms and New Game sits on a black screen.
 - `--coopdiag` (`client/src/Debug/CDiagLog.*`, started from `CCore::Init`): writes `CoopAndreas_diag.log` in the game folder every 2 s (frame counter, game time, pause/menu/fade, network, focus, script IPs). It keeps writing if the game loop hangs.
+- Tag sync (`client/src/Hooks/WorldHooks.cpp`, `PacketHandlers/world.cpp`): the spray hook calls 0x565B70 with an `int` return (plugin-sdk's `bool` let the compiler drop the "tag reached 255" update), hits above alpha 228 (`CTagManager::ALPHA_TAGGED`) go out unthrottled, and remote tag updates never lower a tag. Fixes Tagging Up Turf not counting the other player's tags. Lesson: plugin-sdk return types can be wrong; check the exe when a hook compares a result against more than 0/1.
 
 ## Known limitations
 - Old saves can't be loaded: the co-op `main.scm` differs, so saved script IPs land in garbage (crash in e.g. `quarrys`). Always New Game.

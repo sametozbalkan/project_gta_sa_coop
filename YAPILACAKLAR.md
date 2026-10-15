@@ -8,7 +8,7 @@ Proje GitHub'da: github.com/sametozbalkan/project_gta_sa_coop. Bu oturum projeni
 | İş | Ajan | Durum |
 |---|---|---|
 | Alt+Tab'da sunucudan düşmeyi düzelt | gtasa-coder-high | çalışıyor |
-| Tagging Up Turf: arkadaşın sıktığı tag sayılmıyor | gtasa-coder-high | çalışıyor |
+| Tagging Up Turf: arkadaşın sıktığı tag sayılmıyor | gtasa-coder-high | birleştirildi (fff678f) |
 | Radyo senkronu (aynı araçta aynı istasyon) | gtasa-coder-high | çalışıyor |
 | Görev derleme hattı, görev uyarlama rehberi ve görev envanteri | gtasa-coder-high | çalışıyor |
 | Tünel yayın betiği, yeni repo düzeni için paketleme, pakete yama arşivi seçeneği | gtasa-coder | birleştirildi (35db590) |
