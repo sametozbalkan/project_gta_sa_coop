@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "CDiagLog.h"
+#include "CNetworkKeepAlive.h"
 #include <CCamera.h>
 #include <CGame.h>
 #include <CMenuManager.h>
@@ -20,11 +21,12 @@ static void WriteSnapshot(FILE* file)
     CPlayerInfo& player = CWorld::Players[0];
     fprintf(file,
         "t=%lu gameState=%d frame=%u timeMs=%u userPause=%d codePause=%d menu=%d fadeAlpha=%.0f fadeFlag=%d "
-        "connected=%d auth=%d host=%d playerState=%d ped=%p focus='%s'%s\n",
+        "connected=%d auth=%d host=%d bgKept=%u bgDropped=%u playerState=%d ped=%p focus='%s'%s\n",
         GetTickCount(), gGameState, CTimer::m_FrameCounter, CTimer::m_snTimeInMilliseconds, CTimer::m_UserPause,
         CTimer::m_CodePause, FrontEndMenuManager.m_bMenuActive, TheCamera.m_fFadeAlpha, TheCamera.m_nFadeInOutFlag,
-        CNetwork::m_bConnected, CNetwork::m_bAuthenticated, CLocalPlayer::m_bIsHost, player.m_nPlayerState,
-        player.m_pPed, szForeground, foregroundPid == GetCurrentProcessId() ? "" : " (NOT FOCUSED)");
+        CNetwork::m_bConnected, CNetwork::m_bAuthenticated, CLocalPlayer::m_bIsHost, CNetworkKeepAlive::GetKeptCount(),
+        CNetworkKeepAlive::GetDroppedCount(), player.m_nPlayerState, player.m_pPed, szForeground,
+        foregroundPid == GetCurrentProcessId() ? "" : " (NOT FOCUSED)");
 
     // scripts: name, IP offset into the script space, ms until it wakes up
     fprintf(file, "  scripts:");

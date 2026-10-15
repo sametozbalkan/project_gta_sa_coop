@@ -2,6 +2,7 @@
 #include "enet/enet.h"
 #include "stdafx.h"
 #include "../shared/semver.h"
+#include "CNetworkKeepAlive.h"
 #include <cassert>
 #include <windows.h>
 
@@ -70,6 +71,9 @@ DWORD WINAPI CNetwork::InitAsync(LPVOID)
 
 void CNetwork::ProcessReceive()
 {
+    // private build: packets that arrived while the game was in the background come first
+    CNetworkKeepAlive::ProcessDeferred();
+
 #if true  // ENET LAYER
     ENetEvent eNetEvent{};
     while (enet_host_service(m_pENetHost, &eNetEvent, 0) > 0)
