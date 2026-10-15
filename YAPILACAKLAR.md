@@ -12,11 +12,15 @@ Proje GitHub'da: github.com/sametozbalkan/project_gta_sa_coop. Bu oturum projeni
 | Radyo senkronu (aynı araçta aynı istasyon) | gtasa-coder-high | çalışıyor |
 | Görev derleme hattı, görev uyarlama rehberi ve görev envanteri | gtasa-coder-high | çalışıyor |
 | Tünel yayın betiği, yeni repo düzeni için paketleme, pakete yama arşivi seçeneği | gtasa-coder | çalışıyor |
-| Discord Rich Presence'ı kapat, dış bağlantıları denetle | gtasa-coder | çalışıyor |
+| Discord Rich Presence'ı kapat, dış bağlantıları denetle | gtasa-coder | birleştirildi (294dc4f) |
 
 Dalga bitince: birleştir, derle, oyuna kur, arkadaş için yeni paket; sonra ikiniz oyunda test edersiniz.
 
 ## Sonraki dalgalar (öncelik sırasıyla)
+- Gizlilik kalıntıları (küçük, gtasa-coder): çökme raporu yüklemesini tamamen derleme dışı bırak (açılırsa
+  upstream'in gist'ine ve sunucusuna gidiyor); eski derlemenin yazdığı Discord URL kaydını
+  (`HKCU\Software\Classes\discord-1324128258672951317`) `deploy.ps1` ve `Kur.ps1` silsin; ImGui'nin link açıcısını
+  kapat (`IMGUI_DISABLE_DEFAULT_SHELL_FUNCTIONS`); tünelle oynarken sunucu sadece 127.0.0.1'i dinlesin (ayarla).
 - Görevleri hikâye sırasıyla uyarlamak (rehber çıkınca; görev başına bir iş, her biri oyunda test ister).
   95 hikâye görevinden yalnızca ilk 4'ü uyarlanmış; asıl darboğaz bu.
 - Upstream PR #106 (para, aranma seviyesi, hileler; açık, 11 dosya): önce salt-okunur kontrol, iyiyse fork'a al.
