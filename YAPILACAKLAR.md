@@ -51,6 +51,12 @@ paketten pakete açılmaya devam eder (derleme hattı her pakette denetler). Lis
   kayboluyor, hileler iki oyunda birden çalışıyor. Para herkesin kendine kalıyor (uyarlanmış görevlerin ödülü ikinize de
   ödeniyor), hileler yerel kalıyor; aranma seviyesi 2. dalgada host'un görev komutlarıyla geliyor.
 
+## Ana hikâyeden sonra (acelesi yok)
+- Yan içerik: yarışlar, okullar, araç yan görevleri vb.
+- **Bilardo co-op** (kullanıcının isteği): ikinizin birbirine karşı oynaması. Oyundaki bilardo tek oyuncu vs. NPC;
+  iki oyuncuya çevirmek mini oyunun durumunu senkronlamayı ister. Betiği `POOL2` 62.754 bayt (sınıra 6.246 bayt),
+  yani #27 için yapılacak boyut sınırı çözümü burada da işe yarar.
+
 ## Bilinen sınırlamalar
 - Eski (Steam) kayıtlar yüklenemez; her zaman New Game. Co-op kaydını host alır: güvenli evde, görev dışındayken.
 - Alt+Tab'da oyun duraklar (host'taysa görev de bekler); bağlantı kopmaz.
