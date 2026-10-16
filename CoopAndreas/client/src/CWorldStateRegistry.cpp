@@ -158,6 +158,7 @@ void CreateEntries()
 {
     Add<CWorldStateCityUnlock>();      // 0
     Add<CWorldStateMaxWantedLevel>();  // 1
+    Add<CWorldStateMissionSettings>(); // 8
 }
 
 int FindSlot(uint8_t entryId)
