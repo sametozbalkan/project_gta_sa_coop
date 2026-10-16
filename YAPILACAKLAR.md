@@ -77,7 +77,8 @@ Kullanıcı kararları (2026-10-16): görev geçiş ödülü (para ve saygı) ik
 savaşını host'un oyunu başlatır, arkadaşın öldürdükleri de sayılır; host sabitleme. Uygulama test beklenmeden başladı:
 0.3.103 testi bitene kadar oyuna yeni sürüm kurulmuyor, 0.3.103 düzeltmeleri `v0.3.103-alpha` etiketinden çıkar.
 İlerleme: L0 birleştirildi (eca37e3: oturum olayları, host sabitleme, host düşünce arkadaşın kontrolü geri alması);
-2. dalga (M1 yansıtma çekirdeği, yazılar ve ödüller; WS-1 dünya durumu çekirdeği) çalışıyor.
+WS-1 birleştirildi (d633f08: dünya durumu kaydı, şehir kilidi ona taşındı, en yüksek aranma seviyesi; paket biçimi
+değişti, main artık 0.1.0-alpha ve 0.3.103 ile bağlanamaz). M1 (yansıtma çekirdeği, yazılar ve ödüller) çalışıyor.
 
 ## Sonraki işler (öncelik sırasıyla)
 - **Sağlamlık:** geçersiz oyuncu tutamacı verilen co-op komutları host'u çökertiyor (ör. arkadaş görev ortasında
