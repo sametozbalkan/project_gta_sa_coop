@@ -1076,14 +1076,6 @@ end
 
 gosub @SWEET4_597
 Text.PrintNow('SWE4_00', 5000, 1)
-// co-op: their own cars get blue blips in @SWEET4_COOP_FRAME
-for $temp_int = 0 to 2
-    if
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.PrintNowForNetworkPlayer('SWE4_00', 5000, 1, $NETWORK_PLAYER[$temp_int]) // Get in the car.
-    end
-end
 61@ = Clock.GetGameTimer()
 set_lvar_int_to_lvar_int 73@ = 67@
 sub_int_lvar_from_int_lvar 73@ -= 61@
@@ -1134,14 +1126,6 @@ Char.ShutUpForScriptedSpeech(326@, True)
 :SWEET4_7794
 Audio.PlayMissionAudio(391@)
 Text.PrintNow(202@(389@,62s), 10000, 1)
-// co-op: the line's audio plays for the other players too (MissionAudioHooks); send them the subtitle
-for $temp_int = 0 to 2
-    if
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.PrintNowForNetworkPlayer(202@(389@,62s), 10000, 1, $NETWORK_PLAYER[$temp_int])
-    end
-end
 390@ = 3
 
 :SWEET4_7820
@@ -1152,13 +1136,6 @@ if
   Audio.HasMissionAudioFinished(391@)
 goto_if_false @SWEET4_8022
 Text.ClearThisPrint(202@(389@,62s))
-for $temp_int = 0 to 2
-    if
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.ClearThisPrintForNetworkPlayer(202@(389@,62s), $NETWORK_PLAYER[$temp_int])
-    end
-end
 if 
   326@ <> 0
 goto_if_false @SWEET4_7909
@@ -1223,13 +1200,6 @@ if or
   Char.IsDead(408@)
 goto_if_false @SWEET4_8180
 Text.PrintNow('SWE4_04', 5000, 1)
-for $temp_int = 0 to 2
-    if
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.PrintNowForNetworkPlayer('SWE4_04', 5000, 1, $NETWORK_PLAYER[$temp_int]) // Your homies didn't make it.
-    end
-end
 goto @SWEET4_23767
 
 :SWEET4_8180
@@ -1237,13 +1207,6 @@ if
   Car.IsDead(543@)
 goto_if_false @SWEET4_8219
 Text.PrintNow('SWE4_04', 5000, 1)
-for $temp_int = 0 to 2
-    if
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.PrintNowForNetworkPlayer('SWE4_04', 5000, 1, $NETWORK_PLAYER[$temp_int]) // Your homies didn't make it.
-    end
-end
 goto @SWEET4_23767
 
 :SWEET4_8219
@@ -1444,15 +1407,6 @@ World.SetPedDensityMultiplier(0.0)
 57@ = Blip.AddForCoord(54@, 55@, 56@)
 61@ = Clock.GetGameTimer()
 $sw4_stage = 3
-// co-op: the coordinate blip shows for everyone (CNetworkStaticBlip); the host's text comes from the
-// 'SWE4_01' Text.Print further down, every frame for 3 s
-for $temp_int = 0 to 2
-    if
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.PrintNowForNetworkPlayer('SWE4_01', 3000, 1, $NETWORK_PLAYER[$temp_int]) // Drive your homies into Balla territory.
-    end
-end
 
 :SWEET4_9351
 if 
@@ -1766,8 +1720,8 @@ Streaming.RemoveAnimation("GHANDS")
 63@ = Clock.GetGameTimer()
 64@ = Clock.GetGameTimer()
 Text.PrintHelp('SWE4_13')
-// co-op: the homies shoot from Sweet's car; the other players shoot from their own (the help box above
-// reaches them through the opcode sync)
+// co-op: the homies shoot from Sweet's car, the other players from their own; the host isn't told to shoot, so
+// this text is theirs alone (the help box above reaches everyone)
 for $temp_int = 0 to 2
     if
         Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
@@ -2751,15 +2705,6 @@ $sw4_cut = 0
 $sw4_stage = 6
 Game.SetWantedMultiplier(1.0)
 83@ = 0
-// co-op: 'SWE4_12' ("You have a two star wanted level") is only sure to be true for the host, so the
-// other players get just the way out; the flashing spray shop blip shows for everyone
-for $temp_int = 0 to 2
-    if
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.PrintNowForNetworkPlayer('SWE4_03', 8000, 1, $NETWORK_PLAYER[$temp_int]) // Get to the spray shop, you can lose the police there!
-    end
-end
 
 :SWEET4_16502
 if and
@@ -3052,13 +2997,6 @@ goto_if_false @SWEET4_18294
 $sw4_text_timer_flag = 18
 $sw4_text_timer_start = Clock.GetGameTimer()
 Text.PrintNow('SWE4_14', 8000, 1)
-for $temp_int = 0 to 2
-    if
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.PrintNowForNetworkPlayer('SWE4_14', 8000, 1, $NETWORK_PLAYER[$temp_int]) // Take your homies back to the hood.
-    end
-end
 49@ = 1
 
 :SWEET4_18294
@@ -3777,13 +3715,6 @@ if or
   not Char.LocateAnyMeansCar3D($scplayer, 543@, 50.0, 50.0, 50.0, False)
 goto_if_false @SWEET4_22257
 Text.PrintNow('SWE4_05', 5000, 1)
-for $temp_int = 0 to 2
-    if
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.PrintNowForNetworkPlayer('SWE4_05', 5000, 1, $NETWORK_PLAYER[$temp_int]) // You sure you're down for the 'hood?
-    end
-end
 goto @SWEET4_23767
 
 :SWEET4_22257
@@ -4305,32 +4236,6 @@ for $temp_int = 0 to 2
             not Char.LocateAnyMeans3D($NETWORK_PLAYER[$temp_int], 0, 545@, 546@, 547@, 50.0, 50.0, 20.0)
         then
             164@ = 0
-        end
-    end
-end
-// red blips for the other players on the 16 Ballas (415@..430@), each as soon as it has a network id
-// (166@..181@: blip sent); their games drop the blip when the ped dies (CNetworkEntityBlip::Update)
-for 155@ = 0 to 15
-    if
-        166@(155@,16i) == 0
-    then
-        set_lvar_int_to_lvar_int 150@ = 415@(155@,18i)
-        if
-            not Char.IsDead(150@)
-        then
-            151@ = Coop.GetPedNetworkId(150@)
-            if
-                151@ <> -1
-            then
-                166@(155@,16i) = 1
-                for $temp_int = 0 to 2
-                    if
-                        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-                    then
-                        Coop.UpdateCharBlipForNetworkPlayer($NETWORK_PLAYER[$temp_int], 150@, false, BlipDisplay.Both, BlipColor.Red, 3)
-                    end
-                end
-            end
         end
     end
 end

@@ -355,14 +355,6 @@ goto @INTRO2_1874
 Audio.PlayMissionAudio(MissionAudioSlot.Slot1)
 Text.PrintNow('INT2_AA', 10000, 1)
 
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.PrintNowForNetworkPlayer('INT2_AA', 10000, 1, $NETWORK_PLAYER[$temp_int])
-    end
-end
-
 :INTRO2_1998
 if 
   not Audio.HasMissionAudioFinished(MissionAudioSlot.Slot1)
@@ -503,15 +495,6 @@ Blip.Remove(37@)
 Blip.Remove(34@)
 34@ = Blip.AddForCoord(2077.84, -1792.59, 12.56)
 $blob_flag = 1
-
-FOR $temp_int = 0 to 2
-    if
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.UpdateCheckpointForNetworkPlayer(2077.84, -1792.59, 12.38, 4.0, 4.0, 4.0, $NETWORK_PLAYER[$temp_int])
-    end
-end
-
 Text.PrintNow('HOOD2_A', 6000, 1)
 TIMERB = 0
 38@ = 1
@@ -528,15 +511,6 @@ Blip.Remove(37@)
 37@ = Blip.AddForCar($ryder_car)
 Blip.SetAsFriendly(37@, True)
 $blob_flag = 0
-
-FOR $temp_int = 0 to 2
-    if
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.RemoveCheckpointForNetworkPlayer($NETWORK_PLAYER[$temp_int])
-    end
-end
-
 gosub @INTRO2_15117
 Text.PrintNow('INT2_6', 6000, 1)
 Char.ShutUpForScriptedSpeech($scplayer, False)
@@ -637,14 +611,6 @@ Hud.SwitchWidescreen(False)
 Player.SetControl($player1, True)
 Camera.SetBehindPlayer
 Camera.RestoreJumpcut
-
-FOR $temp_int = 0 to 2
-    if
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.RemoveCheckpointForNetworkPlayer($NETWORK_PLAYER[$temp_int])
-    end
-end
 Blip.Remove(34@)
 34@ = Blip.AddForCoord(413.6397, -19.9389, 1000.812)
 Blip.SetEntryExit(34@, 2073.042, -1794.563, 20.0)
@@ -1348,7 +1314,6 @@ for $temp_int = 0 to 2
     if 
         Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
     then
-        Coop.PrintNowForNetworkPlayer('HOOD2_B', 10000, 1, $NETWORK_PLAYER[$temp_int])
         Char.ClearTasksImmediately($NETWORK_PLAYER[$temp_int])
     end
 end
@@ -2401,15 +2366,6 @@ if
   TIMERB > 7000
 goto_if_false @INTRO2_12603
 Text.PrintNow('INT2_O', 10000, 1)
-
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.UpdateCheckpointForNetworkPlayer(2473.88, -1692.81, 12.52, 4.0, 4.0, 4.0, $NETWORK_PLAYER[$temp_int])
-    end
-end
-
 38@ = 1
 
 :INTRO2_12603
@@ -2474,15 +2430,6 @@ goto @INTRO2_13667
 goto @INTRO2_11813
 
 :INTRO2_12919
-
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.RemoveCheckpointForNetworkPlayer($NETWORK_PLAYER[$temp_int])
-    end
-end
-
 Player.SetControl($player1, False)
 49@ = 0
 56@ = 0
@@ -3012,15 +2959,6 @@ if
   Audio.HasMissionAudioLoaded(MissionAudioSlot.Slot1)
 goto_if_false @INTRO2_16278
 Text.PrintNow($intro2_chat(49@,17s), 4000, 1)
-
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.PrintNowForNetworkPlayer($intro2_chat(49@,17s), 4000, 1, $NETWORK_PLAYER[$temp_int])
-    end
-end
-
 Audio.PlayMissionAudio(MissionAudioSlot.Slot1)
 gosub @INTRO2_16280
 56@ = 2

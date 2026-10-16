@@ -380,7 +380,6 @@ if
   Car.IsDead($sweet_car)
 goto_if_false @SWEET3_3041
 Text.PrintNow('SWE3_D', 2000, 1)
-114@ = 1
 goto @SWEET3_12890
 
 :SWEET3_3041
@@ -389,9 +388,6 @@ goto @SWEET3_2983
 :SWEET3_3048
 Audio.PlayMissionAudio(MissionAudioSlot.Slot1)
 Text.PrintNow('SWE2_AA', 10000, 1)
-set_lvar_text_label 110@s = 'SWE2_AA'
-112@ = 10000
-gosub @SWEET3_COOP_PRINT
 
 :SWEET3_3068
 if 
@@ -403,7 +399,6 @@ if
   Car.IsDead($sweet_car)
 goto_if_false @SWEET3_3126
 Text.PrintNow('SWE3_D', 2000, 1)
-114@ = 1
 goto @SWEET3_12890
 
 :SWEET3_3126
@@ -419,7 +414,6 @@ if
   Car.IsDead($sweet_car)
 goto_if_false @SWEET3_3207
 Text.PrintNow('SWE3_D', 2000, 1)
-114@ = 1
 goto @SWEET3_12890
 
 :SWEET3_3207
@@ -449,7 +443,6 @@ if
   Car.IsDead($sweet_car)
 goto_if_false @SWEET3_3378
 Text.PrintNow('SWE3_D', 2000, 1)
-114@ = 1
 goto @SWEET3_12890
 goto @SWEET3_4270
 
@@ -521,7 +514,6 @@ if
   Char.IsDead($sweet)
 goto_if_false @SWEET3_3756
 Text.PrintNow('SWE3_E', 2000, 1)
-114@ = 2
 goto @SWEET3_12890
 
 :SWEET3_3756
@@ -529,7 +521,6 @@ if
   Char.IsDead($ryder)
 goto_if_false @SWEET3_3795
 Text.PrintNow('SWE3_F', 2000, 1)
-114@ = 3
 goto @SWEET3_12890
 
 :SWEET3_3795
@@ -537,7 +528,6 @@ if
   Char.IsDead($big_smoke)
 goto_if_false @SWEET3_3834
 Text.PrintNow('SWE3_G', 2000, 1)
-114@ = 4
 goto @SWEET3_12890
 
 :SWEET3_3834
@@ -545,7 +535,6 @@ if
   Car.IsDead($sweet_car)
 goto_if_false @SWEET3_3873
 Text.PrintNow('SWE3_D', 2000, 1)
-114@ = 1
 goto @SWEET3_12890
 
 :SWEET3_3873
@@ -555,9 +544,6 @@ goto @SWEET3_3698
 Audio.ClearMissionAudio(MissionAudioSlot.Slot1)
 Audio.PlayMissionAudio(MissionAudioSlot.Slot2)
 Text.PrintNow('SWE2_KC', 2000, 1)
-set_lvar_text_label 110@s = 'SWE2_KC'
-112@ = 2000
-gosub @SWEET3_COOP_PRINT
 if 
   56@ == 0
 goto_if_false @SWEET3_4065
@@ -596,7 +582,6 @@ if
   Char.IsDead($sweet)
 goto_if_false @SWEET3_4123
 Text.PrintNow('SWE3_E', 2000, 1)
-114@ = 2
 goto @SWEET3_12890
 
 :SWEET3_4123
@@ -604,7 +589,6 @@ if
   Char.IsDead($ryder)
 goto_if_false @SWEET3_4162
 Text.PrintNow('SWE3_F', 2000, 1)
-114@ = 3
 goto @SWEET3_12890
 
 :SWEET3_4162
@@ -612,7 +596,6 @@ if
   Char.IsDead($big_smoke)
 goto_if_false @SWEET3_4201
 Text.PrintNow('SWE3_G', 2000, 1)
-114@ = 4
 goto @SWEET3_12890
 
 :SWEET3_4201
@@ -620,7 +603,6 @@ if
   Car.IsDead($sweet_car)
 goto_if_false @SWEET3_4240
 Text.PrintNow('SWE3_D', 2000, 1)
-114@ = 1
 goto @SWEET3_12890
 
 :SWEET3_4240
@@ -628,7 +610,6 @@ goto @SWEET3_4065
 
 :SWEET3_4247
 Text.PrintNow('SWE3_D', 2000, 1)
-114@ = 1
 goto @SWEET3_12890
 
 :SWEET3_4270
@@ -636,7 +617,6 @@ if
   Char.IsDead($sweet)
 goto_if_false @SWEET3_4309
 Text.PrintNow('SWE3_E', 2000, 1)
-114@ = 2
 goto @SWEET3_12890
 
 :SWEET3_4309
@@ -644,7 +624,6 @@ if
   Char.IsDead($ryder)
 goto_if_false @SWEET3_4348
 Text.PrintNow('SWE3_F', 2000, 1)
-114@ = 3
 goto @SWEET3_12890
 
 :SWEET3_4348
@@ -652,7 +631,6 @@ if
   Char.IsDead($big_smoke)
 goto_if_false @SWEET3_4387
 Text.PrintNow('SWE3_G', 2000, 1)
-114@ = 4
 goto @SWEET3_12890
 
 :SWEET3_4387
@@ -660,7 +638,6 @@ if
   Car.IsDead($sweet_car)
 goto_if_false @SWEET3_4426
 Text.PrintNow('SWE3_D', 2000, 1)
-114@ = 1
 goto @SWEET3_12890
 
 :SWEET3_4426
@@ -1251,7 +1228,6 @@ if or
   Char.IsDead(54@)
 goto_if_false @SWEET3_8090
 Text.PrintNow('TW2_Y', 6000, 1)
-114@ = 5
 goto @SWEET3_12890
 
 :SWEET3_8090
@@ -1259,7 +1235,6 @@ if
   Car.IsDead($sweet_car)
 goto_if_false @SWEET3_8136
 Text.PrintNow('SWE3_D', 2000, 1)
-114@ = 1
 goto @SWEET3_12890
 goto @SWEET3_9187
 
@@ -1390,9 +1365,6 @@ goto @SWEET3_8771
 Audio.ClearMissionAudio(MissionAudioSlot.Slot1)
 Audio.PlayMissionAudio(MissionAudioSlot.Slot2)
 Text.PrintNow('SWE2_KA', 2000, 1)
-set_lvar_text_label 110@s = 'SWE2_KA'
-112@ = 2000
-gosub @SWEET3_COOP_PRINT
 if 
   56@ == 0
 goto_if_false @SWEET3_8982
@@ -1431,7 +1403,6 @@ if
   Char.IsDead($sweet)
 goto_if_false @SWEET3_9040
 Text.PrintNow('SWE3_E', 2000, 1)
-114@ = 2
 goto @SWEET3_12890
 
 :SWEET3_9040
@@ -1439,7 +1410,6 @@ if
   Char.IsDead($ryder)
 goto_if_false @SWEET3_9079
 Text.PrintNow('SWE3_F', 2000, 1)
-114@ = 3
 goto @SWEET3_12890
 
 :SWEET3_9079
@@ -1447,7 +1417,6 @@ if
   Char.IsDead($big_smoke)
 goto_if_false @SWEET3_9118
 Text.PrintNow('SWE3_G', 2000, 1)
-114@ = 4
 goto @SWEET3_12890
 
 :SWEET3_9118
@@ -1455,7 +1424,6 @@ if
   Car.IsDead($sweet_car)
 goto_if_false @SWEET3_9157
 Text.PrintNow('SWE3_D', 2000, 1)
-114@ = 1
 goto @SWEET3_12890
 
 :SWEET3_9157
@@ -1463,7 +1431,6 @@ goto @SWEET3_8982
 
 :SWEET3_9164
 Text.PrintNow('SWE3_D', 2000, 1)
-114@ = 1
 goto @SWEET3_12890
 
 :SWEET3_9187
@@ -1471,7 +1438,6 @@ if
   Char.IsDead($sweet)
 goto_if_false @SWEET3_9226
 Text.PrintNow('SWE3_E', 2000, 1)
-114@ = 2
 goto @SWEET3_12890
 
 :SWEET3_9226
@@ -1479,7 +1445,6 @@ if
   Char.IsDead($ryder)
 goto_if_false @SWEET3_9265
 Text.PrintNow('SWE3_F', 2000, 1)
-114@ = 3
 goto @SWEET3_12890
 
 :SWEET3_9265
@@ -1487,7 +1452,6 @@ if
   Char.IsDead($big_smoke)
 goto_if_false @SWEET3_9304
 Text.PrintNow('SWE3_G', 2000, 1)
-114@ = 4
 goto @SWEET3_12890
 
 :SWEET3_9304
@@ -1495,7 +1459,6 @@ if
   Car.IsDead($sweet_car)
 goto_if_false @SWEET3_9343
 Text.PrintNow('SWE3_D', 2000, 1)
-114@ = 1
 goto @SWEET3_12890
 
 :SWEET3_9343
@@ -1541,7 +1504,6 @@ if
   Char.IsDead($sweet)
 goto_if_false @SWEET3_9538
 Text.PrintNow('SWE3_E', 2000, 1)
-114@ = 2
 goto @SWEET3_12890
 
 :SWEET3_9538
@@ -1578,7 +1540,6 @@ if
   Car.IsDead($sweet_car)
 goto_if_false @SWEET3_9781
 Text.PrintNow('SWE3_D', 2000, 1)
-114@ = 1
 goto @SWEET3_12890
 goto @SWEET3_10546
 
@@ -1657,9 +1618,6 @@ goto @SWEET3_10130
 Audio.ClearMissionAudio(MissionAudioSlot.Slot1)
 Audio.PlayMissionAudio(MissionAudioSlot.Slot2)
 Text.PrintNow('SWE2_KB', 2000, 1)
-set_lvar_text_label 110@s = 'SWE2_KB'
-112@ = 2000
-gosub @SWEET3_COOP_PRINT
 if 
   56@ == 0
 goto_if_false @SWEET3_10341
@@ -1698,7 +1656,6 @@ if
   Char.IsDead($sweet)
 goto_if_false @SWEET3_10399
 Text.PrintNow('SWE3_E', 2000, 1)
-114@ = 2
 goto @SWEET3_12890
 
 :SWEET3_10399
@@ -1706,7 +1663,6 @@ if
   Char.IsDead($ryder)
 goto_if_false @SWEET3_10438
 Text.PrintNow('SWE3_F', 2000, 1)
-114@ = 3
 goto @SWEET3_12890
 
 :SWEET3_10438
@@ -1714,7 +1670,6 @@ if
   Char.IsDead($big_smoke)
 goto_if_false @SWEET3_10477
 Text.PrintNow('SWE3_G', 2000, 1)
-114@ = 4
 goto @SWEET3_12890
 
 :SWEET3_10477
@@ -1722,7 +1677,6 @@ if
   Car.IsDead($sweet_car)
 goto_if_false @SWEET3_10516
 Text.PrintNow('SWE3_D', 2000, 1)
-114@ = 1
 goto @SWEET3_12890
 
 :SWEET3_10516
@@ -1730,7 +1684,6 @@ goto @SWEET3_10341
 
 :SWEET3_10523
 Text.PrintNow('SWE3_D', 2000, 1)
-114@ = 1
 goto @SWEET3_12890
 
 :SWEET3_10546
@@ -1738,7 +1691,6 @@ if
   Char.IsDead($sweet)
 goto_if_false @SWEET3_10585
 Text.PrintNow('SWE3_E', 2000, 1)
-114@ = 2
 goto @SWEET3_12890
 
 :SWEET3_10585
@@ -1746,7 +1698,6 @@ if
   Char.IsDead($ryder)
 goto_if_false @SWEET3_10624
 Text.PrintNow('SWE3_F', 2000, 1)
-114@ = 3
 goto @SWEET3_12890
 
 :SWEET3_10624
@@ -1754,7 +1705,6 @@ if
   Char.IsDead($big_smoke)
 goto_if_false @SWEET3_10663
 Text.PrintNow('SWE3_G', 2000, 1)
-114@ = 4
 goto @SWEET3_12890
 
 :SWEET3_10663
@@ -1762,7 +1712,6 @@ if
   Car.IsDead($sweet_car)
 goto_if_false @SWEET3_10702
 Text.PrintNow('SWE3_D', 2000, 1)
-114@ = 1
 goto @SWEET3_12890
 
 :SWEET3_10702
@@ -1902,7 +1851,6 @@ if
   Car.IsDead($sweet_car)
 goto_if_false @SWEET3_11439
 Text.PrintNow('SWE3_D', 2000, 1)
-114@ = 1
 goto @SWEET3_12890
 
 :SWEET3_11439
@@ -1945,7 +1893,6 @@ if
   Car.IsDead($sweet_car)
 goto_if_false @SWEET3_11706
 Text.PrintNow('SWE3_D', 2000, 1)
-114@ = 1
 goto @SWEET3_12890
 goto @SWEET3_12313
 
@@ -2024,9 +1971,6 @@ goto @SWEET3_12055
 Audio.ClearMissionAudio(MissionAudioSlot.Slot1)
 Audio.PlayMissionAudio(MissionAudioSlot.Slot2)
 Text.PrintNow('SWE2_KB', 2000, 1)
-set_lvar_text_label 110@s = 'SWE2_KB'
-112@ = 2000
-gosub @SWEET3_COOP_PRINT
 if 
   56@ == 0
 goto_if_false @SWEET3_12186
@@ -2051,7 +1995,6 @@ if
   Char.IsDead($big_smoke)
 goto_if_false @SWEET3_12244
 Text.PrintNow('SWE3_G', 2000, 1)
-114@ = 4
 goto @SWEET3_12890
 
 :SWEET3_12244
@@ -2059,7 +2002,6 @@ if
   Car.IsDead($sweet_car)
 goto_if_false @SWEET3_12283
 Text.PrintNow('SWE3_D', 2000, 1)
-114@ = 1
 goto @SWEET3_12890
 
 :SWEET3_12283
@@ -2067,7 +2009,6 @@ goto @SWEET3_12186
 
 :SWEET3_12290
 Text.PrintNow('SWE3_D', 2000, 1)
-114@ = 1
 goto @SWEET3_12890
 
 :SWEET3_12313
@@ -2075,7 +2016,6 @@ if
   Char.IsDead($big_smoke)
 goto_if_false @SWEET3_12352
 Text.PrintNow('SWE3_G', 2000, 1)
-114@ = 4
 goto @SWEET3_12890
 
 :SWEET3_12352
@@ -2083,7 +2023,6 @@ if
   Car.IsDead($sweet_car)
 goto_if_false @SWEET3_12391
 Text.PrintNow('SWE3_D', 2000, 1)
-114@ = 1
 goto @SWEET3_12890
 
 :SWEET3_12391
@@ -2192,7 +2131,6 @@ goto @SWEET3_12908
 
 :SWEET3_12890
 Text.PrintBig('M_FAIL', 5000, TextStyle.Middle)
-gosub @SWEET3_COOP_FAIL
 return 
 
 :SWEET3_12908
@@ -2291,13 +2229,6 @@ if
   Audio.HasMissionAudioLoaded(MissionAudioSlot.Slot1)
 goto_if_false @SWEET3_13387
 Text.PrintNow($sweet3_chat(86@,13s), 4000, 1)
-for $temp_int = 0 to 2
-    if
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.PrintNowForNetworkPlayer($sweet3_chat(86@,13s), 4000, 1, $NETWORK_PLAYER[$temp_int])
-    end
-end
 Audio.PlayMissionAudio(MissionAudioSlot.Slot1)
 gosub @SWEET3_13389
 85@ = 2
@@ -2852,13 +2783,12 @@ return
 // Drive-Thru with more than one player. Sweet's Greenwood carries CJ, Sweet, Smoke and Ryder, so it has no seat
 // left: every network player gets a Greenwood of their own, follows the gang to the Cluckin' Bell, chases the
 // Ballas Voodoo with a Tec-9 for drive-bys from the driver's seat (look left or right and fire) and follows the
-// Greenwood home. The host's mission runs as in single player; the other players' state is in these locals:
-//   110@s, 112@  text and time for SWEET3_COOP_PRINT
+// Greenwood home. The host's mission runs as in single player; its texts, blips and locate spheres and the
+// dialogue reach the other players through the mission mirror layer. Their own state is in these locals:
 //   113@         phase: 0 none, 1 to the drive-thru, 2 chase, 3 back to the Grove, 4 to Smoke's house
-//   114@         why the mission failed (SWEET3_COOP_FAIL)
 //   117@-119@    used by the wait helpers
 //   120@(3)      what each player is shown, 123@(3) when a player may next be sent out of the Greenwood,
-//                145@(3) the phase whose objective a player got (SWEET3_COOP_UPDATE)
+//                145@(3) the phase whose drive-by help a player got (SWEET3_COOP_UPDATE)
 //   126@         scratch, 127@ the second drive-by help line was shown, 148@ counter of loops that wait
 //   130@(3), 133@(3), 136@(3)  x, y and heading of each player's car for the chase, 139@(3), 142@(3) x and y
 //                where a player on foot is put next to it
@@ -2929,8 +2859,8 @@ end
 return
 
 :SWEET3_COOP_UPDATE
-// once per frame of the drive and chase loops, and once when a scene starts: each player's objective, blips
-// and checkpoint follow the phase in 113@
+// once per frame of the drive and chase loops, and once when a scene starts: each player's own car blip, their
+// spot in the drive-thru's exit lane and their own texts follow the phase in 113@
 for $temp_int = 0 to 2
     if
         Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
@@ -2958,28 +2888,19 @@ for $temp_int = 0 to 2
             end
         end
 
-        // the phase's objective, once
+        // the drive-by help for the chase, once (the host's objective texts reach every player)
         if
             803B: 113@ == 145@($temp_int,3i) // not equal
         then
             0085: 145@($temp_int,3i) = 113@
             if 113@ == 2
             then
-                Coop.PrintNowForNetworkPlayer('SWE3_B', 6000, 1, $NETWORK_PLAYER[$temp_int]) // Chase down the gang car before they cap your homies!
                 Coop.PrintHelpForNetworkPlayer('HELP31', $NETWORK_PLAYER[$temp_int]) // To do a drive-by, first look left or right
-            end
-            if 113@ == 3
-            then
-                Coop.PrintNowForNetworkPlayer('TW2_W', 6000, 1, $NETWORK_PLAYER[$temp_int]) // Go back to Sweet's house.
-            end
-            if 113@ == 4
-            then
-                Coop.PrintNowForNetworkPlayer('TW2_Z', 6000, 1, $NETWORK_PLAYER[$temp_int]) // Drive Smoke to his house.
             end
         end
 
-        // what the player should see: 1 get in your car, 2 driving to the drive-thru, 3 chase in a car, 7 chase on
-        // foot, 4 the Ballas are on foot, 5 follow the Greenwood home, 0 nothing
+        // what the player should see of their own: 1 get in your car, 2 driving to the drive-thru, 7 chase on
+        // foot; 3 chase in a car, 4 the Ballas are on foot, 5 following the Greenwood home and 0 show nothing
         126@ = 0
         if 113@ == 1
         then
@@ -3031,42 +2952,12 @@ for $temp_int = 0 to 2
                 Coop.UpdateCheckpointForNetworkPlayer(130@($temp_int,3f), 133@($temp_int,3f), 12.38, 4.0, 4.0, 4.0, $NETWORK_PLAYER[$temp_int])
                 Coop.PrintNowForNetworkPlayer('TWAR2_C', 6000, 1, $NETWORK_PLAYER[$temp_int])
             end
-            if or
-                126@ == 2
-                126@ == 5
-            then
-                if not Car.IsDead($sweet_car)
-                then
-                    Coop.UpdateCarBlipForNetworkPlayer($NETWORK_PLAYER[$temp_int], $sweet_car, True, BlipDisplay.Both, BlipColor.Blue, 3)
-                end
-            end
-            if or
-                126@ == 3
-                126@ == 7
-            then
-                if not Car.IsDead(40@)
-                then
-                    Coop.UpdateCarBlipForNetworkPlayer($NETWORK_PLAYER[$temp_int], 40@, False, BlipDisplay.Both, BlipColor.Red, 3)
-                end
-            end
             if 126@ == 7
             then
                 if not Car.IsDead($NETWORK_PLAYER_VEHICLE[$temp_int])
                 then
                     Coop.UpdateCarBlipForNetworkPlayer($NETWORK_PLAYER[$temp_int], $NETWORK_PLAYER_VEHICLE[$temp_int], True, BlipDisplay.Both, BlipColor.Blue, 3)
                 end
-            end
-            if 126@ == 4
-            then
-                if not Char.IsDead(89@)
-                then
-                    Coop.UpdateCharBlipForNetworkPlayer($NETWORK_PLAYER[$temp_int], 89@, False, BlipDisplay.Both, BlipColor.Red, 3)
-                end
-                if not Char.IsDead(90@)
-                then
-                    Coop.UpdateCharBlipForNetworkPlayer($NETWORK_PLAYER[$temp_int], 90@, False, BlipDisplay.Both, BlipColor.Red, 3)
-                end
-                Coop.PrintNowForNetworkPlayer('K_BALLA', 6000, 1, $NETWORK_PLAYER[$temp_int]) // Kill the Ballas gang members.
             end
         end
     end
@@ -3146,49 +3037,6 @@ for 148@ = 0 to 2
 end
 113@ = 2
 127@ = 0
-return
-
-:SWEET3_COOP_PRINT
-// print_now of 110@s for 112@ ms on every other player's screen, for dialogue lines the host's script prints
-// itself rather than through the chat table
-for $temp_int = 0 to 2
-    if
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.PrintNowForNetworkPlayer(110@s, 112@, 1, $NETWORK_PLAYER[$temp_int])
-    end
-end
-return
-
-:SWEET3_COOP_FAIL
-// the other players learn why the mission failed: 114@ is set next to each fail text the host is shown (1 'SWE3_D'
-// the car is trashed, 2 'SWE3_E' Sweet, 3 'SWE3_F' Ryder, 4 'SWE3_G' Smoke is dead, 5 'TW2_Y' the homies were
-// capped); it stays 0 when a player died or got busted, which has no text for the host either
-if 114@ == 1
-then
-    set_lvar_text_label 110@s = 'SWE3_D'
-end
-if 114@ == 2
-then
-    set_lvar_text_label 110@s = 'SWE3_E'
-end
-if 114@ == 3
-then
-    set_lvar_text_label 110@s = 'SWE3_F'
-end
-if 114@ == 4
-then
-    set_lvar_text_label 110@s = 'SWE3_G'
-end
-if 114@ == 5
-then
-    set_lvar_text_label 110@s = 'TW2_Y'
-end
-if 114@ > 0
-then
-    112@ = 4000
-    gosub @SWEET3_COOP_PRINT
-end
 return
 
 :SWEET3_COOP_CLEANUP
