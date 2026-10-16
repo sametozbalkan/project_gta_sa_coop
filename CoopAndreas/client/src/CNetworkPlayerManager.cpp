@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include "CDepartedPlayerPeds.h"
 
 std::vector<CNetworkPlayer*> CNetworkPlayerManager::m_pPlayers;
 CPad CNetworkPlayerManager::m_pPads[Config::MAX_SERVER_PLAYERS + 2];
@@ -61,6 +62,8 @@ void CNetworkPlayerManager::ProcessPeds()
     {
         pNetworkPlayer->ProcessPedRecovery();
     }
+
+    CDepartedPlayerPeds::Process(); // private build: the stand-ins of players who left during the host's mission
 }
 
 // private build: called by the CPlayerPed destructor hook (PlayerHooks.cpp) for every CPlayerPed, local ones too

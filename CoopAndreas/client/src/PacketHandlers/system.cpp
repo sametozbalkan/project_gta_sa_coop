@@ -7,6 +7,7 @@
 #include <CMoonSync.h>
 #include <game_sa/CTagManager.h>
 #include <CSessionLifecycle.h>
+#include <CDepartedPlayerPeds.h>
 
 // private build: the host's join snapshot, also sent when this game becomes the host while players are in already (the
 // server pins the story host, who can connect after the others; CSessionLifecycle)
@@ -72,6 +73,8 @@ PACKET_HANDLER(ePacketType::PLAYER_DISCONNECTED, Packets::System::PlayerDisconne
     {
         CChat::AddMessage("[Player] " + std::string(player->GetName()) + " disconnected");
         CNetworkPlayerManager::Remove(player);
+        // private build: during the host's mission its ped stays as a stand-in for the handle the mission keeps
+        CDepartedPlayerPeds::OnPlayerLeaving(player);
         delete player;
     }
 }

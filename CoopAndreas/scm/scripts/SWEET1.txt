@@ -746,10 +746,14 @@ for $temp_int = 0 to 2
         Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
     then
         wait 100
-        if 
-            Char.IsInAnyCar($NETWORK_PLAYER[$temp_int])
+        if // co-op: checked again after the wait, the player may have left meanwhile
+            Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
         then
-            Task.LeaveAnyCar($NETWORK_PLAYER[$temp_int])
+            if
+                Char.IsInAnyCar($NETWORK_PLAYER[$temp_int])
+            then
+                Task.LeaveAnyCar($NETWORK_PLAYER[$temp_int])
+            end
         end
     end
 end
@@ -1670,7 +1674,11 @@ for $temp_int = 0 to 2
             Char.IsInAnyCar($NETWORK_PLAYER[$temp_int])
         then
             wait 100
-            Task.LeaveAnyCar($NETWORK_PLAYER[$temp_int])
+            if // co-op: checked again after the wait, the player may have left meanwhile
+                Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+            then
+                Task.LeaveAnyCar($NETWORK_PLAYER[$temp_int])
+            end
         end
     end
 end
@@ -2560,7 +2568,11 @@ for $temp_int = 0 to 2
             Char.IsInAnyCar($NETWORK_PLAYER[$temp_int])
         then
             wait 100
-            Task.LeaveAnyCar($NETWORK_PLAYER[$temp_int])
+            if // co-op: checked again after the wait, the player may have left meanwhile
+                Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+            then
+                Task.LeaveAnyCar($NETWORK_PLAYER[$temp_int])
+            end
         end
     end
 end

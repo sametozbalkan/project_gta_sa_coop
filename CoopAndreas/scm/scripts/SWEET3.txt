@@ -3026,8 +3026,23 @@ for 148@ = 0 to 2
                 $NETWORK_PLAYER_VEHICLE[148@] = Car.Create(492, 130@(148@,3f), 133@(148@,3f), 12.38)
                 008B: 118@ = $NETWORK_PLAYER_VEHICLE[148@]
                 gosub @SWEET3_COOP_WAIT_CAR
-                Car.SetHeading($NETWORK_PLAYER_VEHICLE[148@], 136@(148@,3f))
+                if not Car.IsDead($NETWORK_PLAYER_VEHICLE[148@])
+                then
+                    Car.SetHeading($NETWORK_PLAYER_VEHICLE[148@], 136@(148@,3f))
+                end
             end
+        end
+    end
+end
+// placed and armed only after the waits for the new cars' ids (up to 2 s each): a player who left meanwhile is
+// skipped here, as everywhere a network player is used after a wait
+for 148@ = 0 to 2
+    if
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[148@])
+    then
+        if
+            not Char.IsInAnyCar($NETWORK_PLAYER[148@])
+        then
             Char.SetCoordinates($NETWORK_PLAYER[148@], 139@(148@,3f), 142@(148@,3f), 12.38)
             Char.SetHeading($NETWORK_PLAYER[148@], 136@(148@,3f))
         end

@@ -113,6 +113,12 @@ void CNetworkPlayer::DestroyPed()
             return;
         }
     }
+    else
+    {
+        // private build: a seated ped without a clump gives its seat back too, before it goes: the vehicle may stay in
+        // this game (a player who leaves: the host takes its vehicle over)
+        GiveUpVehicleSeat(pPed);
+    }
 
     uintptr_t pedPtr = (uintptr_t)pPed;
     m_bDestroyingPed = true;
@@ -734,6 +740,80 @@ void CNetworkPlayer::FinishKeptPed(bool bInsideWorldProcess)
     m_bKeptPending = false;
 }
 
+// private build (another player leaving during the host's mission) -------------------------------------------------
+
+// The ped gives its seat back without the vehicle going away: a player who leaves takes nothing with them, the host
+// takes the vehicle over, so it must not keep a driver or passenger that is about to be deleted or parked as a stand-in.
+// The game's own unlink, CPed::FlagToDestroyWhenNextProcessed (0x5E7B70, called directly, not through the CPlayerPed
+// vtable slot PlayerHooks replaces): for the vehicle's driver it drops the driver reference and leaves the vehicle
+// STATUS_ABANDONED for a player (0x5E7BB3..0x5E7BEE), for a passenger it calls CVehicle::RemovePassenger (0x6D1610), then
+// it clears bInVehicle and m_pVehicle. No task and no animation: it also works without a clump. Its deletion flag and,
+// for a mission ped (CREATE_PLAYER makes every player ped one), its PEDSTATE_DEAD with the blip it clears are undone,
+// as in KeepFlaggedPed.
+void CNetworkPlayer::GiveUpVehicleSeat(CPlayerPed* pPed)
+{
+    if (pPed == nullptr || !pPed->m_nPedFlags.bInVehicle || pPed->m_pVehicle == nullptr)
+    {
+        return;
+    }
+
+    const bool bClearRadarBlipOnDeath = pPed->m_nPedFlags.bClearRadarBlipOnDeath;
+    const bool bRemoveFromWorld = pPed->m_bRemoveFromWorld;
+    pPed->m_nPedFlags.bClearRadarBlipOnDeath = false;
+    plugin::CallMethod<0x5E7B70, CPed*>(pPed);
+    pPed->m_nPedFlags.bClearRadarBlipOnDeath = bClearRadarBlipOnDeath;
+    pPed->m_bRemoveFromWorld = bRemoveFromWorld;
+    pPed->m_ePedState = PEDSTATE_IDLE;
+}
+
+// Hands this player's ped over to CDepartedPlayerPeds as a stand-in (only a ped with a clump and intelligence): out of
+// its vehicle with the ped side of a car exit (as FinishKeptPed), without the tasks it had (one getting into a car
+// still holds the door), out of its CWorld::Players slot, and forgotten here, so the destructor of this object leaves it
+// alone. The slot is free for the next player with this id.
+CPlayerPed* CNetworkPlayer::ReleasePedForStandIn()
+{
+    CPlayerPed* pPed = GetReadyPed();
+    if (pPed == nullptr)
+    {
+        return nullptr;
+    }
+
+    m_bKeptPending = false;
+    const bool bWasSeated = pPed->m_nPedFlags.bInVehicle && pPed->m_pVehicle;
+    if (bWasSeated)
+    {
+        GiveUpVehicleSeat(pPed);
+        pPed->m_bUsesCollision = true; // cleared while seated (CTaskSimpleCarSetPedInAsDriver::ProcessPed 0x64B950)
+        CCarEnterExit::RemoveCarSitAnim(pPed);
+        pPed->RestartNonPartialAnims();
+    }
+    // a drive task now ends without touching its vehicle (CTaskSimpleCarDrive::MakeAbortable 0x63C670 sets the ped out
+    // only while it is in one); a player gets CTaskSimplePlayerOnFoot as its default task again
+    pPed->m_pIntelligence->FlushImmediately(true);
+    pPed = GetReadyPed();
+    if (pPed == nullptr)
+    {
+        return nullptr;
+    }
+    if (bWasSeated)
+    {
+        pPed->ReplaceWeaponWhenExitingVehicle();
+        pPed->m_ePedState = PEDSTATE_IDLE;
+    }
+
+    for (int i = 2; i < Config::MAX_SERVER_PLAYERS + 2; i++)
+    {
+        if (CWorld::Players[i].m_pPed == pPed)
+        {
+            CWorld::Players[i].m_pPed = nullptr;
+        }
+    }
+    LogPedDiagnostic("stand-in", "left-during-host-mission");
+    m_pPed = nullptr;
+    m_poolReference = CPedPoolReference();
+    return pPed;
+}
+
 void CNetworkPlayer::LogPedDiagnostic(const char* phase, const char* reason, const char* detail)
 {
     static const bool enabled = strstr(GetCommandLineA(), "--coopdiag") != nullptr;
@@ -742,7 +822,7 @@ void CNetworkPlayer::LogPedDiagnostic(const char* phase, const char* reason, con
 
     // one record per phase and second; "hidden" is written only when the reason changes (CheckHidden)
     static const char* const s_aszPhases[] = {"destroyed", "invalid", "missing", "clumpless", "recreated",
-        "recreate-failed", "flagged", "deferred", "taken-out", "kept", "hidden"};
+        "recreate-failed", "flagged", "deferred", "taken-out", "kept", "stand-in", "hidden"};
     static_assert(ARRAY_SIZE(s_aszPhases) == ARRAY_SIZE(m_abLoggedPedDiagnostic), "one slot per phase");
     unsigned int phaseIndex = ARRAY_SIZE(s_aszPhases) - 1;
     for (unsigned int i = 0; i < ARRAY_SIZE(s_aszPhases); i++)

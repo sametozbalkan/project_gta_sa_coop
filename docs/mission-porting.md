@@ -69,14 +69,24 @@ alone stands in the marker; changing that is a trigger change (rule 3).
   threads: on the other client the `INT`/`SWEET` triggers use `Coop.LocateAllPlayersOnFoot3D` (false
   there), and the other strand threads are never started, because the mission ends that start them run
   only on the host. So only the host's counters and strand threads advance, and the host's game holds the
-  story. (This follows from the scripts and the client code; it is not verified in game.)
+  story. (This follows from the scripts and the client code; it is not verified in game.) A game that
+  loaded a save with the story's strand threads running (a copy of the host's save, say) could still start
+  a story mission of its own; since 0.1.1 the client answers `Player.CanStartMission` (`03EE`) with false
+  for the 28 strand trigger threads (`INT` … `RIOT`, list in `client/src/CStoryStartPolicy.h`) on a game
+  in a session that isn't the host, also while no host is known, so their markers do nothing there
+  (`client/src/Hooks/PlayerHooks.cpp`). Each of them asks `03EE` right before it launches a mission (the
+  race tournament `CPRACE` that `CESAR`, `BCESAR` and `TRACE` launch included). The side activities
+  (gyms, schools, races, arenas, vehicle sub-missions, couriers, property purchase), shops and casino games
+  keep the game's answer, and so does every game that plays alone.
 - A mission script runs only on the host. The other player sees its effects through: entity sync
   (vehicles and peds the host creates become network entities), the mission mirror layer (what the mission
   shows on screen, and its pass rewards), `COpCodeSync` for registered scripts, the world-state registry
   (all three below), the packets the co-op commands send, and a few client hooks.
 - **Either player dying or getting busted fails the mission**: the client replaces
   `CRunningScript::DoDeatharrestCheck` (`client/src/Hooks/PlayerHooks.cpp`) to treat any network player
-  who is dead, arrested or dying as wasted/busted. No script code is needed for that.
+  who is dead, arrested or dying as wasted/busted. No script code is needed for that. A player who leaves
+  (quits, crashes, loses the connection) doesn't fail it: the mission goes on without them (A player who
+  leaves during the mission, below).
 - The host's `$onmission` is sent to the other clients (`client/src/Main.cpp`, `ON_MISSION_FLAG_SYNC`;
   again to a player who joins during a mission). When it drops to 0 the other client removes its co-op
   checkpoint and entity blips, turns widescreen off, gives the player back the controls and clears the fade
@@ -214,9 +224,10 @@ the other player the mission's weapons itself. Properties belong to the host.
 Defined in the mode's `sa_coop.json` (`CoopAndreas` extension; `SASCM.INI` has only `1D00`–`1D0D`),
 registered in `client/src/Commands/CCustomCommandRegistrar.h`, implemented in
 `client/src/Commands/Commands/`. An opcode in `0x1D00`–`0x1DFF` without a registered handler crashes the
-client. The commands that take a network player read its id without a null check: give them an invalid
-handle and the host crashes, so always guard with `Coop.IsNetworkPlayerActorValid`. Per-player commands
-send a packet that the server relays only from the host and only to that player.
+client. The commands that take a network player do nothing for a handle that isn't one (fork, 0.3.103):
+an invalid, stale or departed player's handle is nobody. The vanilla commands are not so forgiving (A
+player who leaves during the mission, below), so always guard with `Coop.IsNetworkPlayerActorValid`.
+Per-player commands send a packet that the server relays only from the host and only to that player.
 
 | Opcode | Class syntax | What the client does |
 |---|---|---|
@@ -303,7 +314,8 @@ $NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetwork
 $onmission = 1
 ```
 
-**Per-player blocks**: loop and guard every use of a network player.
+**Per-player blocks**: loop and guard every use of a network player, in the same script frame as the use
+(no `wait` in between; see A player who leaves during the mission).
 
 ```
 for $temp_int = 0 to 2
@@ -396,6 +408,78 @@ and at cleanup delete it only if `Coop.IsSyncingThisPed`, else `Coop.CancelPedCl
 
 **Unsupported warning**: upstream marks unported missions with two `Coop.AddChatMessage` lines; they
 belong after `script_name` inside the mission, not before the label (see Pitfalls).
+
+## A player who leaves during the mission
+
+Another player can go at any moment: their game crashes, they quit, the connection drops. The host's game
+handles the server's `PLAYER_DISCONNECTED` between two script frames (packets are handled in
+`gameProcessEvent.before`, before `CGame::Process` runs `CTheScripts::Process`; `client/src/Main.cpp`),
+so a player never disappears in the middle of a script frame. From then on they are gone for the mission:
+`Coop.IsNetworkPlayerActorValid` is false for their stored handle, the co-op commands do nothing for it,
+and their death no longer fails the mission. The mission goes on with the players who are left; it never
+fails or waits because someone left. A player who comes back gets a new ped and a new handle: they see the
+host's mission through the mirror layer and can play along, but the mission doesn't count them again (the
+next mission collects them).
+
+Rules for every use of `$NETWORK_PLAYER[i]` (the same for a handle copied from it, and for a value
+derived from it: `Coop.GetNetworkPlayerInternalId` gives -1 for a player who left, and a `Player.*`
+command with -1 reads before the player array):
+
+1. **The check and the use in the same script frame.** No `wait` between them, and no `gosub` to a
+   subroutine that may wait (one that waits for a network id, plays dialogue, fades). After a wait,
+   check again. Within one frame the check holds.
+2. **Not in the check's own condition list.** SCM evaluates every condition of an `if and`/`if or` list,
+   so `Char.IsInCar($NETWORK_PLAYER[i], car)` next to the check still runs for a player who left. Put the
+   use in a nested `if`. Only `Char.IsDead` and `Car.IsDead` may share the list: they count a missing
+   entity as dead (1.0 cases 0x469B13 and 0x469B6D).
+3. **Progress never waits for one player.** Combine the players' conditions in a local flag and check
+   each player only while valid (`150@ = 1` … `if not Char.LocateAnyMeans3D(…) then 150@ = 0`, as
+   `INTRO1`); don't count the players collected at the start, and don't wait for a per-player state that
+   only that player's actions change.
+4. **What belongs to the player.** Their own car (`$NETWORK_PLAYER_VEHICLE[i]`, a car stored with
+   `Char.StoreCarIsIn($NETWORK_PLAYER[i])`) may be synced by their game; check it with `Car.IsDead` in the
+   same frame before other car commands. A blip on their ped goes with the ped.
+
+```
+for $temp_int = 0 to 2
+    if
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        wait 100
+        if // checked again after the wait, the player may have left meanwhile
+            Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+        then
+            Task.LeaveAnyCar($NETWORK_PLAYER[$temp_int])
+        end
+    end
+end
+```
+
+Why it matters: every vanilla command that takes a ped handle uses the ped pool's answer without checking
+it, and a departed player's handle names a free pool slot. `Char.IsInAnyCar` reads `[ped+0x46C]` (case
+0x469667), `Char.SetCoordinates` the same (0x464DC0), `Char.GiveWeapon` calls `CPed::GiveWeapon` on it
+(case 0x47D307), every `Task.*` command reads `[ped+0x474]` in `CRunningScript::GivePedScriptedTask`
+(0x465CC8). On a NULL ped that is a crash of the host's game.
+
+A safety net for a port that misses a rule (fork, 0.1.1; `client/src/CDepartedPlayerPeds.*`): while a
+mission of its own runs, the host keeps a departed player's ped as a stand-in instead of deleting it, out
+of any vehicle, hidden, without collision, static and parked 200 m below where they left, with its own
+copy of the player data, so the player slot is free for a player who comes back. A vanilla command on
+the stored handle acts on the stand-in instead of crashing; the co-op commands still treat the player as
+gone. The stand-ins are deleted once no mission of the host runs. The net doesn't make a mission correct:
+a mission that waits for the stand-in to arrive somewhere waits forever, and a ped that had no clump when
+its player left is deleted as before. The rules above still apply.
+
+The peds a leaving player synced are removed on every game, except a ped another player claimed
+(`Coop.ClaimPedOnRelease`, as the shop scripts do with a shopkeeper the other game created, like the
+barber at Reece's during `INTRO2`): it goes to that player, whose script keeps its handle
+(`server/src/CNetworkPedManager.cpp`).
+A ped the host's mission created stays the host's: another player can only sync it after the host's own
+copy is gone, when its handle is gone anyway.
+
+Missions #2–#10 were checked against these rules for 0.1.1: all go on without a player who left, in
+every phase; `SWEET1` (three cutscene starts, a check before `wait 100`) and `SWEET3` (the chase start, a
+check before a wait of up to 2 s for a car's network id) were fixed.
 
 ## Pitfalls
 
@@ -550,7 +634,9 @@ committed `main.scm` and `script.img` except the compiler signature in the objec
    mirrored), which vehicle do they use, what must they do for the mission to go on (combine the
    conditions), and what fails the mission.
 5. Wait for network ids of created entities before tasking or teleporting them, or giving them a
-   friend-only blip.
+   friend-only blip. Check every use of a network player against A player who leaves during the mission:
+   the check in the same script frame (again after each wait), not in the check's own condition list, and
+   no progress that waits for one player.
 6. Cutscenes: position and un-arm the other players around them.
 7. Mission end: leave the passed block's progression untouched, add the co-op cleanup.
 8. New state only in mission locals; no new globals, no edits outside the mission's file.
@@ -576,7 +662,10 @@ Mark it "oyunda doğrulanmadı" until the players have run it. The architect dep
    for the host as in single player and on the friend's radar.
 6. After the mission the friend has no leftover blip, marker, counter, help box, frozen controls or black
    screen.
-7. Save at a save point (host), quit, reload the save, check the story continues.
+7. The friend leaves during a phase where the mission uses them (a cutscene start, a ride, a teleport):
+   once from the menu, once by ending `gta_sa.exe`. The host's game goes on, the mission continues for the
+   host alone and can be passed; the friend reconnects and sees the host's texts, blips and markers.
+8. Save at a save point (host), quit, reload the save, check the story continues.
 
 A crash leaves `C:\Games\GTASA_Coop\CoopAndreas_crashes\*.log` with the script IPs; `tools/scm_at_ip.py`
 maps them to a script. A hang needs `--coopdiag` (CLAUDE.md, Debugging).

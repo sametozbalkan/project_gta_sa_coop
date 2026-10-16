@@ -5,6 +5,10 @@
 #include <game_sa/CPedDamageResponseInfo.h>
 #include <CPacketBuffer.h>
 #include <CServerTime.h>
+#include <CDepartedPlayerPeds.h>
+#include <CSessionLifecycle.h>
+#include <COpCodeSync.h>
+#include <CStoryStartPolicy.h>
 
 static void __fastcall CPlayerPed__ProcessControl_Hook(CPlayerPed* This)
 {
@@ -15,6 +19,13 @@ static void __fastcall CPlayerPed__ProcessControl_Hook(CPlayerPed* This)
         patch::SetRaw(0x6884C4, (void*)"\xD9\x96\x5C\x05\x00\x00", 6, false);
         plugin::CallMethod<0x60EA90, CPlayerPed*>(This);
         patch::Nop(0x6884C4, 6, false);
+        return;
+    }
+
+    // private build: a departed player's stand-in is static, so CWorld::Process doesn't reach it; should a script
+    // command have put it into the moving list, it still doesn't act (the original would read the local pad for it)
+    if (CDepartedPlayerPeds::IsStandIn(This))
+    {
         return;
     }
 
@@ -180,10 +191,14 @@ static void __fastcall CPlayerPed__dctor_Hook(CPlayerPed* This, SKIP_EDX)
     // private build: the game can delete a network player's ped on its own (CNetworkPlayer.cpp); this call (0x60A9A3,
     // the only call of ~CPlayerPed 0x6093B0) sees every CPlayerPed, so its network player forgets it here
     CNetworkPlayerManager::OnPlayerPedDestroyed(This);
+    // private build: a departed player's stand-in has its own player data, which ~CPlayerPed reads (CDepartedPlayerPeds)
+    void* pStandInPlayerData = CDepartedPlayerPeds::OnPedDestroying(This);
 
     This->m_pPlayerData->m_nMeleeWeaponAnimReferencedExtra = 0;
 
     plugin::CallMethod<0x6093B0, CPlayerPed*>(This);
+
+    CDepartedPlayerPeds::FreePlayerData(pStandInPlayerData);
 }
 
 // private build (remote player ped recovery): CPlayerPed's FlagToDestroyWhenNextProcessed, vtable slot 21 (0x86D1BC in
@@ -285,6 +300,21 @@ void __fastcall CPedDamageResponseCalculator__ComputeWillKillPed_Hook(
 bool __fastcall CPlayerPed__CanPlayerStartMission_Hook(CPlayerPed* This, SKIP_EDX)
 {
     return This->CanPlayerStartMission() /* && CLocalPlayer::m_bIsHost*/;
+}
+
+// private build: story missions start only from the host's game. The call at 0x4895B0 is CAN_PLAYER_START_MISSION (03EE,
+// case 0x489595 of CRunningScript::ProcessCommands1000To1099 0x489500), which MAIN's story strand threads ask right before
+// they launch a mission; in a session, on a game that isn't the host, it answers false for them (StoryStartPolicy), so
+// their markers do nothing there. Side activities, shops and every game that plays alone keep the game's answer. The
+// script asking is the one CRunningScript::Process runs a command for (COpCodeSync's hook at 0x469FF3). The other call
+// (0x4577E6, CPickup::Update) is the save disk and the two-player pickups (models 0x8CD5E4, 0x8CD5F4 and 0x8CD5F8 compared
+// at 0x4577C3..0x4577E2: MI_PICKUP_SAVEGAME, MI_PICKUP_2P_KILLFRENZY, MI_PICKUP_2P_COOP in gta-reversed ModelIndices.cpp)
+// and keeps upstream's hook.
+static bool __fastcall CPlayerPed__CanPlayerStartMission_Script_Hook(CPlayerPed* This, SKIP_EDX)
+{
+    CRunningScript* pScript = COpCodeSync::GetScriptRunningCommand();
+    return StoryStartPolicy::MayStartMission(This->CanPlayerStartMission(), CSessionLifecycle::IsAuthenticated(),
+        CSessionLifecycle::IsHost(), pScript != nullptr ? pScript->m_szName : nullptr, sizeof(pScript->m_szName));
 }
 
 void __fastcall CPlayerPed__ProcessWeaponSwitch_Hook(CPlayerPed* This, SKIP_EDX, CPad* pad)
@@ -466,7 +496,7 @@ void PlayerHooks::InjectHooks()
     patch::RedirectCall(0x4B5B27, CPedDamageResponseCalculator__ComputeWillKillPed_Hook);
 
     patch::RedirectCall(0x4577E6, CPlayerPed__CanPlayerStartMission_Hook);
-    patch::RedirectCall(0x4895B0, CPlayerPed__CanPlayerStartMission_Hook);
+    patch::RedirectCall(0x4895B0, CPlayerPed__CanPlayerStartMission_Script_Hook); // private build: story starts on the host
 
     patch::RedirectCall(
         0x60F2E0, CPlayerPed__ProcessWeaponSwitch_Hook);  // disable switching weapon for network players

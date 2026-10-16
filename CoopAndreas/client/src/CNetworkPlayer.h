@@ -65,6 +65,10 @@ public:
 	void FinishKeptPed(bool bInsideWorldProcess);
 	void LogPedDiagnostic(const char* phase, const char* reason, const char* detail = nullptr);
 
+	// private build (another player leaving during the host's mission, CDepartedPlayerPeds)
+	static void GiveUpVehicleSeat(CPlayerPed* ped);
+	CPlayerPed* ReleasePedForStandIn();
+
 private:
 	CPedPoolReference m_poolReference;
 	CPedRecoveryThrottle m_recoveryThrottle;
@@ -79,8 +83,8 @@ private:
 	bool m_bKeptFlushed = false;
 	uint8_t m_nPedProblem = 0;
 	uint8_t m_nHiddenReason = 0;
-	bool m_abLoggedPedDiagnostic[11]{};
-	uint32_t m_anLastPedDiagnostic[11]{};
+	bool m_abLoggedPedDiagnostic[12]{};
+	uint32_t m_anLastPedDiagnostic[12]{};
 
 	void RecreatePed(const char* reason);
 	void ApplyLastKnownState(CPlayerPed* ped);
