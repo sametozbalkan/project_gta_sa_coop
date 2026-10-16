@@ -6,7 +6,7 @@ GTA: San Andreas hikâyesinin tamamını birlikte oynayın: iki oyuncu, tek kay�
 görevler.
 
 ![durum: alfa](https://img.shields.io/badge/durum-alfa-orange)
-![sürüm: 0.3.103-alpha](https://img.shields.io/badge/s%C3%BCr%C3%BCm-0.3.103--alpha-blue)
+![sürüm: 0.1.0-alpha](https://img.shields.io/badge/s%C3%BCr%C3%BCm-0.1.0--alpha-blue)
 [![lisans: GPL-3.0](https://img.shields.io/badge/lisans-GPL--3.0-green)](LICENSE)
 <!-- Buy Me a Coffee rozeti, hesap açılınca buraya eklenecek. -->
 
@@ -25,15 +25,17 @@ kaydıdır; her sürümde bu kaydın yüklenmeye devam ettiği denetlenir.
 
 | Bölge | Görevler | ✅ | 🧪 | 🛠️ | ⏳ |
 |---|---|:---:|:---:|:---:|:---:|
-| Los Santos | 28 (#1–#28) | 6 | 4 | 7 | 11 |
+| Los Santos | 28 (#1–#28) | – | 10 | 7 | 11 |
 | Badlands | 11 (#29–#39) | – | – | – | 11 |
 | San Fierro | 26 (#40–#65) | – | – | – | 26 |
 | Çöl | 9 (#66–#74) | – | – | – | 9 |
 | Las Venturas | 18 (#75–#92) | – | – | – | 18 |
 | Los Santos'a dönüş | 11 (#93–#103) | – | – | – | 11 |
-| **Toplam** | **103** | **6** | **4** | **7** | **86** |
+| **Toplam** | **103** | **–** | **10** | **7** | **86** |
 
-Görevler gruplar halinde gelir; sıradaki grup, bir önceki test edilmeden başlamaz. Görev numaraları
+Görevler gruplar halinde gelir; sıradaki grup, bir önceki test edilmeden başlamaz. #1–#6 0.3.102 ile baştan sona
+oynandı; 0.1.0'da #1–#10'un tamamı görev yansıtma katmanına geçti ve New Game ile yeniden test ediliyor. Görev
+numaraları
 [docs/missions.md](docs/missions.md) dosyasını izler; her görevin betiği ve co-op riskleri de orada (İngilizce).
 
 <details>
@@ -41,13 +43,13 @@ Görevler gruplar halinde gelir; sıradaki grup, bir önceki test edilmeden baş
 
 | # | Görev | Durum | Not |
 |---:|---|:---:|---|
-| 1 | In the Beginning | ✅ | Giriş ara sahnesi ve bisiklet yolculuğu atlanır; hikâye bunların hemen ardından başlar. |
-| 2 | Big Smoke | ✅ | |
-| 3 | Ryder | ✅ | |
-| 4 | Tagging Up Turf | ✅ | |
-| 5 | Cleaning The Hood | ✅ | |
-| 6 | Drive-Thru | ✅ | |
-| 7 | Nines And AK's | 🧪 | 0.3.103 ile yeniden test edilecek (host'un diğer oyuncunun ekranında kaybolmasına yönelik düzeltme). |
+| 1 | In the Beginning | 🧪 | Giriş ara sahnesi ve bisiklet yolculuğu atlanır; hikâye bunların hemen ardından başlar. |
+| 2 | Big Smoke | 🧪 | |
+| 3 | Ryder | 🧪 | |
+| 4 | Tagging Up Turf | 🧪 | |
+| 5 | Cleaning The Hood | 🧪 | |
+| 6 | Drive-Thru | 🧪 | |
+| 7 | Nines And AK's | 🧪 | 0.1.0 ile yeniden test edilecek (host'un diğer oyuncunun ekranında kaybolmasına yönelik düzeltme). |
 | 8 | Drive-By | 🧪 | |
 | 9 | Sweet's Girl | 🧪 | |
 | 10 | Cesar Vialpando | 🧪 | |
@@ -199,9 +201,12 @@ Görevler gruplar halinde gelir; sıradaki grup, bir önceki test edilmeden baş
   (paintjob), modifiye parçaları ve kapı kilitleri.
 - **NPC'ler ve dünya:** iki oyunun trafiği ve yayaları; hareketleri, sürüşleri, silahları, atışları ve
   konuşmalarıyla. Saat ve hava durumu host'u izler; iç mekânlara girip çıkmak da senkronlanır.
-- **Görevler:** uyarlanmış bir görevde ara sahneler, kararmalar, kamera hareketleri, hedef yazıları,
-  işaretler ve kontrol noktaları diğer oyuncuya da gider; ödül (para ve saygı) iki oyuncuya da verilir. Görev
-  diyalogları iki oyunda da duyulur; oyunculardan biri ölür ya da tutuklanırsa görev başarısız olur.
+- **Görevler:** host'un oynadığı her görevde görev adı, hedef ve diyalog yazıları, yardım kutuları, "Mission
+  passed", araç, karakter ve hedef işaretleri, sarı görev küreleri, zamanlayıcılar ve sayaçlar diğer oyuncuya
+  kendiliğinden gider; geçiş ödülü (para ve saygı) iki oyuncuya da verilir, görev içindeki bahis ve harcamalar
+  host'ta kalır. Uyarlanmış bir görev buna ara sahneleri, kararmaları, kamera hareketlerini, koltukları ve
+  konumları ekler. Görev diyalogları iki oyunda da duyulur; oyunculardan biri ölür ya da tutuklanırsa görev
+  başarısız olur.
 
 ### Bu projede eklenenler
 
@@ -216,13 +221,20 @@ Görevler gruplar halinde gelir; sıradaki grup, bir önceki test edilmeden baş
 - **Görevlerden gelen aranma seviyesi:** host'un görevi aranma seviyesini yükselttiğinde, sıfırladığında ya da
   polisin oyuncuyu görmezden gelmesini sağladığında bu değişiklik iki oyuncuya da uygulanır; kendi suçlarınızdan
   gelen yıldızlar sizde kalır.
-- **Şehir kilitleri:** host'un açtığı şehirler diğer oyuncu için de açık sayılır; orada dört yıldızlı aranma
-  seviyesiyle karşılaşmaz.
+- **Görev yansıtma katmanı:** host'un görevinin ekranda gösterdikleri, görev betiklerine satır eklemeden diğer
+  oyuncuya gider; görevin ortasında oyuna katılan oyuncuya da.
+- **Dünya durumu:** açılan şehirler, en yüksek aranma seviyesi, garajlar ve dükkân kapıları, host'un görevlerinin
+  trafik, polis ve hava ayarları host'un oyununu izler; başarısız bir görevden sonra ya da diğer oyuncu yeniden
+  başladığında da.
+- **Hikâye host'u:** sunucu, hep host olacak oyuncuyu belirleyebilir (`story-host`); böylece diğer oyuncu önce
+  bağlansa ya da host yeniden bağlansa da hikâye doğru oyunda kalır.
 - **NPC senkronu:** NPC'ler senkronlanırken diğer oyuncunun oyununda yaşanan bir çökme düzeltildi.
 - **Geniş ekran:** açılıştaki görüntü modu penceresi geniş ekran (16:9) çözünürlükleri de listeler.
 - **Kare sınırlayıcı:** hep açık; kapalıyken New Game siyah ekranda kalabiliyordu.
-- **0.3.103'te yeni (test bekliyor):** diğer oyuncunun silahları, zırhı, parası, kıyafetleri ve becerileri
-  host'un kaydıyla birlikte saklanır; diğer oyuncunun ekranından kaybolan bir oyuncu kendiliğinden geri gelir.
+- **Saklanan oyuncu durumu:** diğer oyuncunun silahları, zırhı, parası, kıyafetleri, becerileri ve saygısı
+  host'un kaydıyla birlikte saklanır.
+- **Oyuncu kurtarma:** diğer oyuncunun ekranından kaybolan bir oyuncu kendiliğinden geri gelir; host bir ara
+  sahnede oyundan düşerse diğer oyuncu kontrolünü geri alır.
 
 ### Gizlilik
 
@@ -232,25 +244,22 @@ yalnızca kendi bilgisayarınıza yazılır.
 ## Nasıl çalışır
 
 İki oyun da trafiklerini aktaran küçük bir sunucuya bağlanır; İnternet üzerinde bu trafiği projenin tüneli Steam
-üzerinden taşır. Sunucuya ilk bağlanan oyuncu host olur ve hikâye host'un oyununda tutulur: görev betikleri
-yalnızca orada çalışır. Araçlar ve karakterler iki oyun arasında paylaşılır ve senkron tutulur. Uyarlanmış bir
-görev ayrıca yazılarını, işaretlerini, kontrol noktalarını ve seçili betik komutlarını (ara sahneler, kararmalar,
-kamera, ödüller, aranma seviyesi) diğer oyuncuya gönderir ve onu her sahnede olması gereken yere koyar. Kayıt,
-host'un normal kaydıdır; 0.3.103'ten itibaren buna ek olarak küçük bir dosya diğer oyuncuların durumunu tutar.
+üzerinden taşır. Host, sunucunun `story-host` ayarındaki oyuncudur (ayar boşsa sunucuya ilk bağlanan) ve hikâye
+host'un oyununda tutulur: görev betikleri yalnızca orada çalışır. Araçlar ve karakterler iki oyun arasında
+paylaşılır ve senkron tutulur. Görev yansıtma katmanı host'un görevinin gösterdiklerini (yazılar, işaretler,
+zamanlayıcılar, ödüller) diğer oyuncuya kopyalar; dünya durumu kaydı host'un dünyasının kurallarını iki oyunda
+aynı tutar. Uyarlanmış bir görev ayrıca seçili betik komutlarını (ara sahneler, kararmalar, kamera, aranma
+seviyesi) gönderir ve diğer oyuncuyu her sahnede olması gereken yere koyar. Kayıt, host'un normal kaydıdır; buna
+ek olarak küçük bir dosya diğer oyuncuların durumunu tutar.
 
 ## Yol haritası
 
 - **Los Santos'un kalanı:** grup 2 (#11–#17, Big Smoke ve Ryder görevleri), grup 3 (#18–#22, müzik görevleri
   ve Cesar) ve grup 4 (#23–#28, Burning Desire'dan The Green Sabre'a). Ardından hikâye sırasıyla Badlands, San
   Fierro, çöl, Las Venturas ve Los Santos'a dönüş.
-- **Görev yansıtma katmanı (planlandı):** host'un görevinin ekranda gösterdiği her şey (hedef yazıları, araç ve
-  karakter işaretleri, kontrol noktaları, zamanlayıcılar ve sayaçlar, görev göstergeleri) diğer oyuncuya
-  kendiliğinden gider; böylece bir görevi uyarlamak koltuklar, ara sahnelerdeki konumlar ve başarısızlık
-  koşulları gibi oyun kararlarına iner. #1–#10'un da bu kalıba geçirilip New Game ile yeniden test edilmesi
-  planlanıyor.
-- **Dünya durumu kaydı (planlandı):** host'un dünyasının kurallarını belirleyen şeyler (açılan şehirler, köprü
-  bariyerleri gibi harita nesne grupları, çete bölgeleri, en yüksek aranma seviyesi, garajlar) tek bir yerde
-  tanımlanır; değiştikçe ve diğer oyuncu oyuna katıldığında ona kendiliğinden gönderilir.
+- **Dünya durumunun kalanı, ihtiyaç duyan görevlerden önce:** yarış kontrol noktaları (#22), çete bölgeleri ve
+  savaşları (#25), köprü bariyerleri ve yolları (#28), harita nesneleri (#42), ayaklanma (#99) ve görevlerin
+  açtığı kapı ve geçitler için nesne senkronu (#60).
 - **Sonraki görevlerin istediği oyun sistemleri:** yangın (#23), çete savaşları (#25, #98), römork (#31), RC
   araçlar (#44–#46), paraşüt (#72, #81, #89) ve jetpack (#73); ayrıca Reuniting The Families (#27) için daha
   fazla betik alanı.
@@ -298,10 +307,11 @@ anlatır, [docs/missions.md](docs/missions.md) her görevi durumu ve riskleriyle
   oyuncuyu ve onun oyununun yönettiği karakterleri yerinde donmuş görür; o anda basılı tutulan bir tuş, oyuncu
   dönene kadar etkisini sürdürür. Bağlantı kopmaz.
 - Görevlerin bazı bölümleri host'ta kalır: tek kişilik mini oyunlar (diğer oyuncu izler), yalnızca görev
-  betiğinin bildiği nesneler (ör. Nines And AK's görevindeki şişe atış alıştırması), ekrandaki zamanlayıcılar
-  ile sayaçlar ve görevin kendi aranma kontrolleri (bunlar host'un yıldızlarına bakar).
-- Henüz uyarlanmamış görevler yalnızca host'un tek kişilik görevi olarak çalışır; diğer oyuncu yalnızca zaten
-  senkronlanan şeyleri, örneğin araçları ve karakterleri görür.
+  betiğinin bildiği nesneler (ör. Nines And AK's görevindeki şişe atış alıştırması) ve görevin kendi aranma
+  kontrolleri (bunlar host'un yıldızlarına bakar).
+- Yalnızca host'a yönelik mesajlar (ör. "araca dön") diğer oyuncunun ekranında da görünür.
+- Henüz uyarlanmamış görevler host'un görevi olarak çalışır; diğer oyuncu yazılarını, işaretlerini ve
+  zamanlayıcılarını görür ve yardım edebilir, ama uyarlamanın eklediği ara sahneler, koltuklar ve konumlar olmadan.
 - Henüz senkronlanmayanlar: yangın, çete savaşları ve bölgeleri, römorklar, RC araçlar, paraşütler ve jetpack'i
   yerden almak.
 - Görevin ortasında bir oyuncunun bağlantısı koparsa host'un oyunu çökebilir.

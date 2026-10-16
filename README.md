@@ -5,7 +5,7 @@
 Play the whole GTA: San Andreas story together: two players, one save, every mission rebuilt for co-op, one by one.
 
 ![status: alpha](https://img.shields.io/badge/status-alpha-orange)
-![version: 0.3.103-alpha](https://img.shields.io/badge/version-0.3.103--alpha-blue)
+![version: 0.1.0-alpha](https://img.shields.io/badge/version-0.1.0--alpha-blue)
 [![license: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-green)](LICENSE)
 <!-- Buy Me a Coffee badge goes here once the account exists. -->
 
@@ -24,15 +24,17 @@ the host's, and every release is checked so that it keeps loading.
 
 | Region | Missions | ✅ | 🧪 | 🛠️ | ⏳ |
 |---|---|:---:|:---:|:---:|:---:|
-| Los Santos | 28 (#1–#28) | 6 | 4 | 7 | 11 |
+| Los Santos | 28 (#1–#28) | – | 10 | 7 | 11 |
 | Badlands | 11 (#29–#39) | – | – | – | 11 |
 | San Fierro | 26 (#40–#65) | – | – | – | 26 |
 | Desert | 9 (#66–#74) | – | – | – | 9 |
 | Las Venturas | 18 (#75–#92) | – | – | – | 18 |
 | Return to Los Santos | 11 (#93–#103) | – | – | – | 11 |
-| **Total** | **103** | **6** | **4** | **7** | **86** |
+| **Total** | **103** | **–** | **10** | **7** | **86** |
 
-Missions ship in groups, and the next group starts only after the previous one has been tested. Mission numbers
+Missions ship in groups, and the next group starts only after the previous one has been tested. #1–#6 were
+played through on 0.3.102; in 0.1.0 all of #1–#10 moved to the mission mirror layer and are tested again from a
+New Game. Mission numbers
 follow [docs/missions.md](docs/missions.md), which also lists each mission's script and co-op risks.
 
 <details>
@@ -40,13 +42,13 @@ follow [docs/missions.md](docs/missions.md), which also lists each mission's scr
 
 | # | Mission | Status | Note |
 |---:|---|:---:|---|
-| 1 | In the Beginning | ✅ | The intro cutscene and bike ride are skipped; the story starts right after them. |
-| 2 | Big Smoke | ✅ | |
-| 3 | Ryder | ✅ | |
-| 4 | Tagging Up Turf | ✅ | |
-| 5 | Cleaning The Hood | ✅ | |
-| 6 | Drive-Thru | ✅ | |
-| 7 | Nines And AK's | 🧪 | Retest in 0.3.103 (fix for the host vanishing on the other player's screen). |
+| 1 | In the Beginning | 🧪 | The intro cutscene and bike ride are skipped; the story starts right after them. |
+| 2 | Big Smoke | 🧪 | |
+| 3 | Ryder | 🧪 | |
+| 4 | Tagging Up Turf | 🧪 | |
+| 5 | Cleaning The Hood | 🧪 | |
+| 6 | Drive-Thru | 🧪 | |
+| 7 | Nines And AK's | 🧪 | Retest in 0.1.0 (fix for the host vanishing on the other player's screen). |
 | 8 | Drive-By | 🧪 | |
 | 9 | Sweet's Girl | 🧪 | |
 | 10 | Cesar Vialpando | 🧪 | |
@@ -198,9 +200,11 @@ follow [docs/missions.md](docs/missions.md), which also lists each mission's scr
   tuning parts and door locks.
 - **NPCs and the world:** traffic and pedestrians from both games, with their movement, driving, weapons, shots
   and speech; time and weather follow the host; going in and out of interiors.
-- **Missions:** in a rebuilt mission, cutscenes, fades, camera moves, objective texts, markers and checkpoints
-  reach the other player, and the reward (money and respect) goes to both. Mission dialogue audio plays in both
-  games, and if either player dies or gets busted, the mission fails.
+- **Missions:** in every mission the host plays, the title, objective and dialogue texts, help boxes, "Mission
+  passed", markers on vehicles, characters and destinations, the yellow mission markers, timers and counters reach
+  the other player automatically, and the pass reward (money and respect) goes to both; bets and costs inside a
+  mission stay with the host. A rebuilt mission adds cutscenes, fades, camera moves, seats and positions. Mission
+  dialogue audio plays in both games, and if either player dies or gets busted, the mission fails.
 
 ### Added by this project
 
@@ -214,13 +218,20 @@ follow [docs/missions.md](docs/missions.md), which also lists each mission's scr
 - **Tags:** a gang tag sprayed by either player counts for both (Tagging Up Turf).
 - **Wanted levels from missions:** when the host's mission raises or clears the wanted level or makes the police
   ignore the player, the change applies to both players; stars from your own crimes stay yours.
-- **City unlocks:** cities the host has opened count as open for the other player too, so no four-star wanted
-  level there.
+- **Mission mirror layer:** what the host's mission shows on screen reaches the other player without extra lines
+  in the mission scripts, also for a player who joins mid-mission.
+- **World state:** unlocked cities, the highest wanted level, garages and shop doors, and the traffic, police and
+  weather settings of the host's missions follow the host's game, also after a failed mission or when the other
+  player restarts.
+- **Story host:** the server can name the player who is always the host (`story-host`), so the story stays in
+  the right game even if the other player connects first or the host reconnects.
 - **NPC sync:** fixes for a crash on the other player's game when NPCs are synced.
 - **Widescreen:** the video mode dialog at startup also lists widescreen (16:9) resolutions.
 - **Frame limiter:** always on; without it, a New Game could stay on a black screen.
-- **New in 0.3.103 (test pending):** the other player's weapons, armour, money, clothes and skills are saved
-  with the host's save, and a player who vanishes from the other player's screen is restored automatically.
+- **Saved player state:** the other player's weapons, armour, money, clothes, skills and respect are saved with
+  the host's save.
+- **Player recovery:** a player who vanishes from the other player's screen is restored automatically, and the
+  other player gets control back if the host leaves during a cutscene.
 
 ### Privacy
 
@@ -230,24 +241,22 @@ are written only to your own PC.
 ## How it works
 
 Both games connect to a small server that relays their traffic; over the Internet, the project's tunnel carries
-that traffic through Steam. The first player to connect is the host, and the host's game holds the story:
-mission scripts run only there. Vehicles and characters are shared between the two games and kept in sync. A
-rebuilt mission also sends its texts, markers, checkpoints and selected script commands (cutscenes, fades,
-camera, rewards, wanted levels) to the other player and puts them where each scene needs them. A save is the
-host's normal save; from 0.3.103 a small side file also keeps the other players' state.
+that traffic through Steam. The host is the player named in the server's `story-host` setting (by default the
+first player to connect), and the host's game holds the story: mission scripts run only there. Vehicles and
+characters are shared between the two games and kept in sync. The mission mirror layer copies what the host's
+mission shows (texts, markers, timers, rewards) to the other player, and the world-state registry keeps the
+rules of the host's world the same in both games. A rebuilt mission also sends selected script commands
+(cutscenes, fades, camera, wanted levels) and puts the other player where each scene needs them. A save is the
+host's normal save; a small side file also keeps the other players' state.
 
 ## Roadmap
 
 - **Rest of Los Santos:** group 2 (#11–#17, Big Smoke's and Ryder's missions), group 3 (#18–#22, the music
   missions and Cesar) and group 4 (#23–#28, Burning Desire to The Green Sabre). Then, in story order, Badlands,
   San Fierro, the desert, Las Venturas and the return to Los Santos.
-- **Mission mirror layer (planned):** whatever the host's mission shows on screen (objective texts, markers on
-  vehicles and characters, checkpoints, timers and counters, mission HUD) reaches the other player
-  automatically, so rebuilding a mission comes down to gameplay decisions such as seats, cutscene positions and
-  fail conditions. Missions #1–#10 would move to it and be tested again on a New Game.
-- **World-state registry (planned):** what sets the rules of the host's world (unlocked cities, map object
-  groups such as the bridge barriers, gang territories, the highest wanted level, garages) is defined in one
-  place and sent to the other player whenever it changes and when they join.
+- **Rest of the world state, before the missions that need it:** race checkpoints (#22), gang territories and
+  wars (#25), the bridge barriers and roads (#28), map objects (#42), the riots (#99), and object sync for doors
+  and gates that missions open (#60).
 - **Game systems that later missions need:** fire (#23), gang wars (#25, #98), trailers (#31), RC vehicles
   (#44–#46), parachutes (#72, #81, #89) and the jetpack (#73), plus more script space for Reuniting The
   Families (#27).
@@ -295,10 +304,11 @@ and [docs/missions.md](docs/missions.md) lists every mission with its status and
   away player, and the characters that player's game controls, frozen in place; a key held down at that moment
   keeps acting until they return. The connection stays up.
 - Some parts of a mission stay with the host: solo minigames (the other player watches), objects only the
-  mission script knows about (such as the bottle practice in Nines And AK's), on-screen timers and counters,
-  and the mission's own wanted-level checks, which read the host's stars.
-- Missions that aren't rebuilt yet run only as the host's single-player mission; the other player gets only
-  what is synced anyway, such as vehicles and characters.
+  mission script knows about (such as the bottle practice in Nines And AK's), and the mission's own wanted-level
+  checks, which read the host's stars.
+- Messages meant only for the host (such as "get back in the car") show on the other player's screen too.
+- Missions that aren't rebuilt yet run as the host's mission; the other player sees its texts, markers and
+  timers and can help, but without the cutscenes, seats and positions a rebuild adds.
 - Not synced yet: fire, gang wars and territories, trailers, RC vehicles, parachutes and picking up the jetpack.
 - If a player drops out in the middle of a mission, the host's game can crash.
 

@@ -140,4 +140,3 @@ Recorded at merge time (CLAUDE.md, Fork changes, has the details of each package
 - **Lifecycle:** a takeover's join snapshot and PLAYER_JOINED events wait for the first server-time answer;
   subscribers live in a function-local static.
 - **Respect** (P1, not in the designs): mission, kill and clothes respect are kept with the player state (CAPS v2).
-
