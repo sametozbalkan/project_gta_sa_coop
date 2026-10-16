@@ -4,7 +4,8 @@ Status: design only (2026-10-16, base `main` f5cffae, 0.3.103-alpha). Nothing he
 the user: the state that sets the rules of the host's world is defined in one place in client code and reaches the
 other players by itself, when it changes and when someone joins. The mission mirror layer
 (`docs/design/mirror-layer.md`, designed in parallel) covers what the host's mission shows on screen; section 3.9
-lists what both designs share.
+lists what both designs share. The architect's decisions and the merged plan are in `README.md` in this folder; it
+replaces D8's story guard with host pinning on the server.
 
 "Host" is the player whose game runs the story (the first player to connect). "The other player" or "the friend"
 is everyone else; with two players that is one game.

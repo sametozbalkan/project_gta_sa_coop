@@ -200,7 +200,9 @@ scene's end position before or right after (`INTRO1` sets them near the house af
 their weapons with `Char.HideWeaponForScriptedCutscene` like the host's.
 
 **Entities the mission creates**: wait until they have network ids before giving them tasks or blips
-for the other player, or the replayed commands are dropped:
+for the other player, or the replayed commands are dropped. A `Coop.Update*BlipForNetworkPlayer` sent too early is
+worse: `CNetworkEntitySerializer::SetEntity` leaves the id of an unconfirmed ped or vehicle at 0, which is a valid id
+of another entity, so the friend's game marks that one:
 
 ```
 $sweet_car = Car.Create(492, 2508.16, -1666.47, 13.0)

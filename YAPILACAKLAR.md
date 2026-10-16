@@ -68,9 +68,11 @@ bitince öneri olarak sunulacak, kullanıcı onaylarsa grup 2 yeni kalıpla baş
    oyuna katıldığında otomatik gönderilir. Şehir kilidi bu kalıpla yapıldı; farkları tek tek kovalamak yerine genel yapı.
    Köprü bariyerleri işi bunun içinde yapılır.
 
-Tasarımlar hazır (2026-10-16; uygulama grup 1 test onayından sonra): `docs/design/mirror-layer.md` (paketler
-M1–M5, #1–#10 dönüşümü C1) ve `docs/design/world-state.md` (paketler WS-1–WS-7). Sırada: mimar incelemesi, iki
-tasarımın uyumlandırılması ve kararların (her belgede D1–D11) kullanıcıya sunulması.
+Tasarımlar ve plan hazır (2026-10-16, mimar inceledi; uygulama grup 1 test onayından sonra): `docs/design/README.md`
+(kararlar, iki tasarımın birleşimi, sıra), `docs/design/mirror-layer.md`, `docs/design/world-state.md`. Sonraki paket
+**0.1.0-alpha** (grup 1, yeni sürüm düzeni): ortak temel L0 (yaşam döngüsü, host'tan aktarım, host sabitleme), sonra
+M1 + WS-1, sonra M2–M4 + WS-3 + WS-4, sonra #1–#10 dönüşümü (C1) ve New Game'den yeniden test. İhtiyaç duyan gruptan
+önce: M5 (#22), WS-2 köprü bariyerleri (#28), WS-5 çeteler (#25), WS-6 (#42), nesne senkronu tasarımı (#60), WS-7 (#99).
 
 ## Sonraki işler (öncelik sırasıyla)
 - **Sağlamlık:** geçersiz oyuncu tutamacı verilen co-op komutları host'u çökertiyor (ör. arkadaş görev ortasında
@@ -78,7 +80,12 @@ tasarımın uyumlandırılması ve kararların (her belgede D1–D11) kullanıc�
   taranacak. Görevi kimin başlatabileceğini denetleyen host kontrolü (`CanPlayerStartMission`) upstream'de yorum satırı.
 - **Host sabitleme:** sunucu host'u hep ilk bağlanan oyuncuya veriyor; host'un oyunu çöküp geri bağlanırsa host'luk
   arkadaşta kalıyor ve istemci host'luğun elinden alınmasını karşılamıyor. Sunucu ayarıyla hikâye host'unu sabitlemek
-  (küçük ayrı iş; dünya durumu tasarımındaki hikâye koruması bunun yerine geçmez).
+  Plan: ortak temel paket L0'da `story-host` sunucu ayarı (`docs/design/README.md`).
+- **Nesne senkronu** (#60'tan önce): görevlerin açtığı, taşıdığı ya da sildiği kapılar, geçitler ve kulübeler arkadaşta
+  `INITIAL`'ın bıraktığı gibi kalıyor (CoopAndreas nesne senkronlamıyor); ayrı tasarım gerekiyor.
+- Sunucunun özel karakter modeli izin listesi ters çalışıyor (her özel model kabul ediliyor); küçük düzeltme.
+- Araç: ReVa ad hattı plugin-sdk'nin `FUNC_<Sınıf>__<Metot>` tanımlarını okumuyor (ör. `CMissionCleanup::Process`
+  adsız görünüyor); `gta_names.py`'ye eklenmeli.
 - **Araç senkron protokolü** (ayrı gtasa-coder-high işi): `ASSIGN_VEHICLE` aracı kimin senkronladığını belirleyen
   bayrağı ayarlamak yerine tersine çeviriyor (iki taraf anlaşamayabilir); onaylanmadan silinen geçici araç eski bir
   işaretçi bırakıyor; host'un görevi arkadaşın sürdüğü (arkadaşın senkronladığı) aracı silerse silme arkadaşa gitmiyor

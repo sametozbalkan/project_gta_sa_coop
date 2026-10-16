@@ -1,7 +1,8 @@
 # Mission mirror layer (design)
 
 Status: design only, 2026-10-16, on main `f5cffae` (0.3.103-alpha). Nothing here is implemented. The user approved
-the idea; the architect decides the open points in section 9.
+the idea; the architect's decisions on section 9 and the merged plan with the world-state registry are in
+`README.md` in this folder.
 
 The model stays as it is: missions run only on the host, the other players see their reflection. The mirror layer
 makes everything the host's mission shows on screen appear on the other players' screens, in client code, with no

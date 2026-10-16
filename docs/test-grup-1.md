@@ -294,6 +294,13 @@ her temas işareti ve bütün dünya ilerlemesi otomatik ortak kabul edilmez. G�
 komutları senkronlanır; suç işleyerek kazanılan yıldızlar ve görev koşullarının okuduğu host yıldızları ayrıdır.
 Los Santos dışındaki şehir kilidi senkronunun bulunması, köprü bariyerlerinin de ortak kaldırıldığı anlamına gelmez.
 
+Bilinen, sonraki pakette (0.1.0) düzelecek (tasarımlar `docs/design/`):
+- #10'dan sonra Loco Low Co ve Los Santos Transfender arkadaş için kapalı kalır.
+- Arkadaş bağlıyken oyununu yeniden başlatırsa Binco gibi dükkânlar onun için yeniden kapanabilir.
+- Başarısız bir görevden sonra görevin azalttığı trafik ve yaya yoğunluğu arkadaşta düşük kalabilir.
+- Görev sırasında oyuna katılan arkadaş görevde olunduğunu, o anki hedefi ve işaretleri almaz.
+- Arkadaş mülk satın almasın: satın alması hiçbir kayda geçmez, parası gider.
+
 - [ ] Görev dışında aynı araçta host sürerken, sonra arkadaş sürerken radyo istasyonunu değiştirin;
   yolcu sürücüyü takip etsin. Ayrı araçlarda her oyuncu kendi radyosunu duysun.
 - [ ] Görev dışında arkadaş 2 dakika Alt+Tab yapıp dönsün; bağlantı kopmasın. Uygun görev sırasında host
