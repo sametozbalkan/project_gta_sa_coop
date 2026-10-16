@@ -78,7 +78,11 @@ savaşını host'un oyunu başlatır, arkadaşın öldürdükleri de sayılır; 
 0.3.103 testi bitene kadar oyuna yeni sürüm kurulmuyor, 0.3.103 düzeltmeleri `v0.3.103-alpha` etiketinden çıkar.
 İlerleme: L0 birleştirildi (eca37e3: oturum olayları, host sabitleme, host düşünce arkadaşın kontrolü geri alması);
 WS-1 birleştirildi (d633f08: dünya durumu kaydı, şehir kilidi ona taşındı, en yüksek aranma seviyesi; paket biçimi
-değişti, main artık 0.1.0-alpha ve 0.3.103 ile bağlanamaz). M1 (yansıtma çekirdeği, yazılar ve ödüller) çalışıyor.
+değişti, main artık 0.1.0-alpha ve 0.3.103 ile bağlanamaz). M1 birleştirildi (675cfe9: görev yazıları, başlıklar ve
+geçiş ödülleri arkadaşa; 102 hikâye betiğinde her geçiş ödülü kurala takılıyor, #10'un bahsi yalnızca host'ta, ödemesi
+(bahsin iki katı) ikinize; #103'teki 250.000$ geçişten kareler önce verildiği için o görev uyarlanırken karar verilecek).
+3. dalga çalışıyor: M2 işaretler, M3 küreler, M4 sayaçlar, WS-3 kapılar ve garajlar, WS-4 görev ayarları, P1 arkadaşın
+saygısının kayıtla saklanması.
 
 ## Sonraki işler (öncelik sırasıyla)
 - **Sağlamlık:** geçersiz oyuncu tutamacı verilen co-op komutları host'u çökertiyor (ör. arkadaş görev ortasında
