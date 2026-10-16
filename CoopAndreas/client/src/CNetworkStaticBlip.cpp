@@ -2,6 +2,7 @@
 #include "CNetworkStaticBlip.h"
 #include "CEntryExit.h"
 #include <CEntryExitManager.h>
+#include "CMirrorBlips.h"
 
 void CNetworkStaticBlip::Create(const Packets::Blips::StaticBlipsSnapshot& packet)
 {
@@ -9,8 +10,10 @@ void CNetworkStaticBlip::Create(const Packets::Blips::StaticBlipsSnapshot& packe
     {
         auto& trace = CRadar::ms_RadarTrace[i];
 
+        // private build: the blips of the host's mission that the mission mirror layer made stay (M-D1)
         if ((trace.m_nBlipType == BLIP_CONTACTPOINT || trace.m_nBlipType == BLIP_COORD) &&
-            IsAllowedSyncingRadarSprite(static_cast<eRadarSprite>(trace.m_nRadarSprite)))
+            IsAllowedSyncingRadarSprite(static_cast<eRadarSprite>(trace.m_nRadarSprite)) &&
+            !CMirrorBlips::IsMirrorTrace(i))
         {
             CRadar::ClearActualBlip(i);
         }
@@ -52,6 +55,11 @@ void CNetworkStaticBlip::Send()
 
         if ((trace.m_nBlipType != eBlipType::BLIP_CONTACTPOINT && trace.m_nBlipType != eBlipType::BLIP_COORD) ||
             !IsAllowedSyncingRadarSprite(static_cast<eRadarSprite>(trace.m_nRadarSprite)))
+        {
+            continue;
+        }
+        // private build: a blip of the host's mission goes through the mission mirror layer instead (M-D1)
+        if (CMirrorBlips::IsOwnedTrace(i))
         {
             continue;
         }
