@@ -2,9 +2,9 @@
 
 Durum (2026-10-16): host ve arkadaşı Steam tüneliyle oynuyor. Grup 1'in ilk iki oyunculu turunda (0.3.102) #1–#6
 geçti; #7'de bulunan hata 0.3.103'te düzeltildi, ikinci tur bekleniyor.
-Proje GitHub'da: github.com/sametozbalkan/project_gta_sa_coop. Grup 1 teslimatı ve düzeltmeleri `codex/group1-delivery`
-branch'inde: teslimatı Codex hazırladı, 2026-10-16'dan beri mimar (Claude) ve Opus 5.5 ajanları sürdürüyor. `main`,
-grup 1 onaylanınca bu branch'e getirilir.
+Proje GitHub'da: github.com/sametozbalkan/project_gta_sa_coop. Grup 1 teslimatını Codex `codex/group1-delivery`
+branch'inde hazırladı, mimar (Claude) ve Opus 5.5 ajanları sürdürdü; 2026-10-16'da branch `main`'e alındı ve iş
+`main`'den devam ediyor.
 
 ## 1. dalga (bitti; test paketi 0.3.100-alpha, test listesi `docs/test-dalga-1.md`)
 | İş | Ajan | Durum |

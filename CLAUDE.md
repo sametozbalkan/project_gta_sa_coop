@@ -4,7 +4,7 @@ Goal: play the GTA San Andreas story in 2-player co-op with a friend, on a priva
 
 Repository: github.com/sametozbalkan/project_gta_sa_coop (public), branch `main`. The user allowed the architect to commit and push there (2026-10-15). Local only (git-ignored): `.tools/`, `backups/`, `dist/`, build outputs.
 
-Current Group 1 delivery: branch `codex/group1-delivery` (the user had Codex prepare the delivery there on 2026-10-15 with `gpt-6.1-sol` agents). From 2026-10-16 this architect session and the Opus agents carry it on under the Working model below; `main` is brought up to the branch once the user approves the Group 1 test. Two-player acceptance follows `docs/test-grup-1.md` (round 1 on 0.3.102: #1–#6 passed, #7 failed and is fixed in 0.3.103). Do not start Group 2 before the user's test approval.
+Group 1 delivery: the user had Codex prepare it on branch `codex/group1-delivery` (2026-10-15, with `gpt-6.1-sol` agents); this architect session and the Opus agents carried it on, and on 2026-10-16 the user had the branch fast-forwarded into `main`. Work continues on `main` under the Working model below. Two-player acceptance follows `docs/test-grup-1.md` (round 1 on 0.3.102: #1–#6 passed, #7 failed and is fixed in 0.3.103). Do not start Group 2 before the user's test approval.
 
 ## Layout
 - `CoopAndreas/` — CoopAndreas (github.com/Tornamic/CoopAndreas) imported with a `git subtree --squash` style commit at upstream `cec2a7d`; our changes are ordinary commits on top (see Fork changes). Update from upstream with `git subtree pull --prefix=CoopAndreas https://github.com/Tornamic/CoopAndreas.git main --squash`. plugin-sdk is vendored in `CoopAndreas/third_party/plugin-sdk`. Build output: `CoopAndreas/build/windows/x86/<mode>/` (git-ignored).
