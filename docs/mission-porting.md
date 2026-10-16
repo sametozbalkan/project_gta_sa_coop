@@ -2,8 +2,9 @@
 
 For the agents who port missions. It explains how upstream CoopAndreas turns a single-player mission into
 a co-op one (learned by diffing the adapted missions against the decompiled 1.0 US `main.scm`), what the
-co-op commands do in the client, what the other player sees without extra work, the patterns to reuse,
-and how to compile and test. The mission list, status and porting order are in `docs/missions.md`.
+co-op commands do in the client, what the other player sees without extra work (the mission mirror layer,
+the world-state registry), the patterns to reuse, and how to compile and test. The mission list, status
+and porting order are in `docs/missions.md`.
 
 ## Hard rules
 
@@ -59,40 +60,108 @@ alone stands in the marker; changing that is a trigger change (rule 3).
 
 ## How co-op runs a mission
 
-- The **host** is the first player connected to the server (`server/src/CNetworkPlayerManager.cpp`,
-  `AssignHostToFirstPlayer`). Every client runs `main.scm` from a new game, but missions start only from
-  the host's trigger threads: on the other client the `INT`/`SWEET` triggers use
-  `Coop.LocateAllPlayersOnFoot3D` (false there), and the other strand threads are never started, because
-  the mission ends that start them run only on the host. So only the host's counters and strand threads
-  advance, and the host's game holds the story. (This follows from the scripts and the client code; it is
-  not verified in game.)
+- The **host** runs the story. With `story-host` set in the server's `server-config.ini` (rule in
+  `server/src/CHostPolicy.h`, applied by `server/src/CHostManager.*`; `deploy.ps1` fills a missing key on
+  the host's PC with the nickname from its `coopandreas.ini`), only that player is ever the host: a player
+  who connects before them waits without a host, and when the story host leaves nobody takes over until
+  they are back. With the key empty or missing, upstream's rule applies: the first player connected is the
+  host. Every client runs `main.scm` from a new game, but missions start only from the host's trigger
+  threads: on the other client the `INT`/`SWEET` triggers use `Coop.LocateAllPlayersOnFoot3D` (false
+  there), and the other strand threads are never started, because the mission ends that start them run
+  only on the host. So only the host's counters and strand threads advance, and the host's game holds the
+  story. (This follows from the scripts and the client code; it is not verified in game.)
 - A mission script runs only on the host. The other player sees its effects through: entity sync
-  (vehicles and peds the host creates become network entities), `COpCodeSync` (below), the packets the
-  co-op commands send, and a few client hooks.
+  (vehicles and peds the host creates become network entities), the mission mirror layer (what the mission
+  shows on screen, and its pass rewards), `COpCodeSync` for registered scripts, the world-state registry
+  (all three below), the packets the co-op commands send, and a few client hooks.
 - **Either player dying or getting busted fails the mission**: the client replaces
   `CRunningScript::DoDeatharrestCheck` (`client/src/Hooks/PlayerHooks.cpp`) to treat any network player
   who is dead, arrested or dying as wasted/busted. No script code is needed for that.
-- The host's `$onmission` is sent to the other clients (`client/src/Main.cpp`, `ON_MISSION_FLAG_SYNC`).
-  When it drops to 0 the other client removes its co-op checkpoint and entity blips, turns widescreen off,
-  gives the player back the controls and clears the fade (`client/src/PacketHandlers/scripts.cpp`).
+- The host's `$onmission` is sent to the other clients (`client/src/Main.cpp`, `ON_MISSION_FLAG_SYNC`;
+  again to a player who joins during a mission). When it drops to 0 the other client removes its co-op
+  checkpoint and entity blips, turns widescreen off, gives the player back the controls and clears the fade
+  (`client/src/PacketHandlers/scripts.cpp`); the mirror drops its markers and, unless a mission of the
+  other player's own runs, clears the help box and a mirrored HUD flash, as the host's mission clean-up
+  does there. When the host leaves during its mission, or the session ends then, the others do the same
+  250 ms later and also clear the host's cutscene, camera and player control
+  (`client/src/CSessionLifecycle.*`), unless a mission of their own runs.
 - Mission dialogue audio played on the host (any script) is played on the other clients too
-  (`client/src/Hooks/MissionAudioHooks.cpp`); its subtitles are `print_now` texts and are not.
-- Coordinate and contact-point blips the host creates show on every client (`CNetworkStaticBlip`, radar
-  sprites 0, 1, 5–40, 42–55, 58–63). Blips on cars, peds and objects do not.
+  (`client/src/Hooks/MissionAudioHooks.cpp`); its subtitles come through the mirror.
+- Coordinate and contact-point blips the host creates outside a mirrored mission (MAIN threads, the
+  new-game missions) show on every client through upstream's static path (`CNetworkStaticBlip`, radar
+  sprites 0, 1, 5–40, 42–55, 58–63). The blips a mirrored mission creates, entity blips included, go
+  through the mirror.
+
+### The mission mirror layer
+
+`client/src/CMissionMirror.*` (texts and rewards), `CMirrorBlips.*`, `CMirrorAreas.*` and `CMirrorHud.*`;
+design `docs/design/mirror-layer.md`, decisions `docs/design/README.md`. What the host's mission shows on
+screen reaches the other players by itself, with no lines in the mission script, ported or not:
+
+- **Texts**: objective texts and dialogue subtitles (every print variant, with or without numbers), help
+  boxes, their clears, "Mission passed" with its tune, "Mission failed" with the reason the mission prints,
+  and HUD flashes (`flash_hud_object`). Mission titles (`print_big` style 2) go out from any host script:
+  the strand threads print them right before they launch the mission.
+- **Blips** the mission creates, on vehicles, characters, objects, pickups and coordinates, with every
+  colour, scale, display, sprite, friendly and interior-entrance change and their removal, for as long as
+  the host keeps them (also after the mission). On the other games an entity blip sits on their copy of the
+  network entity; objects, pickups, searchlights, trains and entities without a network id yet show as
+  radar-only coordinate blips at the host's position; a blip on the other player's own ped doesn't show
+  there.
+- **Locate spheres** (the yellow mission markers) and **`draw_sphere` markers**, drawn for a player in the
+  same area code (interior) as the host.
+- **Timers and counters**: the on-screen clock and counters (the bars for a vehicle's or an ally's health,
+  the noise meter) with their labels and live values. The other player's own scripts come first: a gym
+  machine or a side mission of theirs keeps its counter.
+- **Rewards** of a passed mission (below).
+
+Which scripts count, the mission "family": while the host runs a mission other than 0–10 (`INITIAL`,
+`INITIL2` and `INTRO`, which every game runs at a new game, and the minigames 3–10), the mission script,
+the scripts it starts that run code in the mission block, and the MAIN dialogue helpers `AUDIOL`, `A_CONT`
+and `A_ALAP`, which missions start to play a line and print its subtitle. The side missions (schools, taxi,
+paramedic, vigilante, races, property purchase) count too: the other player sees the host's side mission.
+Not in the family: the strand threads (apart from their titles), phone calls, `HELP`, `FLOW`, save points,
+external scripts (shops, gyms, casino, girlfriends, parachute), the engine's own messages (garages,
+Pay 'n' Spray, stats, zone and car names) and the other players' own scripts. If a mission's texts come
+from another helper script, report it: the family needs its name (client code, rule 3).
+
+Not mirrored: immediate text and sprites (`display_text` and its variants, `draw_sprite`, rectangles: the
+schools, the minigames and the race HUD of `CPRACE`), the radar and HUD toggles (`display_radar`,
+`display_hud`, zone and car names, `set_radar_zoom`, the blip-level switches) and, until package M5 (due
+before the batch with #22), race checkpoints and script spheres. Cutscenes, fades, widescreen, the camera
+and player control come only from registration (`COpCodeSync`, next section), because the port decides
+where the other player is during them.
+
+On the other games, a replayed text whose key is in the mission's text table loads the host's table when
+another one took its place; loading clears their own messages, so a player in a gym or a minigame of their
+own loses its texts while the host's mission prints (accepted). A player who joins during the host's
+mission gets `$onmission`, the text table, the objective text and help box still on screen, the blips, the
+markers, and the timers and counters. Host-only messages show to every player too (Friend-only displays).
+
+**Rewards** (decision M-D3): the positive money (`0109` add_score) and respect (`0998`
+award_player_mission_respect) the family gives reach every player as their own when the family also
+signals the pass in the same script frame (`register_mission_passed` `0318`, the `M_PASS` print or
+`play_mission_passed_tune` `0394`, in any order). Everything else stays with the host: bets and stakes,
+in-mission costs, money paid frames before the pass, and stat writes such as `0629` on respect. `0109`
+and `0998` left `COpCodeSync`'s general replay, so a registered mission no longer replays its bets. The
+other players' respect, mission respect included, is kept with the host's save (Saves). A port adds
+nothing for the rewards; report a mission that gives money or respect outside its pass frame for a
+decision (`docs/missions.md` notes SWEET7 and FINALEC).
 
 ### What `COpCodeSync` replays on the other client
 
-`client/src/COpCodeSync.cpp`. After every command a script executes on the host, if the script
-registered itself with `Coop.EnableSyncingThisScript()` (`1D12`, matched by the first 7 characters of the
-script name) and the opcode is in the list below, the opcode and its parameters go to the other clients,
-which execute it in a dummy script. Ped, player and vehicle handles are translated to network ids; a
-command whose entity has no network instance on the receiver is dropped. The task commands marked T
-(`CTaskSequenceSync`'s list) are sent from any script on any client, for peds that client controls or for
-players; the host ignores every other opcode it receives.
+`client/src/COpCodeSync.cpp`. The mirror shows the texts of every host mission; registering a script adds
+the rest. After every command a script executes on the host, if the script registered itself with
+`Coop.EnableSyncingThisScript()` (`1D12`, matched by the first 7 characters of the script name) and the
+opcode is in the list below, the opcode and its parameters go to the other clients, which execute it in a
+dummy script. Ped, player and vehicle handles are translated to network ids; a command whose entity has no
+network instance on the receiver is dropped. The task commands marked T (`CTaskSequenceSync`'s list) are
+sent from any script on any client, for peds that client controls or for players; the host ignores every
+other opcode it receives.
 
 | Area | Opcodes |
 |---|---|
-| Messages | `00BA` print_big, `00BE` clear_prints, `01E3` print_with_number_big, `0318` register_mission_passed, `03E5` print_help, `054C` load_mission_text, `0998` award_player_mission_respect |
+| Messages | the mirror's text commands `00BA`, `00BB`, `00BC`, `00BE`, `01E3`–`01E5`, `0217`, `02FD`, `02FF`, `0302`, `0303`, `0308`, `036D`, `0384`, `0394`, `03D5`, `03D6`, `03E5`–`03E7`, `03EB`, `0512`, `0513`, `054C`, `09C1`, `0A0E` (a registered script sends each once, through this replay, also outside a mission: `INT` sends its texts too); `0318` register_mission_passed |
 | Population | `01EB` car density, `03DE` ped density, `0395` clear_area, `09D2` ambient crime, `06D0` emergency services, `014C` switch_car_generator |
 | Camera | `015F` set_fixed_camera_position, `0160` point_camera_at_point, `02EB` restore_camera_jumpcut, `0373` set_camera_behind_player, `0920`, `0925`, `092F`, `0930`, `0936` (vector move/track), `0A0B` load_scene_in_direction, `052C` set_player_drunkenness |
 | Scenes | `016A` do_fade, `02A3` switch_widescreen, `02E4` load_cutscene, `02E7` start_cutscene (deferred until loaded), `02EA` clear_cutscene |
@@ -103,22 +172,42 @@ players; the host ignores every other opcode it receives.
 | Tasks (T) | `05BA`, `05BC`, `05BD`, `05BF`, `05C9`, `05CD`, `05D3`, `05D4`, `05DE`, `0605`, `0633`, `0639`, `0647`, `0668`, `0687`, `06A9`, `0804`, `0812`, `0829`, `088A`, `0A1A`; task sequences (`open_sequence_task` … `perform_sequence_task`) of synced peds go through `CTaskSequenceSync` |
 | Peds | `00A1` set_char_coordinates, `0173` set_char_heading, `0350` set_char_stay_in_same_place, `07A1` set_next_desired_move_state, `0245` set_anim_group_for_char, `0860` set_char_area_visible |
 | Vehicles | `00AB` set_car_coordinates, `0175` set_car_heading, `070C` explode_car_in_cutscene |
-| Other | `097A` report_mission_audio_event_at_position, `04ED`/`04EF` request/remove_animation, `01B4` set_player_control, `0109` add_score, `0247` request_model |
+| Other | `097A` report_mission_audio_event_at_position, `04ED`/`04EF` request/remove_animation, `01B4` set_player_control, `0247` request_model |
+
+`0109` add_score and `0998` award_player_mission_respect are no longer replayed here (since 0.1.0): before,
+a registered mission replayed every `add_score`, #10's bets included; now the mirror sends only the rewards
+of a passed mission (Rewards above).
 
 A player handle in these commands means "that player" on the receiver: `Char.SetCoordinates`,
 `Char.GiveWeapon` or `Task.*` on `$NETWORK_PLAYER[i]` move, arm or task the other player's own ped in their
-game, and `Player.SetControl($player1, …)`, `Player.AddScore($player1, …)` and
-`Player.SetDrunkenness` apply to the receiver's local player. So in a synced mission script the other
-player gets, without extra work: cutscenes, fades, widescreen, the camera, frozen and released controls,
-big texts (mission title, M_PASS, M_FAIL), help boxes, the mission-passed money, respect and stats line,
-weapons and teleports given to `$NETWORK_PLAYER[i]`, and tasks of synced peds.
+game, and `Player.SetControl($player1, …)` and `Player.SetDrunkenness` apply to the receiver's local
+player. So in a registered mission script the other player gets, on top of the mirror: cutscenes, fades,
+widescreen, the camera, frozen and released controls, the host's wanted commands, weapons and teleports
+given to `$NETWORK_PLAYER[i]`, and tasks of synced peds.
 
-Not replayed, so the other player doesn't see them unless the port adds co-op commands: `print_now` and
-`print` (objective texts, dialogue subtitles), blips on entities, locate spheres and checkpoints. Not
-replayed and without any co-op command today: on-screen timers and counters (`display_onscreen_timer`,
-`display_onscreen_counter*`), `play_mission_passed_tune`, mission-specific HUD (bars, meters), and
-`Coop.AddChatMessage` itself. Flag those in the port's report.
-Crimes and the resulting wanted level remain per player; only the host's scripted wanted commands are replayed.
+Neither mirrored nor replayed: immediate text and sprites, the radar and HUD toggles, race checkpoints and
+script spheres (until package M5), and `Coop.AddChatMessage`, which shows only on the host. Flag those in
+the port's report. Crimes and the resulting wanted level remain per player; only the host's scripted
+wanted commands are replayed, in registered missions.
+
+### World state
+
+The world-state registry (`client/src/CWorldStateRegistry.*`; design `docs/design/world-state.md`) keeps
+the other players' world as the host has it, whichever script or engine code changed it, also after a
+join, a restart or a load: the city unlock (stat 181), the maximum wanted level, the garages (type and
+active flag: the mod shops #10 opens), the entry/exit doors (upstream's `ENEX_SYNC` plus a re-apply), and
+the mission-scoped settings the host's mission end resets: car and pedestrian density, random gang members
+and cops, resprays, military zones, the wanted multiplier, random trains, ambient planes, cop bikes and the
+forced weather. Ports don't handle those: no lines for the other player, also not after a failed mission.
+Garage doors aren't mirrored; each game opens them for its own player.
+
+Not covered yet, each coming with its package before the first mission that needs it
+(`docs/design/README.md`): the bridge barriers and road switches (before #28), gang zones and gang wars
+(before #25), building swaps and hidden map objects (before #42), and the riots (before #99). Doors, gates
+and other persistent objects a mission opens, moves or deletes need the object-sync design (before #60). A
+port that depends on one of these before its package exists stops and reports (rule 3). Story reward
+pickups (the spray can, Emmet's pistol, the territory cash) exist in each game separately, so a port gives
+the other player the mission's weapons itself. Properties belong to the host.
 
 ## Co-op commands (opcodes 0x1D00–0x1D1C)
 
@@ -160,10 +249,44 @@ The globals for co-op state already exist (declared in `main.txt`): `$NETWORK_PL
 `$NETWORK_PLAYER_VEHICLE[3]` and `$temp_int` (a loop counter shared by all ported missions; don't keep a
 value in it across a `wait`).
 
+## Friend-only displays
+
+The other player already sees every display of the host's mission (the mirror layer), so a port never
+copies one: no copies of host prints, dialogue lines or help, no relay helpers (gosubs that send the
+host's texts or fail reasons to the network players), no blips on entities the host blips, no checkpoints
+at the host's spheres. A copy shows twice on the other player's screen: a `print` copy twice in the queue,
+a blip copy as a second icon on the target, a checkpoint copy as a second marker at the same place (a
+`print_now` copy only restarts the same text). The co-op display commands are for what differs from the
+host:
+
+| Commands | Use after the mirror layer |
+|---|---|
+| `1D04`–`1D07` entity blip for a network player | a blip only that player needs: the blue blip on their own vehicle (`$NETWORK_PLAYER_VEHICLE[i]`), a target only they chase |
+| `1D08`–`1D0C` texts for a network player | a text only that player needs: a hint about their own state ("get back in the car" while the host is in it), help for what only they do (the drive-by help in #6) |
+| `1D0D` clear entity blips | the clean-up of their friend-only blips |
+| `1D10` / `1D11` checkpoint for a network player | a destination only that player has (their own parking spot, a per-player checkpoint) |
+| `1D00` chat line | unchanged: on the host only, not mirrored |
+
+- A friend-only text must not contradict the host's display of the same phase. Send it right after the
+  host's own print of that phase, so that it is the one that stays on screen, or queue it with
+  `Coop.PrintForNetworkPlayer` (`print`).
+- Keep the per-player state of these displays (has this player's blip been switched?) in a local array
+  indexed by `$temp_int`, for example `200@($temp_int,3i)`.
+- A friend-only blip on an entity the mission creates needs the entity's network id first (Entities the
+  mission creates, below).
+- Clean them up at the mission end.
+
+Host-only messages: the other player also sees the host's displays that are meant for the host alone
+("Get back in Sweet's car" while the other player sits in it). This cost is accepted (decision M-D9 in
+`docs/design/README.md`); there is no command that keeps a host display from the other players. If a
+message confuses in testing, report it: such a command would be client code (rule 3).
+
 ## How upstream adapts a mission (patterns)
 
 Taken from `INTRO1` (Big Smoke), `INTRO2` (Ryder), `SWEET1` (Tagging Up Turf) and `SWEET1B` (Cleaning
 The Hood); read those files for complete examples. Upstream writes for up to three network players.
+Upstream also copied the host's displays for the network players; the mirror layer does that now, so a
+port keeps only the gameplay and the friend-only displays.
 
 **Start**: sync the script and collect the players.
 
@@ -199,10 +322,14 @@ next to the host. Upstream gives each player their own fixed spot near the host'
 scene's end position before or right after (`INTRO1` sets them near the house after `INTRO1A`), and hide
 their weapons with `Char.HideWeaponForScriptedCutscene` like the host's.
 
-**Entities the mission creates**: wait until they have network ids before giving them tasks or blips
-for the other player, or the replayed commands are dropped. A `Coop.Update*BlipForNetworkPlayer` sent too early is
-worse: `CNetworkEntitySerializer::SetEntity` leaves the id of an unconfirmed ped or vehicle at 0, which is a valid id
-of another entity, so the friend's game marks that one:
+**Entities the mission creates**: wait until they have network ids only before tasking or teleporting them
+(the replayed task and `Char.SetCoordinates`/`Car.SetCoordinates` commands of an entity without a network
+instance on the receiver are dropped). A hosted entity gets its id from the server about a round trip
+after it is created; until then `Coop.GetVehicleNetworkId`/`Coop.GetPedNetworkId` return -1. The host's
+blips on it need no wait: the mirror shows a coordinate blip at the entity until the id arrives. A
+friend-only blip does: a `Coop.Update*BlipForNetworkPlayer` sent too early marks the wrong entity, because
+`CNetworkEntitySerializer::SetEntity` leaves the id of an unconfirmed ped or vehicle at 0, which is a valid
+id of another entity, so the friend's game marks that one:
 
 ```
 $sweet_car = Car.Create(492, 2508.16, -1666.47, 13.0)
@@ -218,16 +345,8 @@ players in Sweet's car in `SWEET1`; a third player gets Ryder's car). When it do
 single-seat vehicles), give each network player their own vehicle in `$NETWORK_PLAYER_VEHICLE[i]` with a
 blue blip, as `INTRO1` does with the BMXs, and clean them up at the end.
 
-**Objective texts and dialogue**: every `Text.PrintNow` the player should read gets a
-`Coop.PrintNowForNetworkPlayer` with the same key for each network player; clear them with
-`Coop.ClearThisPrintForNetworkPlayer`. Dialogue subtitles printed from a text array work the same way
-(`INTRO1` sends `$intro1_chat(86@,14s)`).
-
-**Blips and markers**: entity blips with `Coop.UpdateCarBlipForNetworkPlayer` /
-`Coop.UpdateCharBlipForNetworkPlayer` (friendly blue for allies, red for targets), removed when the host's
-are; destinations with `Coop.UpdateCheckpointForNetworkPlayer` next to the host's locate sphere; per
-player state (has this player's blip been switched?) in a local array indexed by `$temp_int`, for example
-`200@($temp_int,3i)`.
+**Texts, blips and markers**: the host's are mirrored; add only friend-only displays (see Friend-only
+displays).
 
 **Progress conditions for everyone**: where the original waits for the player at a place or in a car,
 check the network players too and combine the results in a local flag (`INTRO1`, `SWEET1`):
@@ -247,19 +366,26 @@ for $temp_int = 0 to 2
 end
 ```
 
-**"Too far away" warnings** for each player, throttled with a game-timer value per player (`INTRO1`).
+**"Too far away" warnings** for each player, throttled with a game-timer value per player (`INTRO1`): a
+friend-only text about that player's own position.
 
 **Fail conditions**: a dead or busted player already fails the mission (client hook). The mission's own
-fail checks (an ally dead, a vehicle destroyed) stay on the host as in the original; send the reason to
-the other player with `Coop.PrintNowForNetworkPlayer` (`SWEET1`: 'SWE1_Q', 'SWE1_P'). `Text.PrintBig('M_FAIL', …)`
-replays by itself.
+fail checks (an ally dead, a vehicle destroyed) stay on the host as in the original, and the host's fail
+text (`M_FAIL` and the reason the mission prints) reaches everyone through the mirror; add nothing for it.
 
-**Counters, timers, wanted level**: no co-op command exists; the other player doesn't see on-screen
-counters or timers, and wanted levels stay per player. Keep the host's logic; mention it in the report.
+**Counters, timers, wanted level**: the host's on-screen clock and counters reach the other player with
+their labels and live values (mirror); keep the host's logic. A registered mission replays the host's
+wanted commands on every game; crimes and the stars they bring stay per player, and the mission's wanted
+checks (`010F`, `01C0`) read only the host's stars. Mention a wanted check that matters for the other
+player in the report.
 
-**Mission end**: leave the passed block's counter, flags and `start_new_script` lines alone; add the
-co-op cleanup next to the host's: for each valid network player `Coop.RemoveCheckpointForNetworkPlayer`,
-`Coop.ClearAllEntityBlipsForNetworkPlayer`, give or remove mission weapons, then `$NETWORK_PLAYER[i] = 0`.
+**Mission end**: leave the passed block's counter, flags, rewards and `start_new_script` lines alone. Add
+clean-up only for what the port made for the other player: their friend-only displays
+(`Coop.RemoveCheckpointForNetworkPlayer`, `Coop.ClearAllEntityBlipsForNetworkPlayer`, a friend-only
+text), their mission weapons (give or remove them as the original does for the host) and their own
+vehicles; then `$NETWORK_PLAYER[i] = 0`. The host's own clean-up reaches them by itself: blips, timers and
+counters through the mirror, the markers and the help box at the end of the host's mission, the traffic
+and the other mission settings through the world-state registry.
 
 **Shared ambient peds** (upstream's shop scripts): before creating a shopkeeper, look for one the other
 player's game already synced with `Coop.GetPedInAreaWithModel`, claim it with `Coop.ClaimPedOnRelease`,
@@ -309,8 +435,12 @@ over a limit. Limits: plugin-sdk `CTheScripts.h` (`ScriptSpace[200000]`, `Missio
 | Most local variables in a mission | 964 | 1,024 | 60 |
 | Largest external script (`VIDPOK`, video poker) | 35,122 | none (each gets its own buffer, gta-reversed `StreamedScripts.cpp`) | |
 
-Upstream's adaptations made missions 14–29 % larger (3–4.7 KB). `docs/missions.md` lists each mission's
-free bytes, the five largest missions and the options when a port doesn't fit.
+Upstream's adaptations made missions 14–29 % larger (3–4.7 KB), much of it copies of the host's displays.
+With the mirror layer a port adds only gameplay lines and friend-only displays, so ports grow less.
+Reuniting The Families (#27) fits a minimal port in its 561 bytes: registration 2 bytes, collecting the
+players 11 and a teleport to the host 11 (a `$NETWORK_PLAYER[i]` with a constant index compiles to a
+3-byte global). `docs/missions.md` lists each mission's free bytes, the five largest missions and the
+options when a port doesn't fit.
 
 ## Saves
 
@@ -376,9 +506,11 @@ threads) only advances in the host's game, so a save the other player makes hold
 and must not be loaded as the host's game.
 
 When the host loads a save, only the host's game loads it; the other client keeps its own game and gets
-the state the save keeps for them (above). What else the other player sees then is unverified: their player
-and the host's synced vehicles and peds should follow the network sync, and whether they need to reconnect
-is not known. Also unverified: after a load, MAIN threads that registered with
+the state the save keeps for them (above). The world-state registry sends them the loaded world (city
+unlock, maximum wanted level, garages, doors, mission settings) shortly after the load, and the mirror
+resets its blips there while the host's static blips go out again. What else the other player sees then is
+unverified: their player and the host's synced vehicles and peds should follow the network sync, and
+whether they need to reconnect is not known. Also unverified: after a load, MAIN threads that registered with
 `Coop.EnableSyncingThisScript()` at their start (`INT`) are not registered again in that session, because
 the registration is a runtime list in the client. Old single-player saves don't load with the co-op
 `main.scm` (CLAUDE.md, known limitations).
@@ -411,30 +543,36 @@ committed `main.scm` and `script.img` except the compiler signature in the objec
 3. Add `Coop.EnableSyncingThisScript()` after `script_name` and collect the players where the mission
    sets `$onmission = 1`.
 4. Go through the mission phase by phase. For each: where is the second player (place them), what must
-   they see (texts, blips, checkpoints), which vehicle do they use, what must they do for the mission to
-   go on (combine the conditions), and what fails the mission.
-5. Wait for network ids of created entities before tasking or blipping them for the other player.
+   they see that differs from the host (friend-only texts, blips, checkpoints; the host's displays are
+   mirrored), which vehicle do they use, what must they do for the mission to go on (combine the
+   conditions), and what fails the mission.
+5. Wait for network ids of created entities before tasking or teleporting them, or giving them a
+   friend-only blip.
 6. Cutscenes: position and un-arm the other players around them.
 7. Mission end: leave the passed block's progression untouched, add the co-op cleanup.
 8. New state only in mission locals; no new globals, no edits outside the mission's file.
 9. Compile with `scripts/compile-scm.ps1`; it must pass the size and save checks. Note the free bytes.
-10. Report: what the other player sees and does in each phase, what they can't (timers, wanted checks,
-    solo minigames), anything that needed rule 3, and the in-game test steps below.
+10. Report: what the other player sees and does in each phase, what they can't (immediate text such as a
+    school's or race's HUD, race checkpoints before package M5, wanted checks, solo minigames), anything
+    that needed rule 3, and the in-game test steps below.
 
 ## In-game test (by the user and the friend)
 
 Mark it "oyunda doğrulanmadı" until the players have run it. The architect deploys the build; then:
 
 1. The host starts `server.exe` (or the tunnel setup) and the game, the friend joins; load the co-op save
-   from just before the mission (host only).
+   from just before the mission (host only). The host is the player `story-host` names in the server's
+   `server-config.ini`; with the key empty, whoever connects first, so then the host connects first.
 2. Both players walk to the mission marker; the mission starts on the host.
-3. In each phase: the friend sees the objective text, the blips and the checkpoint, sits in or gets the
-   right vehicle, sees the cutscenes, and is teleported where the mission needs them.
+3. In each phase: the friend sees the title, each objective text and subtitle once, one blip per target,
+   the markers, the timers and counters and the port's friend-only displays, sits in or gets the right
+   vehicle, sees the cutscenes, and is teleported where the mission needs them.
 4. Fail cases: the friend dies (mission fails for both), the mission's own fail (an ally dies or the car is
    destroyed) shows its text on both screens.
 5. Pass: "Mission passed" on both screens, money and respect for both, the next mission's contact appears
-   for the host as in single player.
-6. After the mission the friend has no leftover blip, checkpoint, frozen controls or black screen.
+   for the host as in single player and on the friend's radar.
+6. After the mission the friend has no leftover blip, marker, counter, help box, frozen controls or black
+   screen.
 7. Save at a save point (host), quit, reload the save, check the story continues.
 
 A crash leaves `C:\Games\GTASA_Coop\CoopAndreas_crashes\*.log` with the script IPs; `tools/scm_at_ip.py`
