@@ -180,6 +180,14 @@ public:
                 bool isPassenger = localPlayer->m_nPedFlags.bInVehicle && localPlayer->m_pVehicle &&
                                    localPlayer->m_pVehicle->m_pDriver != localPlayer;
 
+                // private build (vehicle sync protocol): no driver or passenger update while the local player gets out
+                // (VehicleSyncPolicy::ChooseLocalUpdate): each one re-seated it on the server after VEHICLE_EXIT. The
+                // vehicle's state goes out as idle updates meanwhile (CNetworkVehicleManager::UpdateIdle).
+                const bool isLeavingVehicle = (isDriver || isPassenger) &&
+                    VehicleSyncPolicy::ChooseLocalUpdate(true, isDriver,
+                        CNetworkVehicleManager::IsLocalPlayerLeavingVehicle(localPlayer)) ==
+                        VehicleSyncPolicy::eLocalUpdate::NONE;
+
                 velocity = isDriver ? localPlayer->m_pVehicle->m_vecMoveSpeed : localPlayer->m_vecMoveSpeed;
 
                 if (velocity.x == 0 && velocity.y == 0 && velocity.z == 0)
@@ -187,7 +195,8 @@ public:
                     syncRate = 100;
                 }
 
-                if (!isPassenger && tickCount > (isDriver ? lastDriverSyncTickRate : lastOnFootSyncTickRate) + syncRate)
+                if (!isPassenger && !isLeavingVehicle &&
+                    tickCount > (isDriver ? lastDriverSyncTickRate : lastOnFootSyncTickRate) + syncRate)
                 {
                     if (isDriver)
                     {
@@ -202,7 +211,7 @@ public:
                     }
                 }
 
-                 if (isPassenger && tickCount > lastPassengerSyncTickRate + 333)
+                 if (isPassenger && !isLeavingVehicle && tickCount > lastPassengerSyncTickRate + 333)
                  {
                      CNetworkVehicleManager::UpdatePassenger(localPlayer->m_pVehicle, localPlayer);
                      lastPassengerSyncTickRate = tickCount;

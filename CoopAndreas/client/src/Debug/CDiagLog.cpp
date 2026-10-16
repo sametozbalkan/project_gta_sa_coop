@@ -33,6 +33,7 @@ static void WriteSnapshot(FILE* file)
     CSessionLifecycle::WriteDiagSummary(file); // private build: session lifecycle
     CWorldStateRegistry::WriteDiagSummary(file); // private build: world-state registry
     CMissionMirror::WriteDiagSummary(file); // private build: mission mirror layer
+    CNetworkVehicleManager::WriteDiagSummary(file); // private build: vehicle sync protocol
 
     // scripts: name, IP offset into the script space, ms until it wakes up
     fprintf(file, "  scripts:");

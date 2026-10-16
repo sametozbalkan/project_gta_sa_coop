@@ -5,6 +5,7 @@
 #include <optional>
 #include <vector>
 
+#include "network/entity_lifecycle.h"
 #include "network/vehicle_sync.h"
 
 // Private build (vehicle sync protocol, 0.1.1): the client's rules for its network vehicle records. Pure logic without GTA,
@@ -56,10 +57,12 @@ public:
     }
 };
 
-// ASSIGN_VEHICLE for a vehicle this game doesn't know yet (its VEHICLE_SPAWN still waits in the packet buffer, or the
-// server confirmed our vehicle after the assignment was handled): kept per vehicle id, the newest wins, and applied when
-// a vehicle with this id and model appears. A VEHICLE_REMOVE of the id drops it; it expires after MaxAgeMs. Unsigned
-// elapsed time also handles the tick wrap.
+// ASSIGN_VEHICLE for a vehicle this game doesn't know yet: kept per vehicle id, the newest wins, and applied when a
+// VEHICLE_SPAWN brings a vehicle with this id and model. Since the server stamps the spawns with its own clock
+// (EntityLifecycle::UsesServerTime) a vehicle's spawn comes before its assignments, so this is a safety net. A
+// VEHICLE_REMOVE of the id drops it, and so does a VEHICLE_CONFIRM: the server sends the confirmation before any
+// assignment of the new vehicle, so an entry waiting by then is about an older vehicle with that id. It expires after
+// MaxAgeMs (DecideExpiredAssignment). Unsigned elapsed time also handles the tick wrap.
 class CPendingVehicleAssignments
 {
 public:
@@ -225,19 +228,22 @@ inline bool IsHostMissionDelete(bool bIsHost, bool bSyncing, bool bFamilyScriptR
 // The game destroys the vehicle of a record
 enum class eVehicleGone
 {
-    SEND_REMOVE,          // this game syncs it: VEHICLE_REMOVE (REMOVE_BY_SYNCER), the record goes
-    REMOVE_AT_CONFIRM,    // not confirmed yet: the record keeps its temp slot, VEHICLE_CONFIRM sends REMOVE_UNCONFIRMED
-    HOST_MISSION_REMOVE,  // the host's mission deleted a copy: VEHICLE_REMOVE (REMOVE_BY_HOST_MISSION), the record goes
-    KEEP_FOR_RECREATE,    // a copy lost to a local path: recreated from its syncer's next update
-    KEEP_WRECK            // a wrecked copy: kept without a vehicle until its syncer removes it
+    SEND_REMOVE,            // this game syncs it: VEHICLE_REMOVE (REMOVE_BY_SYNCER), the record goes
+    SEND_REMOVE_RESTARTED,  // the same while this game starts over (CWorld::ClearForRestart): REMOVE_SYNCER_RESTARTED,
+                            // with which the server gives a car of the host's scripts back to the host
+    REMOVE_AT_CONFIRM,      // not confirmed yet: the record keeps its temp slot, VEHICLE_CONFIRM sends REMOVE_UNCONFIRMED
+    HOST_MISSION_REMOVE,    // the host's mission deleted a copy: VEHICLE_REMOVE (REMOVE_BY_HOST_MISSION), the record goes
+    KEEP_FOR_RECREATE,      // a copy lost to a local path: recreated from its syncer's next update
+    KEEP_WRECK              // a wrecked copy: kept without a vehicle until its syncer removes it
 };
 
-inline eVehicleGone DecideVehicleGone(bool bConfirmed, bool bSyncing, bool bHostMissionDelete, bool bWrecked)
+inline eVehicleGone DecideVehicleGone(
+    bool bConfirmed, bool bSyncing, bool bHostMissionDelete, bool bWrecked, bool bRestarting)
 {
     if (!bConfirmed)
         return eVehicleGone::REMOVE_AT_CONFIRM;
     if (bSyncing)
-        return eVehicleGone::SEND_REMOVE;
+        return bRestarting ? eVehicleGone::SEND_REMOVE_RESTARTED : eVehicleGone::SEND_REMOVE;
     if (bHostMissionDelete)
         return eVehicleGone::HOST_MISSION_REMOVE;
     return bWrecked ? eVehicleGone::KEEP_WRECK : eVehicleGone::KEEP_FOR_RECREATE;
@@ -246,7 +252,8 @@ inline eVehicleGone DecideVehicleGone(bool bConfirmed, bool bSyncing, bool bHost
 // VEHICLE_CONFIRM for a temp record
 enum class eConfirm
 {
-    UNKNOWN_TEMP,       // no record waits in that temp slot
+    UNKNOWN_TEMP,       // no record waits in that temp slot (it expired, see IsTempRecordExpired): the server's vehicle
+                        // has nobody to sync it, so it goes on every game too (VEHICLE_REMOVE, REMOVE_UNCONFIRMED)
     ATTACH,             // the record gets its id
     REMOVE_UNCONFIRMED  // its vehicle is already gone: VEHICLE_REMOVE (REMOVE_UNCONFIRMED), the record goes
 };
@@ -258,8 +265,9 @@ inline eConfirm DecideConfirm(bool bTempKnown, bool bVehicleAlive)
     return bVehicleAlive ? eConfirm::ATTACH : eConfirm::REMOVE_UNCONFIRMED;
 }
 
-// ASSIGN_VEHICLE makes this game the syncer of a vehicle: a copy it lost is recreated where its last update put it, or
-// removed on every game when there is nothing to recreate (a wreck, or no update ever came)
+// ASSIGN_VEHICLE makes this game the syncer of a vehicle: a copy it lost is recreated where its last update (or, before
+// the first one, its VEHICLE_SPAWN) put it, or removed on every game when there is nothing to recreate (a wreck, or a
+// record of this game's own vehicle that never got an update)
 enum class eTakeover
 {
     KEEP,
@@ -275,15 +283,73 @@ inline eTakeover DecideTakeover(bool bHasVehicle, bool bWreck, bool bHasLastStat
 }
 
 // The temp id of a new vehicle of this game: the first free slot after the last one handed out, so a VEHICLE_CONFIRM
-// still on its way for a slot isn't matched with a newer vehicle. -1 = all count slots are taken.
+// still on its way for a slot isn't matched with a newer vehicle. -1 = all count slots are taken: the vehicle stays local
+// (no VEHICLE_SPAWN without a slot, its VEHICLE_CONFIRM couldn't name the record).
 template <class IsFree> int NextTempId(int last, int count, IsFree isFree)
 {
-    for (int step = 1; step <= count; step++)
-    {
-        const int id = (last + step) % count;
-        if (isFree(id))
-            return id;
-    }
-    return -1;
+    return EntityLifecycle::NextFreeId(last, count, isFree);
+}
+
+// A temp record whose VEHICLE_CONFIRM hasn't come for this long gives its slot back (the server answers in the tick it
+// handles VEHICLE_SPAWN, but it drops the spawn without an answer when all its ids are taken); its vehicle, if it still
+// exists, stays in this game only. A confirmation that comes later finds no record (eConfirm::UNKNOWN_TEMP). Unsigned
+// elapsed time also handles the tick wrap.
+constexpr uint32_t TEMP_RECORD_MAX_AGE_MS = 30000;
+
+inline bool IsTempRecordExpired(uint32_t createdAt, uint32_t now)
+{
+    return static_cast<uint32_t>(now - createdAt) >= TEMP_RECORD_MAX_AGE_MS;
+}
+
+// An ASSIGN_VEHICLE that waited in vain for its vehicle (CPendingVehicleAssignments::Expire). "Not the syncer" changes
+// nothing. "The syncer" means the server counts on this game for a vehicle it doesn't have: nobody would simulate or
+// remove it, a frozen ghost on every game. As in a takeover with nothing to take over (eTakeover::REMOVE) it goes on every
+// game: VEHICLE_REMOVE with REMOVE_BY_SYNCER, which the server takes only while this game is still the syncer (if it
+// already gave the vehicle to another game, the removal is rejected and the vehicle comes back here as a copy). A record
+// this game holds with that id for another model doesn't match the server's vehicle and goes too.
+enum class eExpiredAssignment
+{
+    NOTHING,
+    REMOVE_EVERYWHERE,
+    REMOVE_EVERYWHERE_AND_LOCAL_RECORD
+};
+
+inline eExpiredAssignment DecideExpiredAssignment(bool bSyncing, bool bRecordWithOtherModel)
+{
+    if (!bSyncing)
+        return eExpiredAssignment::NOTHING;
+    return bRecordWithOtherModel ? eExpiredAssignment::REMOVE_EVERYWHERE_AND_LOCAL_RECORD
+                                 : eExpiredAssignment::REMOVE_EVERYWHERE;
+}
+
+// The local player's update in a frame (Main.cpp). While its car exit runs (CTaskComplexLeaveCar in its primary task
+// slot, set by CPlayerInfo::Process 0x56F8D0 at 0x5703F7/0x57049C, where TaskHooks sends VEHICLE_EXIT), the ped is still
+// the vehicle's driver or passenger: CTaskSimpleCarSetPedOut (0x647D10) unlinks it only at the end of the exit. Its driver
+// or passenger updates then re-seated it on the server right after VEHICLE_EXIT had freed the seat, and nothing freed it
+// again, so "no driver: a passenger becomes the syncer" never ran. Now it sends none until it is out (on foot) or the exit
+// is over without getting out (driving again); the vehicle's own state keeps going out as idle updates while this game
+// syncs it (IsDrivenForIdleUpdates).
+enum class eLocalUpdate
+{
+    ON_FOOT,
+    DRIVER,
+    PASSENGER,
+    NONE  // getting out of a vehicle
+};
+
+inline eLocalUpdate ChooseLocalUpdate(bool bInVehicle, bool bDriver, bool bLeavingVehicle)
+{
+    if (!bInVehicle)
+        return eLocalUpdate::ON_FOOT;
+    if (bLeavingVehicle)
+        return eLocalUpdate::NONE;
+    return bDriver ? eLocalUpdate::DRIVER : eLocalUpdate::PASSENGER;
+}
+
+// Whether a vehicle this game syncs counts as driven, so that its state goes out in the driver's updates instead of idle
+// updates: not while the local player driving it is getting out (it sends no driver updates then)
+inline bool IsDrivenForIdleUpdates(bool bHasDriver, bool bDriverIsLocalPlayerLeaving)
+{
+    return bHasDriver && !bDriverIsLocalPlayerLeaving;
 }
 }  // namespace VehicleSyncPolicy

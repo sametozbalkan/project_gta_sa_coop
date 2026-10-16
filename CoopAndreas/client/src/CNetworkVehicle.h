@@ -26,7 +26,8 @@ public:
 	bool m_bCopyLost = false;                // this game destroyed its copy; the syncer's next update recreates it
 	bool m_bLostWreck = false;               // the lost copy was a wreck: not recreated
 	bool m_bHostMissionDelete = false;       // a script of the host's mission is deleting this copy (DELETE_CAR)
-	bool m_bHasLastState = false;            // the last update's state below is set
+	uint32_t m_nTempSince = 0;               // GetTickCount() when this game's VEHICLE_SPAWN went out (temp records)
+	bool m_bHasLastState = false;            // the last update's state below is set (from VEHICLE_SPAWN until one came)
 	CVector m_vecLastPosition{};
 	CVector m_vecLastRight{};
 	CVector m_vecLastForward{};
@@ -44,8 +45,10 @@ public:
 	CVehicle* GetLiveVehicle();
 	// the state of the syncer's last update, for recreating a lost copy or taking it over
 	void RememberState(const CVector& position, const CVector& right, const CVector& forward, uint8_t color1, uint8_t color2);
-	// players (local and network) out of the vehicle before it is deleted for the network
-	static void TakePlayersOut(CVehicle* pVehicle, int vehicleid);
+	// players (local and network) out of the vehicle before it is deleted for the network; how many it took out
+	static unsigned int TakePlayersOut(CVehicle* pVehicle, int vehicleid);
+	// a train model: no game makes a copy of a train (CreateVehicle)
+	static bool IsTrainModel(int modelid);
 
 	static CNetworkVehicle* CreateHosted(CVehicle* vehicle);
 };

@@ -1,7 +1,11 @@
 #include "stdafx.h"
 #include <network/packets/vehicles.h>
+#include <network/entity_lifecycle.h>
 
 std::vector<CNetworkVehicle*> CNetworkVehicleManager::m_pVehicles;
+
+// private build (vehicle sync protocol): the id handed out last (round robin, EntityLifecycle::NextFreeId)
+static int ms_nLastVehicleId = -1;
 
 void CNetworkVehicleManager::Add(CNetworkVehicle* vehicle)
 {
@@ -31,13 +35,45 @@ CNetworkVehicle* CNetworkVehicleManager::GetVehicle(int vehicleid)
 
 int CNetworkVehicleManager::GetFreeID()
 {
-    for (int i = 0; i < Config::MAX_SERVER_VEHICLES; i++)
+    // private build (vehicle sync protocol): the next free id after the last one handed out, not the lowest free one, so
+    // a removed vehicle's id comes back only after every other free id was used and a late packet about it doesn't meet
+    // a new vehicle (upstream gave a freed id to the next vehicle at once)
+    const int id = EntityLifecycle::NextFreeId(ms_nLastVehicleId, Config::MAX_SERVER_VEHICLES,
+        [](int candidate) { return CNetworkVehicleManager::GetVehicle(candidate) == nullptr; });
+    if (id >= 0)
     {
-        if (CNetworkVehicleManager::GetVehicle(i) == nullptr)
-            return i;
+        ms_nLastVehicleId = id;
     }
+    return id;
+}
 
-    return -1;
+void CNetworkVehicleManager::SendVehicleTo(CNetworkVehicle* vehicle, CNetworkPlayer* player)
+{
+    Packets::Vehicles::VehicleSpawn vehicleSpawnPacket{};
+    vehicleSpawnPacket.vehicleid = vehicle->m_nVehicleId;
+    vehicleSpawnPacket.modelid = vehicle->m_nModelId;
+    vehicleSpawnPacket.pos = vehicle->m_vecPosition;
+    vehicleSpawnPacket.rot = static_cast<float>(
+        vehicle->m_vecRotation.z * (3.141592f / 180.0f));  // convert to radians TODO(v0.3.1-alpha): is this wrong?
+    vehicleSpawnPacket.color1 = vehicle->m_nPrimaryColor;
+    vehicleSpawnPacket.color2 = vehicle->m_nSecondaryColor;
+    // private build (vehicle sync protocol): a joiner who becomes the syncer applies this (was always RANDOM_VEHICLE,
+    // so its population code could delete a mission car it drove)
+    vehicleSpawnPacket.createdBy = static_cast<eVehicleCreatedBy>(vehicle->m_nCreatedBy);
+    GetPacketFactory().Send(vehicleSpawnPacket, player);
+
+    Packets::Vehicles::VehicleDamage vehicleDamagePacket{};
+    vehicleDamagePacket.vehicleid = vehicle->m_nVehicleId;
+    vehicleDamagePacket.damageManager = vehicle->m_damageManager;
+    GetPacketFactory().Send(vehicleDamagePacket, player);
+
+    for (int component : vehicle->m_pComponents)
+    {
+        Packets::Vehicles::VehicleComponentAdd vehicleComponentAdd{};
+        vehicleComponentAdd.vehicleid = vehicle->m_nVehicleId;
+        vehicleComponentAdd.componentid = component;
+        GetPacketFactory().Send(vehicleComponentAdd, player);
+    }
 }
 
 void CNetworkVehicleManager::RemoveAllHostedAndNotify(CNetworkPlayer* player)

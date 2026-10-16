@@ -20,4 +20,7 @@ public:
     CVector m_vecPos;
     eCharCreatedBy m_nCreatedBy;
     char m_szSpecialModelName[8];
+    // private build (vehicle sync protocol review): g_serverTime of its PED_SPAWN; packets stamped before are about an
+    // older ped with this id (EntityLifecycle::IsFromBeforeCreation)
+    uint32_t m_nCreatedAt = 0;
 };

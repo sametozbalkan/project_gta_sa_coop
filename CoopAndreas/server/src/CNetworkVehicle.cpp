@@ -42,6 +42,11 @@ void CNetworkVehicle::SetOccupant(int8_t seatid, CNetworkPlayer* player)
     // player's previous seat recorded
     VehicleSeatPolicy::SetOccupant(*this, seatid, player,
         [](int vehicleid) { return CNetworkVehicleManager::GetVehicle(vehicleid); });
+    // private build: the seat is fresh again (VehicleSeatPolicy::ShouldFreeSeatOnFoot)
+    if (player != nullptr)
+    {
+        player->m_nSeatClaimedAt = g_serverTime;
+    }
 }
 
 void CNetworkVehicle::CorrectStaleSyncer(CNetworkPlayer* player)

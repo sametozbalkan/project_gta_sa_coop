@@ -2,6 +2,7 @@
 #include "network/packet_handler.h"
 #include "network/packet_types.h"
 #include "network/packets/system.h"
+#include "network/entity_lifecycle.h"
 #include "serialize.h"
 #include "stdafx.h"
 #include "CPacketFactory.h"
@@ -20,7 +21,9 @@ static void BuildPacketStream(Packet& packet, serialize::WriteStream& writeStrea
 
     if (packet.GetChannel() != ePacketChannel::SYSTEM)
     {
-        if (packet.serverTime == 0)
+        // private build (vehicle sync protocol): the spawns and removals of vehicles and peds this server relays carry its
+        // own clock too, so every game handles them in the order the server did (EntityLifecycle::UsesServerTime)
+        if (packet.serverTime == 0 || EntityLifecycle::UsesServerTime(packet.GetType()))
         {
             packet.serverTime = g_serverTime;
         }

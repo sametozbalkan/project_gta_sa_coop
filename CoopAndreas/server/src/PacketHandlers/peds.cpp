@@ -1,7 +1,29 @@
 #include "network/packets/peds.h"
 #include "network/packet_types.h"
+#include "network/entity_lifecycle.h"
 #include "stdafx.h"
 #include "CSpecialActorPolicy.h"
+
+// private build (vehicle sync protocol review): a packet stamped before the ped with its id was created is about an older
+// ped that had the id (EntityLifecycle::IsFromBeforeCreation): dropped instead of acting on the new one (a late PED_REMOVE
+// would have removed it on every game). A line at most once a second.
+static bool IsFromOlderPed(const Packet& packet, const CNetworkPed* pNetworkPed, CNetworkPlayer* player, const char* what)
+{
+    if (!EntityLifecycle::IsFromBeforeCreation(packet.serverTime, pNetworkPed->m_nCreatedAt))
+    {
+        return false;
+    }
+    static bool bPrinted = false;
+    static uint32_t lastPrinted = 0;
+    if (!bPrinted || static_cast<uint32_t>(g_serverTime - lastPrinted) >= 1000)
+    {
+        bPrinted = true;
+        lastPrinted = g_serverTime;
+        printf("[Game] : dropped a late %s of ped %d from %s (id %d), sent before this ped had the id\n", what,
+            pNetworkPed->m_nPedId, player->GetName().c_str(), player->m_iPlayerId);
+    }
+    return true;
+}
 
 PACKET_HANDLER(ePacketType::PED_SPAWN, Packets::Peds::PedSpawn* pPedSpawn, CNetworkPlayer* pNetworkPlayer)
 {
@@ -20,13 +42,16 @@ PACKET_HANDLER(ePacketType::PED_SPAWN, Packets::Peds::PedSpawn* pPedSpawn, CNetw
         }
     }
 
+    // private build (vehicle sync protocol review): round robin (CNetworkPedManager::GetFreeId)
     pPedSpawn->pedid = CNetworkPedManager::GetFreeId();
+    // private build: relayed with the server's clock, as the PED_CONFIRM below (EntityLifecycle::UsesServerTime)
     GetPacketFactory().SendToAll(*pPedSpawn, pNetworkPlayer);
 
     CNetworkPed* pNetworkPed = new CNetworkPed(
         pPedSpawn->pedid, pNetworkPlayer, pPedSpawn->modelId, pPedSpawn->pedType, pPedSpawn->pos, pPedSpawn->createdBy);
     snprintf(pNetworkPed->m_szSpecialModelName, sizeof(pNetworkPed->m_szSpecialModelName), "%s",
         pPedSpawn->specialModelName);
+    pNetworkPed->m_nCreatedAt = g_serverTime; // private build
 
     CNetworkPedManager::Add(pNetworkPed);
 
@@ -42,6 +67,11 @@ PACKET_HANDLER(ePacketType::PED_REMOVE, Packets::Peds::PedRemove* pPedRemove, CN
     CNetworkPed* pNetworkPed = CNetworkPedManager::GetPed(pPedRemove->pedid);
 
     if (!pNetworkPed)
+    {
+        return;
+    }
+
+    if (IsFromOlderPed(*pPedRemove, pNetworkPed, pNetworkPlayer, "removal")) // private build
     {
         return;
     }
@@ -108,6 +138,11 @@ PACKET_HANDLER(ePacketType::PED_ONFOOT, Packets::Peds::PedOnFoot* pPedOnFoot, CN
     CNetworkPed* pPed = CNetworkPedManager::GetPed(pPedOnFoot->pedid);
     if (pPed)
     {
+        if (IsFromOlderPed(*pPedOnFoot, pPed, pNetworkPlayer, "on-foot update")) // private build
+        {
+            return;
+        }
+
         if (pPed->m_pSyncer != pNetworkPlayer)
         {
             logger::warn("%s tries to update (on foot) someone else's ped", pNetworkPlayer->GetName().c_str());
@@ -128,6 +163,11 @@ PACKET_HANDLER(
         return;
     }
 
+    if (IsFromOlderPed(*pPedDriverUpdate, pNetworkPed, pNetworkPlayer, "driver update")) // private build
+    {
+        return;
+    }
+
     if (pNetworkPed->m_pSyncer != pNetworkPlayer)
     {
         logger::warn("%s tries to update (driver) someone else's ped", pNetworkPlayer->GetName().c_str());
@@ -136,6 +176,12 @@ PACKET_HANDLER(
 
     CNetworkVehicle* pNetworkVehicle = CNetworkVehicleManager::GetVehicle(pPedDriverUpdate->vehicleid);
     if (pNetworkVehicle == nullptr)
+    {
+        return;
+    }
+
+    // private build (vehicle sync protocol): nor a vehicle that got the id after this update was sent
+    if (EntityLifecycle::IsFromBeforeCreation(pPedDriverUpdate->serverTime, pNetworkVehicle->m_nCreatedAt))
     {
         return;
     }
@@ -156,6 +202,11 @@ PACKET_HANDLER(ePacketType::PED_PASSENGER_UPDATE, Packets::Peds::PedPassengerSyn
         return;
     }
 
+    if (IsFromOlderPed(*pPedPassengerSync, pNetworkPed, pNetworkPlayer, "passenger update")) // private build
+    {
+        return;
+    }
+
     if (pNetworkPed->m_pSyncer != pNetworkPlayer)
     {
         logger::warn("%s tries to update (passenger) someone else's ped", pNetworkPlayer->GetName().c_str());
@@ -169,6 +220,11 @@ PACKET_HANDLER(ePacketType::PED_SHOT_SYNC, Packets::Peds::PedShotSync* pPedShotS
 {
     CNetworkPed* pNetworkPed = CNetworkPedManager::GetPed(pPedShotSync->pedid);
     if (pNetworkPed == nullptr)
+    {
+        return;
+    }
+
+    if (IsFromOlderPed(*pPedShotSync, pNetworkPed, pNetworkPlayer, "shot")) // private build
     {
         return;
     }

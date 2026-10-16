@@ -136,6 +136,7 @@ inline bool AcceptRemove(uint8_t reason, bool bSenderIsSyncer, bool bSenderIsCre
     switch (reason)
     {
         case VehicleSync::REMOVE_BY_SYNCER:
+        case VehicleSync::REMOVE_SYNCER_RESTARTED:
             return bSenderIsSyncer;
         case VehicleSync::REMOVE_UNCONFIRMED:
             return bSenderIsCreator;
@@ -144,6 +145,39 @@ inline bool AcceptRemove(uint8_t reason, bool bSenderIsSyncer, bool bSenderIsCre
         default:
             return false;
     }
+}
+
+// What the server does with a VEHICLE_REMOVE for a vehicle it has
+enum class eRemove
+{
+    DROP_STALE,        // stamped before the vehicle was created: about an older vehicle with this id
+                       // (EntityLifecycle::IsFromBeforeCreation), nothing happens
+    REMOVE,            // removed on the server and relayed to everyone else
+    GIVE_TO_HOST,      // REMOVE_SYNCER_RESTARTED of a car of the host's scripts while the host is another player: the host
+                       // syncs it now, the restarting game gets it back as a copy (VEHICLE_SPAWN)
+    REJECT_AND_RESEND  // not that player's to remove: the vehicle stays, and since every game lets go of its record before
+                       // it sends a removal, the sender gets the vehicle again (VEHICLE_SPAWN with the server's state);
+                       // typically a game that destroyed a car it still synced while the server had already given it
+                       // to a player who started driving it
+};
+
+inline eRemove DecideRemove(uint8_t reason, bool bStale, bool bSenderIsSyncer, bool bSenderIsCreator, bool bSenderIsHost,
+    bool bHostMission, bool bHostIsAnotherPlayer)
+{
+    if (bStale)
+    {
+        return eRemove::DROP_STALE;
+    }
+    if (!AcceptRemove(reason, bSenderIsSyncer, bSenderIsCreator, bSenderIsHost))
+    {
+        return eRemove::REJECT_AND_RESEND;
+    }
+    // as when its syncer leaves (OnSyncerLeft): the host's mission keeps its car
+    if (reason == VehicleSync::REMOVE_SYNCER_RESTARTED && bHostMission && bHostIsAnotherPlayer)
+    {
+        return eRemove::GIVE_TO_HOST;
+    }
+    return eRemove::REMOVE;
 }
 
 // Whether a vehicle belongs to the host's scripts: MISSION_VEHICLE from the host's game, as its VEHICLE_SPAWN or its
@@ -165,6 +199,20 @@ enum class eSyncerLeft
 inline eSyncerLeft OnSyncerLeft(bool bHostMission, bool bHostStays)
 {
     return bHostMission && bHostStays ? eSyncerLeft::GIVE_TO_HOST : eSyncerLeft::REMOVE;
+}
+
+// A seat while the player's game reports it on foot. A game sends on-foot updates only while its player isn't in a
+// vehicle (client Main.cpp) and nothing while it gets out (VehicleSyncPolicy::ChooseLocalUpdate), and every VEHICLE_ENTER,
+// driver and passenger update that takes a seat restamps CNetworkPlayer::m_nSeatClaimedAt. So a seat held through on-foot
+// updates for OnFootSeatTimeoutMs since then belongs to an entry that never completed (the door was locked, the car drove
+// off, the player gave up) or to an exit no VEHICLE_EXIT reported (dragged out, a script's task): it is freed, so it no
+// longer blocks "no driver: a passenger becomes the syncer". While the player is still getting in (walking to the door,
+// pulling the driver out: seconds) the seat stays. Unsigned elapsed time also handles the wrap of the server clock.
+constexpr uint32_t OnFootSeatTimeoutMs = 10000;
+
+inline bool ShouldFreeSeatOnFoot(bool bHoldsSeat, uint32_t now, uint32_t seatClaimedAt)
+{
+    return bHoldsSeat && static_cast<uint32_t>(now - seatClaimedAt) >= OnFootSeatTimeoutMs;
 }
 
 // A rejected idle update: the game that sent it still thinks it syncs the vehicle, so it is told that it doesn't, at most

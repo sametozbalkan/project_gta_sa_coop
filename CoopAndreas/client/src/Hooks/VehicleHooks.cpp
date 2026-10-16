@@ -366,6 +366,25 @@ static void __fastcall CVehicle__Destructor_Hook(CVehicle* This)
 {
     CNetworkVehicleManager::OnVehicleDestroyed(This);
     plugin::CallMethod<VEHICLE_DESTRUCTOR, CVehicle*>(This);
+    CNetworkVehicleManager::OnVehicleDestructorDone(This); // private build: the id for the ped sync log ends here
+}
+
+// private build (vehicle sync protocol): a new game or a load destroys every vehicle in CWorld::ClearForRestart (0x564360,
+// cdecl, no arguments: plugin-sdk CWorld.cpp, gta-reversed World.cpp, which deletes the peds and vehicles of every repeat
+// sector), called only by CGame::ShutDownForRestart (0x53C550) at 0x53C5CB (ReVa cross-references; bytes E8 90 7D 02 00
+// read with tools/pe_peek.py from C:\Games\GTASA_Coop\gta_sa.exe). Around it the vehicles this game syncs go with
+// REMOVE_SYNCER_RESTARTED instead of REMOVE_BY_SYNCER, so the server gives the cars of the host's scripts back to the host.
+namespace
+{
+constexpr uintptr_t WORLD_CLEAR_FOR_RESTART = 0x564360;
+const uintptr_t worldClearForRestartCallAddresses[] = {0x53C5CB};  // one site (tools/audit_hooks.py reads this array)
+}  // namespace
+
+static void __cdecl CWorld__ClearForRestart_Hook()
+{
+    CNetworkVehicleManager::SetRestartClear(true);
+    plugin::Call<WORLD_CLEAR_FOR_RESTART>();
+    CNetworkVehicleManager::SetRestartClear(false);
 }
 
 static void InjectVehicleDestructorHooks()
@@ -385,6 +404,20 @@ static void InjectVehicleDestructorHooks()
         hooked++;
     }
     CNetworkVehicleManager::OnDestructorHooksInstalled(hooked, total);
+
+    // private build: only while the site still holds the original call (the vehicles then go as REMOVE_BY_SYNCER)
+    bool bRestartHooked = false;
+    for (uintptr_t site : worldClearForRestartCallAddresses)
+    {
+        const uint8_t firstByte = patch::GetUChar(static_cast<int>(site), false);
+        const uintptr_t target = site + 5 + static_cast<uintptr_t>(patch::GetInt(static_cast<int>(site + 1), false));
+        if (firstByte == 0xE8 && target == WORLD_CLEAR_FOR_RESTART)
+        {
+            patch::RedirectCall(static_cast<int>(site), CWorld__ClearForRestart_Hook);
+            bRestartHooked = true;
+        }
+    }
+    CNetworkVehicleManager::OnRestartHookInstalled(bRestartHooked);
 }
 
 CPed* BmxFix_FindPlayerPed_Hook(CVehicle* vehicle)

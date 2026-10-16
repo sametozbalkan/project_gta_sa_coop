@@ -8,6 +8,20 @@ PACKET_HANDLER(
 {
     pOnFootUpdate->playerid.value = pNetworkPlayer->m_iPlayerId;
     GetPacketFactory().SendToAll(*pOnFootUpdate, pNetworkPlayer);
+
+    // private build (vehicle sync protocol): a seat its holder's game has reported on foot for a while goes (an entry
+    // that never completed, an exit no VEHICLE_EXIT reported); not while the player is still getting in
+    // (VehicleSeatPolicy::ShouldFreeSeatOnFoot)
+    if (VehicleSeatPolicy::ShouldFreeSeatOnFoot(
+            pNetworkPlayer->m_nVehicleId >= 0, g_serverTime, pNetworkPlayer->m_nSeatClaimedAt))
+    {
+        const int vehicleid = pNetworkPlayer->m_nVehicleId;
+        const int seat = pNetworkPlayer->m_nSeatId;
+        pNetworkPlayer->RemoveFromVehicle();
+        printf("[Vehicle] : %s (id %d) has been on foot for %u s, its seat %d in vehicle %d is free again\n",
+            pNetworkPlayer->GetName().c_str(), pNetworkPlayer->m_iPlayerId,
+            static_cast<unsigned>(g_serverTime - pNetworkPlayer->m_nSeatClaimedAt) / 1000, seat, vehicleid);
+    }
 }
 
 PACKET_HANDLER(ePacketType::PLAYER_KEY_SYNC, Packets::Players::KeyPressed* pKeyPressed, CNetworkPlayer* pNetworkPlayer)

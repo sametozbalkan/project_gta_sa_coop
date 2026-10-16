@@ -128,19 +128,24 @@ void CNetworkKeepAlive::SendKeysReleased()
 
     CKeySync::CReleasedKeysScope releasedKeys;
 
-    // the frame loop's choice between the driver, passenger and on-foot updates (Main.cpp)
+    // the frame loop's choice between the driver, passenger and on-foot updates (Main.cpp), and none while the player
+    // gets out of its vehicle (private build, vehicle sync protocol: VehicleSyncPolicy::ChooseLocalUpdate); the key
+    // event below still carries the released keys then
     CVehicle* pVehicle = pPlayerPed->m_nPedFlags.bInVehicle ? pPlayerPed->m_pVehicle : nullptr;
-    if (pVehicle != nullptr && pVehicle->m_pDriver == pPlayerPed)
+    switch (VehicleSyncPolicy::ChooseLocalUpdate(pVehicle != nullptr, pVehicle != nullptr && pVehicle->m_pDriver == pPlayerPed,
+        pVehicle != nullptr && CNetworkVehicleManager::IsLocalPlayerLeavingVehicle(pPlayerPed)))
     {
-        CNetworkVehicleManager::UpdateDriver(pVehicle);
-    }
-    else if (pVehicle != nullptr)
-    {
-        CNetworkVehicleManager::UpdatePassenger(pVehicle, pPlayerPed);
-    }
-    else
-    {
-        SendLocalOnFootUpdate(pPlayerPed);
+        case VehicleSyncPolicy::eLocalUpdate::DRIVER:
+            CNetworkVehicleManager::UpdateDriver(pVehicle);
+            break;
+        case VehicleSyncPolicy::eLocalUpdate::PASSENGER:
+            CNetworkVehicleManager::UpdatePassenger(pVehicle, pPlayerPed);
+            break;
+        case VehicleSyncPolicy::eLocalUpdate::ON_FOOT:
+            SendLocalOnFootUpdate(pPlayerPed);
+            break;
+        case VehicleSyncPolicy::eLocalUpdate::NONE:
+            break;
     }
 
     Packets::Players::KeyPressed keyPressed{};

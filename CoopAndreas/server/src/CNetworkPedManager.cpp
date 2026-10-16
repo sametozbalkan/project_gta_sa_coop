@@ -1,8 +1,12 @@
 #include "stdafx.h"
 #include <network/packets/peds.h>
+#include <network/entity_lifecycle.h>
 #include "CPedHandoverPolicy.h"
 
 std::vector<CNetworkPed*> CNetworkPedManager::m_pPeds;
+
+// private build (vehicle sync protocol review): the id handed out last (round robin, EntityLifecycle::NextFreeId)
+static int ms_nLastPedId = -1;
 
 void CNetworkPedManager::Add(CNetworkPed* ped)
 {
@@ -33,13 +37,15 @@ CNetworkPed* CNetworkPedManager::GetPed(int pedid)
 
 int CNetworkPedManager::GetFreeId()
 {
-    for (int i = 0; i < Config::MAX_SERVER_PEDS; i++)
+    // private build (vehicle sync protocol review): the next free id after the last one handed out, as for vehicles, so
+    // a late packet about a removed ped (PED_REMOVE among them) doesn't meet a new ped with its id
+    const int id = EntityLifecycle::NextFreeId(ms_nLastPedId, Config::MAX_SERVER_PEDS,
+        [](int candidate) { return CNetworkPedManager::GetPed(candidate) == nullptr; });
+    if (id >= 0)
     {
-        if (CNetworkPedManager::GetPed(i) == nullptr)
-            return i;
+        ms_nLastPedId = id;
     }
-
-    return -1;
+    return id;
 }
 
 void CNetworkPedManager::RemoveAllHostedAndNotify(CNetworkPlayer* player)

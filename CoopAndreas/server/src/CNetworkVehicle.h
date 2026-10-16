@@ -31,6 +31,8 @@ public:
     // private build (vehicle sync protocol, rules in CVehicleSeatPolicy.h)
     CNetworkPlayer* m_pCreator = nullptr;  // the player whose game spawned it (REMOVE_UNCONFIRMED comes from that game)
     bool m_bHostMission = false;           // MISSION_VEHICLE of the host's scripts: back to the host when its syncer leaves
+    uint32_t m_nCreatedAt = 0;             // g_serverTime of its VEHICLE_SPAWN: packets stamped before are about an older
+                                           // vehicle with this id (EntityLifecycle::IsFromBeforeCreation)
     VehicleSeatPolicy::CSyncerCorrection m_syncerCorrection;
 
     // the syncer is newSyncer: ASSIGN_VEHICLE with bSyncing false to the old syncer and true to the new one

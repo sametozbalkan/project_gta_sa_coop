@@ -253,31 +253,8 @@ void CNetwork::HandlePlayerConnected(ENetPeer* pENetPeer, Packets::System::Playe
 
     for (auto i : CNetworkVehicleManager::m_pVehicles)
     {
-        Packets::Vehicles::VehicleSpawn vehicleSpawnPacket{};
-        vehicleSpawnPacket.vehicleid = i->m_nVehicleId;
-        vehicleSpawnPacket.modelid = i->m_nModelId;
-        vehicleSpawnPacket.pos = i->m_vecPosition;
-        vehicleSpawnPacket.rot = static_cast<float>(
-            i->m_vecRotation.z * (3.141592f / 180.0f));  // convert to radians TODO(v0.3.1-alpha): is this wrong?
-        vehicleSpawnPacket.color1 = i->m_nPrimaryColor;
-        vehicleSpawnPacket.color2 = i->m_nSecondaryColor;
-        // private build (vehicle sync protocol): a joiner who becomes the syncer applies this (was always RANDOM_VEHICLE,
-        // so its population code could delete a mission car it drove)
-        vehicleSpawnPacket.createdBy = static_cast<eVehicleCreatedBy>(i->m_nCreatedBy);
-        GetPacketFactory().Send(vehicleSpawnPacket, pNewNetworkPlayer);
-
-        Packets::Vehicles::VehicleDamage vehicleDamagePacket{};
-        vehicleDamagePacket.vehicleid = i->m_nVehicleId;
-        vehicleDamagePacket.damageManager = i->m_damageManager;
-        GetPacketFactory().Send(vehicleDamagePacket, pNewNetworkPlayer);
-
-        for (int component : i->m_pComponents)
-        {
-            Packets::Vehicles::VehicleComponentAdd vehicleComponentAdd{};
-            vehicleComponentAdd.vehicleid = i->m_nVehicleId;
-            vehicleComponentAdd.componentid = component;
-            GetPacketFactory().Send(vehicleComponentAdd, pNewNetworkPlayer);
-        }
+        // private build (vehicle sync protocol): shared with the vehicles sent again to one game (a rejected removal)
+        CNetworkVehicleManager::SendVehicleTo(i, pNewNetworkPlayer);
     }
 
     for (auto i : CNetworkPedManager::m_pPeds)

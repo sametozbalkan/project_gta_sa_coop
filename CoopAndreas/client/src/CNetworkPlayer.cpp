@@ -662,8 +662,9 @@ void CNetworkPlayer::KeepFlaggedPed(CPlayerPed* pPed)
         return;
     }
 
-    const CNetworkVehicle* pNetworkVehicle = CNetworkVehicleManager::GetVehicle(pVehicle);
-    const int nWritten = sprintf_s(szDetail, "vehicle=%d callers:", pNetworkVehicle ? pNetworkVehicle->m_nVehicleId : -1);
+    // private build (vehicle sync protocol): the ~CVehicle hook lets the record go before this runs, so the id comes from
+    // the vehicle being destroyed (CNetworkVehicleManager::GetIdForLog)
+    const int nWritten = sprintf_s(szDetail, "vehicle=%d callers:", CNetworkVehicleManager::GetIdForLog(pVehicle));
     const size_t nUsed = nWritten > 0 ? static_cast<size_t>(nWritten) : 0;
     DescribeGameCallers(szDetail + nUsed, sizeof(szDetail) - nUsed);
     m_vecKeptPosition = pVehicle->GetPosition();

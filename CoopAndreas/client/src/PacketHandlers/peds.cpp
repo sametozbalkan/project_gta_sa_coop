@@ -105,7 +105,17 @@ PACKET_HANDLER(ePacketType::PED_DRIVER_UPDATE, Packets::Peds::PedDriverUpdate* p
         return;
     }
 
-    CVehicle* pVehicle = pNetworkVehicle->m_pVehicle;
+    // private build (vehicle sync protocol): the vehicle's state, and a copy this game lost comes back where the ped's
+    // syncer has it (a car an NPC drives gets no idle or player driver updates, only these)
+    const int vehicleid = pPedDriverUpdate->vehicleid;
+    pNetworkVehicle->RememberState(pPedDriverUpdate->pos, pPedDriverUpdate->roll, pPedDriverUpdate->rot,
+        pPedDriverUpdate->color1, pPedDriverUpdate->color2);
+    CVehicle* pVehicle = pNetworkVehicle->GetLiveVehicle();
+    if (pVehicle == nullptr)
+    {
+        pVehicle = CNetworkVehicleManager::RecreateLostCopy(pNetworkVehicle, pPedDriverUpdate->pos, pPedDriverUpdate->roll,
+            pPedDriverUpdate->rot, pPedDriverUpdate->color1, pPedDriverUpdate->color2);
+    }
     if (pVehicle == nullptr || !pVehicle->IsVTableValid())
     {
         return;
@@ -121,6 +131,8 @@ PACKET_HANDLER(ePacketType::PED_DRIVER_UPDATE, Packets::Peds::PedDriverUpdate* p
     {
         pNetworkPed->WarpIntoVehicleDriver(pVehicle);
     }
+    // private build (vehicle sync protocol): the record and its vehicle again after the warp (see VEHICLE_DRIVER_UPDATE)
+    if (!CNetworkVehicleManager::StillHolds(vehicleid, pNetworkVehicle, pVehicle)) return;
     if (!pNetworkPed->GetLivePed() || !pVehicle->m_matrix) return;
     pVehicle->m_matrix->pos = pPedDriverUpdate->pos;
     pVehicle->m_matrix->right = pPedDriverUpdate->roll;
@@ -130,6 +142,8 @@ PACKET_HANDLER(ePacketType::PED_DRIVER_UPDATE, Packets::Peds::PedDriverUpdate* p
     pVehicle->m_vecTurnSpeed = pPedDriverUpdate->turnSpeed;
 
     pNetworkPed->ApplyWeaponSnapshot(pPedDriverUpdate->pedWeapon);
+    // private build (vehicle sync protocol): the weapon's model may load in there (CStreaming::LoadAllRequestedModels)
+    if (!CNetworkVehicleManager::StillHolds(vehicleid, pNetworkVehicle, pVehicle)) return;
     pPed = pNetworkPed->GetLivePed();
     if (!pPed) return;
 

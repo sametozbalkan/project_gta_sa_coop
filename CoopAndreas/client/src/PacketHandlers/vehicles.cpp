@@ -33,8 +33,9 @@ PACKET_HANDLER(ePacketType::VEHICLE_REMOVE, Packets::Vehicles::VehicleRemove* pV
     CChat::AddMessage("VEHICLE REMOVE %d", pVehicleRemove->vehicleid);
 #endif
     // private build (vehicle sync protocol): whatever the reason and whether this game synced it, the vehicle goes (players
-    // out first) and so does its record; upstream's record destructor sent the removal back when this game synced it
-    CNetworkVehicleManager::OnRemovePacket(pVehicleRemove->vehicleid);
+    // out first) and so does its record; upstream's record destructor sent the removal back when this game synced it.
+    // The reason goes into the --coopdiag log.
+    CNetworkVehicleManager::OnRemovePacket(pVehicleRemove->vehicleid, pVehicleRemove->reason);
 }
 
 PACKET_HANDLER(ePacketType::VEHICLE_CONFIRM, Packets::Vehicles::VehicleConfirm* pVehicleConfirm)
@@ -102,8 +103,16 @@ PACKET_HANDLER(ePacketType::VEHICLE_DRIVER_UPDATE, Packets::Vehicles::VehicleDri
     if (pNetworkVehicle == nullptr || pNetworkPlayer == nullptr)
         return;
 
+    // private build (vehicle sync protocol): the driver's keys and health before anything can return early. The other
+    // games replay a player's last keys in every frame, and the update with every key released that CNetworkKeepAlive
+    // sends when that player's game goes to the background must not be dropped for a copy that isn't recreated now.
+    pNetworkPlayer->m_oldControllerState = pVehicleDriverUpdate->playerKeys.oldControllerState;
+    pNetworkPlayer->m_newControllerState = pVehicleDriverUpdate->playerKeys.newControllerState;
+    pNetworkPlayer->m_onFootSnapshotInterpolated.healthSnapshot = pVehicleDriverUpdate->playerHealth;
+
     // private build (vehicle sync protocol): the driver's state, and a copy this game lost comes back where the driver
     // has it (upstream read a NULL or freed vehicle here)
+    const int vehicleid = pVehicleDriverUpdate->vehicleid;
     pNetworkVehicle->RememberState(pVehicleDriverUpdate->pos, pVehicleDriverUpdate->roll, pVehicleDriverUpdate->rot,
         pVehicleDriverUpdate->color1, pVehicleDriverUpdate->color2);
     CVehicle* pVehicle = pNetworkVehicle->GetLiveVehicle();
@@ -117,14 +126,19 @@ PACKET_HANDLER(ePacketType::VEHICLE_DRIVER_UPDATE, Packets::Vehicles::VehicleDri
     }
 
     // private build: a missing or broken ped is recreated at the vehicle and seated only while it has a clump and
-    // intelligence; the vehicle is updated either way
+    // intelligence; the vehicle is updated either way. The recovery can destroy vehicles, this one too: CREATE_PLAYER
+    // (case 0x4668DC) clears space at the new ped with CTheScripts::ClearSpaceForMissionEntity (0x486B00, call at
+    // 0x4669B9), which deletes a car there that CanBeDeleted, and the ~CVehicle hook then deletes the record of a car this
+    // game syncs. So the record and its vehicle are looked up again after each call that can get there.
     CVector vecPos = pVehicleDriverUpdate->pos;
-    if (CPlayerPed* pPlayerPed = pNetworkPlayer->GetOrRecoverPed(&vecPos))
+    CPlayerPed* pRecoveredPed = pNetworkPlayer->GetOrRecoverPed(&vecPos);
+    if (!CNetworkVehicleManager::StillHolds(vehicleid, pNetworkVehicle, pVehicle))
+        return;
+    if (pRecoveredPed != nullptr && (pRecoveredPed->m_pVehicle != pVehicle || !pRecoveredPed->m_nPedFlags.bInVehicle))
     {
-        if (pPlayerPed->m_pVehicle != pVehicle || !pPlayerPed->m_nPedFlags.bInVehicle)
-        {
-            pNetworkPlayer->WarpIntoVehicleDriver(pVehicle);
-        }
+        pNetworkPlayer->WarpIntoVehicleDriver(pVehicle);
+        if (!CNetworkVehicleManager::StillHolds(vehicleid, pNetworkVehicle, pVehicle))
+            return;
     }
 
     pVehicle->m_matrix->pos = pVehicleDriverUpdate->pos;
@@ -133,15 +147,15 @@ PACKET_HANDLER(ePacketType::VEHICLE_DRIVER_UPDATE, Packets::Vehicles::VehicleDri
     pVehicle->m_vecMoveSpeed = pVehicleDriverUpdate->velocity;
     pVehicle->m_vecTurnSpeed = pVehicleDriverUpdate->turnSpeed;
 
+    // private build: the weapon's model may load here (CStreaming::LoadAllRequestedModels)
     pNetworkPlayer->ApplyWeaponSnapshot(pVehicleDriverUpdate->playerWeapon);
-    pNetworkPlayer->m_onFootSnapshotInterpolated.healthSnapshot = pVehicleDriverUpdate->playerHealth;
+    if (!CNetworkVehicleManager::StillHolds(vehicleid, pNetworkVehicle, pVehicle))
+        return;
     if (CPlayerPed* pPlayerPed = pNetworkPlayer->GetLivePed()) // private build
     {
         pPlayerPed->m_fHealth = pVehicleDriverUpdate->playerHealth.iHealth;
         pPlayerPed->m_fArmour = pVehicleDriverUpdate->playerHealth.iArmour;
     }
-    pNetworkPlayer->m_oldControllerState = pVehicleDriverUpdate->playerKeys.oldControllerState;
-    pNetworkPlayer->m_newControllerState = pVehicleDriverUpdate->playerKeys.newControllerState;
 
     pVehicle->m_nPrimaryColor = pVehicleDriverUpdate->color1;
     pVehicle->m_nSecondaryColor = pVehicleDriverUpdate->color2;
@@ -170,7 +184,7 @@ PACKET_HANDLER(ePacketType::VEHICLE_DRIVER_UPDATE, Packets::Vehicles::VehicleDri
         pPlane->m_fLandingGearStatus = pVehicleDriverUpdate->planeGearState;
     }
 
-    pNetworkVehicle->m_pVehicle->m_eDoorLock = pVehicleDriverUpdate->locked;
+    pVehicle->m_eDoorLock = pVehicleDriverUpdate->locked;
     pNetworkVehicle->m_playerDriverSnapshot = *pVehicleDriverUpdate;
 }
 
@@ -248,6 +262,14 @@ PACKET_HANDLER(ePacketType::VEHICLE_EXIT, Packets::Vehicles::VehicleExit* pVehic
         return;
     }
 
+    // private build (vehicle sync protocol): that player's game sends no driver or passenger update while it gets out
+    // (VehicleSyncPolicy::ChooseLocalUpdate), so the keys of its last one would drive the car on here; a car whose driver
+    // is getting out takes no more control input (CAutomobile::ProcessControl skips ProcessControlInputs for a driver in
+    // PEDSTATE_EXIT_CAR, gta-reversed Automobile.cpp), so it keeps the pedals of the last frame before. Released keys
+    // until its next update (or key event) brings the real ones.
+    pNetworkPlayer->m_oldControllerState = CControllerState{};
+    pNetworkPlayer->m_newControllerState = CControllerState{};
+
     // private build: see VEHICLE_ENTER
     CPlayerPed* pPlayerPed = pNetworkPlayer->GetReadyPed();
     if (pPlayerPed == nullptr || pPlayerPed->m_pVehicle == nullptr || !pPlayerPed->m_nPedFlags.bInVehicle)
@@ -288,7 +310,7 @@ PACKET_HANDLER(ePacketType::VEHICLE_DAMAGE, Packets::Vehicles::VehicleDamage* pV
 
     if (auto pNetworkVehicle = CNetworkVehicleManager::GetVehicle(pVehicleDamage->vehicleid))
     {
-        if (auto pVehicle = pNetworkVehicle->m_pVehicle)
+        if (auto pVehicle = pNetworkVehicle->GetLiveVehicle()) // private build (vehicle sync protocol): may be lost
         {
             if (pVehicle->IsVTableValid())
             {
@@ -312,7 +334,7 @@ PACKET_HANDLER(ePacketType::VEHICLE_COMPONENT_ADD, Packets::Vehicles::VehicleCom
         return;
     }
 
-    CVehicle* pVehicle = pNetworkVehicle->m_pVehicle;
+    CVehicle* pVehicle = pNetworkVehicle->GetLiveVehicle(); // private build (vehicle sync protocol): may be lost
     if (!pVehicle || !pVehicle->IsVTableValid())
     {
         return;
@@ -332,6 +354,10 @@ PACKET_HANDLER(ePacketType::VEHICLE_COMPONENT_ADD, Packets::Vehicles::VehicleCom
     if (!count)
         return;
 
+    // private build (vehicle sync protocol): the model loads above ran engine code; the vehicle must still be this record's
+    if (!CNetworkVehicleManager::StillHolds(pVehicleComponentAdd->vehicleid, pNetworkVehicle, pVehicle))
+        return;
+
     pVehicle->AddVehicleUpgrade(pVehicleComponentAdd->componentid);
 }
 
@@ -344,7 +370,7 @@ PACKET_HANDLER(
         return;
     }
 
-    CVehicle* pVehicle = pNetworkVehicle->m_pVehicle;
+    CVehicle* pVehicle = pNetworkVehicle->GetLiveVehicle(); // private build (vehicle sync protocol): may be lost
     if (!pVehicle || !pVehicle->IsVTableValid())
     {
         return;
@@ -364,6 +390,14 @@ PACKET_HANDLER(
         return;
     }
 
+    // private build: the snapshot is kept first, also for a copy that is lost now (the keys as in VEHICLE_DRIVER_UPDATE);
+    // a missing or broken ped is recreated at the vehicle and seated, armed and given drive-by tasks only while it has a
+    // clump and intelligence
+    pNetworkPlayer->m_onFootSnapshotInterpolated.healthSnapshot = pVehiclePassengerUpdate->playerHealth;
+    pNetworkPlayer->m_newControllerState = pVehiclePassengerUpdate->playerKeys.newControllerState;
+    pNetworkPlayer->m_oldControllerState = pVehiclePassengerUpdate->playerKeys.oldControllerState;
+
+    const int vehicleid = pVehiclePassengerUpdate->vehicleid;
     CVehicle* pVehicle = pNetworkVehicle->GetLiveVehicle(); // private build (vehicle sync protocol): may be lost
 
     if (pVehicle == nullptr)
@@ -377,14 +411,14 @@ PACKET_HANDLER(
         return;
     }
 
-    // private build: the snapshot is kept first; a missing or broken ped is recreated at the vehicle and seated,
-    // armed and given drive-by tasks only while it has a clump and intelligence
-    pNetworkPlayer->m_onFootSnapshotInterpolated.healthSnapshot = pVehiclePassengerUpdate->playerHealth;
-    pNetworkPlayer->m_newControllerState = pVehiclePassengerUpdate->playerKeys.newControllerState;
-    pNetworkPlayer->m_oldControllerState = pVehiclePassengerUpdate->playerKeys.oldControllerState;
-
+    // private build (vehicle sync protocol): the recovery can destroy vehicles, this one too (see VEHICLE_DRIVER_UPDATE):
+    // the record and its vehicle are looked up again after each call that can get there
     CVector vecPos = pVehicle->GetPosition();
     CPlayerPed* pPlayerPed = pNetworkPlayer->GetOrRecoverPed(&vecPos);
+    if (!CNetworkVehicleManager::StillHolds(vehicleid, pNetworkVehicle, pVehicle))
+    {
+        return;
+    }
     if (pPlayerPed == nullptr)
     {
         return;
@@ -402,9 +436,18 @@ PACKET_HANDLER(
             "player=%d seat=%d inVehicle=%d sameVehicle=%d", pVehiclePassengerUpdate->playerid.value,
             pVehiclePassengerUpdate->seatid, pPlayerPed->m_nPedFlags.bInVehicle, pPlayerPed->m_pVehicle == pVehicle);
         pNetworkPlayer->WarpIntoVehiclePassenger(pVehicle, pVehiclePassengerUpdate->seatid);
+        if (!CNetworkVehicleManager::StillHolds(vehicleid, pNetworkVehicle, pVehicle))
+        {
+            return;
+        }
     }
 
+    // private build: the weapon's model may load here (CStreaming::LoadAllRequestedModels)
     pNetworkPlayer->ApplyWeaponSnapshot(pVehiclePassengerUpdate->playerWeapon);
+    if (!CNetworkVehicleManager::StillHolds(vehicleid, pNetworkVehicle, pVehicle))
+    {
+        return;
+    }
     if ((pPlayerPed = pNetworkPlayer->GetReadyPed()) == nullptr)
     {
         return;

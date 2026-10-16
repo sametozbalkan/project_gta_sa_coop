@@ -1,15 +1,18 @@
 // Private build: policy test for the vehicle sync protocol (0.1.1) without GTA or ENet: the client's records
 // (client/src/CVehicleSyncPolicy.h: stated assignments and the ones that wait for their vehicle, removal before
 // VEHICLE_CONFIRM, what a destroyed vehicle does to its record, copies and their createdBy, takeovers, recreation, temp
-// ids, the pool slot generation) and the server's seats, syncers and removals (server/src/CVehicleSeatPolicy.h). Build
-// and run: see CLAUDE.md (Fork changes, vehicle sync protocol).
+// ids and their expiry, the local player's updates while getting out, the pool slot generation), the server's seats,
+// syncers and removals (server/src/CVehicleSeatPolicy.h) and the order of the lifecycle packets and the ids
+// (shared/network/entity_lifecycle.h). Build and run: see CLAUDE.md (Fork changes, vehicle sync protocol).
 #include "../client/src/CVehicleSyncPolicy.h"
 #include "../server/src/CVehicleSeatPolicy.h"
+#include <algorithm>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <limits>
 #include <map>
+#include <string>
 #include <vector>
 
 #define CHECK(condition) do { if (!(condition)) { std::fprintf(stderr, "line %d: %s\n", __LINE__, #condition); std::exit(1); } } while (false)
@@ -46,11 +49,16 @@ struct FakeClient
             case eAssignment::APPLY: it->second.bSyncing = bSyncing; break;
         }
     }
-    void Appear(int id, uint16_t model, bool bSyncing, uint32_t now)  // VEHICLE_SPAWN (false) or VEHICLE_CONFIRM (true)
+    void Spawn(int id, uint16_t model, uint32_t now)  // VEHICLE_SPAWN: a copy, which a waiting assignment may make ours
     {
-        records[id] = {model, bSyncing};
+        records[id] = {model, false};
         if (const auto state = pending.Take(id, model, now))
             records[id].bSyncing = *state;
+    }
+    void Confirm(int id, uint16_t model)  // VEHICLE_CONFIRM: ours; a waiting assignment is about an older vehicle
+    {
+        pending.Drop(id);
+        records[id] = {model, true};
     }
     void Remove(int id)
     {
@@ -62,7 +70,7 @@ struct FakeClient
 void AssignmentsAreStated()
 {
     FakeClient client;
-    client.Appear(5, 400, false, 0);
+    client.Spawn(5, 400, 0);
     client.Assign(5, 400, true, 10);
     CHECK(client.records[5].bSyncing);
     client.Assign(5, 400, true, 20);  // a doubled assignment: upstream flipped it back to "not syncing"
@@ -88,33 +96,34 @@ void AssignmentBeforeTheVehicle()
     FakeClient client;
     client.Assign(7, 411, true, 100);
     CHECK(client.records.count(7) == 0 && client.pending.Size() == 1);
-    client.Appear(7, 411, false, 200);
+    client.Spawn(7, 411, 200);
     CHECK(client.records[7].bSyncing && client.pending.Size() == 0);
 
-    // our own vehicle, confirmed after the server already gave it to someone else
+    // our own vehicle: the server sends VEHICLE_CONFIRM before any assignment of it (both on its clock), so one that
+    // waits by then is about an older vehicle with the id and is dropped (upstream's record took it)
     FakeClient creator;
     creator.Assign(9, 560, false, 100);
-    creator.Appear(9, 560, true, 150);
-    CHECK(!creator.records[9].bSyncing);
+    creator.Confirm(9, 560);
+    CHECK(creator.records[9].bSyncing && creator.pending.Size() == 0);
 
     // the newest wins
     FakeClient twice;
-    twice.Assign(3, 400, true, 0);
-    twice.Assign(3, 400, false, 10);
-    twice.Appear(3, 400, true, 20);
-    CHECK(!twice.records[3].bSyncing);
+    twice.Assign(3, 400, false, 0);
+    twice.Assign(3, 400, true, 10);
+    twice.Spawn(3, 400, 20);
+    CHECK(twice.records[3].bSyncing);
 
     // an assignment of an older vehicle with the same id (another model) isn't applied to the new one
     FakeClient older;
     older.Assign(4, 400, true, 0);
-    older.Appear(4, 402, false, 10);
+    older.Spawn(4, 402, 10);
     CHECK(!older.records[4].bSyncing && older.pending.Size() == 0);
 
     // VEHICLE_REMOVE of the id drops it
     FakeClient removed;
     removed.Assign(6, 400, true, 0);
     removed.Remove(6);
-    removed.Appear(6, 400, false, 10);
+    removed.Spawn(6, 400, 10);
     CHECK(!removed.records[6].bSyncing);
 
     // it expires
@@ -137,7 +146,8 @@ void AssignmentBeforeTheVehicle()
 void RemovalBeforeConfirmation()
 {
     // the game destroys our vehicle before VEHICLE_CONFIRM: the record keeps its temp slot, the confirmation removes it
-    CHECK(VehicleSyncPolicy::DecideVehicleGone(false, true, false, false) == eVehicleGone::REMOVE_AT_CONFIRM);
+    CHECK(VehicleSyncPolicy::DecideVehicleGone(false, true, false, false, false) == eVehicleGone::REMOVE_AT_CONFIRM);
+    CHECK(VehicleSyncPolicy::DecideVehicleGone(false, true, false, false, true) == eVehicleGone::REMOVE_AT_CONFIRM);
     CHECK(VehicleSyncPolicy::DecideConfirm(true, false) == eConfirm::REMOVE_UNCONFIRMED);
     CHECK(VehicleSyncPolicy::DecideConfirm(true, true) == eConfirm::ATTACH);
     CHECK(VehicleSyncPolicy::DecideConfirm(false, false) == eConfirm::UNKNOWN_TEMP);
@@ -168,19 +178,24 @@ void RemovalBeforeConfirmation()
 void DestroyedVehicles()
 {
     // ours: removed on every game
-    CHECK(VehicleSyncPolicy::DecideVehicleGone(true, true, false, false) == eVehicleGone::SEND_REMOVE);
-    CHECK(VehicleSyncPolicy::DecideVehicleGone(true, true, true, true) == eVehicleGone::SEND_REMOVE);
+    CHECK(VehicleSyncPolicy::DecideVehicleGone(true, true, false, false, false) == eVehicleGone::SEND_REMOVE);
+    CHECK(VehicleSyncPolicy::DecideVehicleGone(true, true, true, true, false) == eVehicleGone::SEND_REMOVE);
+    // ours while this game starts over (CWorld::ClearForRestart): the server decides about the host's cars
+    CHECK(VehicleSyncPolicy::DecideVehicleGone(true, true, false, false, true) == eVehicleGone::SEND_REMOVE_RESTARTED);
+    CHECK(VehicleSyncPolicy::DecideVehicleGone(true, true, false, true, true) == eVehicleGone::SEND_REMOVE_RESTARTED);
     // the host's mission deleted a copy: removed on every game, through the host's request
     CHECK(VehicleSyncPolicy::IsHostMissionDelete(true, false, true));
     CHECK(!VehicleSyncPolicy::IsHostMissionDelete(false, false, true));  // the friend's own scripts
     CHECK(!VehicleSyncPolicy::IsHostMissionDelete(true, true, true));    // the host syncs it: a normal removal
     CHECK(!VehicleSyncPolicy::IsHostMissionDelete(true, false, false));  // the host's population or another script
-    CHECK(VehicleSyncPolicy::DecideVehicleGone(true, false, true, false) == eVehicleGone::HOST_MISSION_REMOVE);
+    CHECK(VehicleSyncPolicy::DecideVehicleGone(true, false, true, false, false) == eVehicleGone::HOST_MISSION_REMOVE);
     CHECK(VehicleSeatPolicy::AcceptRemove(VehicleSync::REMOVE_BY_HOST_MISSION, false, false, true));
     CHECK(!VehicleSeatPolicy::AcceptRemove(VehicleSync::REMOVE_BY_HOST_MISSION, true, true, false));
-    // a copy this game lost to its own engine: recreated from the syncer's next update, a wreck isn't
-    CHECK(VehicleSyncPolicy::DecideVehicleGone(true, false, false, false) == eVehicleGone::KEEP_FOR_RECREATE);
-    CHECK(VehicleSyncPolicy::DecideVehicleGone(true, false, false, true) == eVehicleGone::KEEP_WRECK);
+    // a copy this game lost to its own engine: recreated from the syncer's next update, a wreck isn't; a restart
+    // destroys the copies as well, and their syncers bring them back the same way
+    CHECK(VehicleSyncPolicy::DecideVehicleGone(true, false, false, false, false) == eVehicleGone::KEEP_FOR_RECREATE);
+    CHECK(VehicleSyncPolicy::DecideVehicleGone(true, false, false, true, false) == eVehicleGone::KEEP_WRECK);
+    CHECK(VehicleSyncPolicy::DecideVehicleGone(true, false, false, false, true) == eVehicleGone::KEEP_FOR_RECREATE);
     // upstream's rule stays: the syncer removes its vehicle
     CHECK(VehicleSeatPolicy::AcceptRemove(VehicleSync::REMOVE_BY_SYNCER, true, false, false));
     CHECK(!VehicleSeatPolicy::AcceptRemove(VehicleSync::REMOVE_BY_SYNCER, false, true, true));
@@ -466,6 +481,228 @@ void SyncerCorrection()
     CHECK(wrap.ShouldSend(989));
 }
 
+// --- review fixes (0.1.1) ----------------------------------------------------------------------------------------------
+
+// A game's packet buffer as client/src/CPacketBuffer.cpp keeps it: sorted by stamp, equal stamps in arrival order
+struct FakeBuffer
+{
+    struct Item
+    {
+        uint32_t stamp;
+        const char* what;
+    };
+    std::vector<Item> items;
+
+    void Receive(uint32_t stamp, const char* what)
+    {
+        const auto it = std::upper_bound(items.begin(), items.end(), stamp,
+            [](uint32_t time, const Item& item) { return time < item.stamp; });
+        items.insert(it, {stamp, what});
+    }
+};
+
+// The server's stamp on what it sends (server/src/CPacketFactory.cpp): its own clock for what it makes and for the
+// lifecycle packets it relays, the sender's for the other relays
+uint32_t ServerStamp(ePacketType type, uint32_t senderStamp, uint32_t serverNow)
+{
+    return senderStamp == 0 || EntityLifecycle::UsesServerTime(type) ? serverNow : senderStamp;
+}
+
+void LifecycleOrder()
+{
+    using EntityLifecycle::UsesServerTime;
+    // what the server stamps itself when it relays: spawns, removals and the state the join snapshot carries
+    CHECK(UsesServerTime(ePacketType::VEHICLE_SPAWN) && UsesServerTime(ePacketType::VEHICLE_REMOVE));
+    CHECK(UsesServerTime(ePacketType::VEHICLE_DAMAGE) && UsesServerTime(ePacketType::VEHICLE_COMPONENT_ADD));
+    CHECK(UsesServerTime(ePacketType::VEHICLE_COMPONENT_REMOVE) && UsesServerTime(ePacketType::SET_VEHICLE_CREATED_BY));
+    CHECK(UsesServerTime(ePacketType::PED_SPAWN) && UsesServerTime(ePacketType::PED_REMOVE));
+    // the player's own stream keeps its clock
+    CHECK(!UsesServerTime(ePacketType::VEHICLE_IDLE_UPDATE) && !UsesServerTime(ePacketType::VEHICLE_DRIVER_UPDATE));
+    CHECK(!UsesServerTime(ePacketType::VEHICLE_PASSENGER_UPDATE) && !UsesServerTime(ePacketType::VEHICLE_ENTER));
+    CHECK(!UsesServerTime(ePacketType::VEHICLE_EXIT) && !UsesServerTime(ePacketType::VEHICLE_RADIO_STATION));
+    CHECK(!UsesServerTime(ePacketType::PLAYER_ONFOOT_UPDATE) && !UsesServerTime(ePacketType::PED_ONFOOT));
+
+    // The review's ghost car: the friend's car 7 goes (its clock 1010, ahead of the server's), and in the same server
+    // tick (1000) the host's new car gets the freed id 7. Upstream's stamps: the host handles VEHICLE_CONFIRM(7) first
+    // and the late VEHICLE_REMOVE(7) deletes its new car.
+    const uint32_t friendClock = 1010;
+    const uint32_t serverNow = 1000;
+    FakeBuffer upstream;
+    upstream.Receive(friendClock, "remove");  // relayed with the sender's clock
+    upstream.Receive(serverNow, "confirm");
+    CHECK(std::string(upstream.items[0].what) == "confirm");
+    // now: both on the server's clock, in the order the server sent them
+    FakeBuffer host;
+    host.Receive(ServerStamp(ePacketType::VEHICLE_REMOVE, friendClock, serverNow), "remove");
+    host.Receive(ServerStamp(ePacketType::VEHICLE_CONFIRM, 0, serverNow), "confirm");
+    CHECK(std::string(host.items[0].what) == "remove" && std::string(host.items[1].what) == "confirm");
+
+    // the joiner: the snapshot's VEHICLE_SPAWN(7) at 2000, then a removal the friend sent before the join (its clock
+    // 1990) relayed at 2001: upstream's stamps put the removal first (a ghost); now it comes after the spawn
+    FakeBuffer joinerUpstream;
+    joinerUpstream.Receive(2000, "spawn");
+    joinerUpstream.Receive(1990, "remove");
+    CHECK(std::string(joinerUpstream.items[0].what) == "remove");
+    FakeBuffer joiner;
+    joiner.Receive(ServerStamp(ePacketType::VEHICLE_SPAWN, 0, 2000), "spawn");
+    joiner.Receive(ServerStamp(ePacketType::VEHICLE_REMOVE, 1990, 2001), "remove");
+    CHECK(std::string(joiner.items[0].what) == "spawn" && std::string(joiner.items[1].what) == "remove");
+
+    // a game's own updates of a vehicle come after its spawn anyway: it handles the server-stamped VEHICLE_CONFIRM no
+    // earlier than its clock reaches the stamp plus the buffer delay, and stamps its updates with that clock
+    const uint32_t confirmStamp = 5000;
+    const uint32_t firstUpdate = confirmStamp + 50;
+    CHECK(!EntityLifecycle::IsFromBeforeCreation(firstUpdate, confirmStamp));
+    // a late update or removal sent for the vehicle that had the id before: the server drops it
+    CHECK(EntityLifecycle::IsFromBeforeCreation(confirmStamp - 1, confirmStamp));
+    CHECK(!EntityLifecycle::IsFromBeforeCreation(confirmStamp, confirmStamp));
+    // across the wrap of the 32-bit clocks
+    const uint32_t beforeWrap = std::numeric_limits<uint32_t>::max() - 5;
+    CHECK(EntityLifecycle::IsFromBeforeCreation(beforeWrap, 10));
+    CHECK(!EntityLifecycle::IsFromBeforeCreation(10, beforeWrap));
+    // only within the window: a game without its first server-time answer stamps with its PC's uptime (here 30 days
+    // against a server up for an hour) and isn't taken for late
+    const uint32_t createdAt = 100000;
+    CHECK(EntityLifecycle::IsFromBeforeCreation(createdAt - EntityLifecycle::LATE_PACKET_WINDOW_MS + 1, createdAt));
+    CHECK(!EntityLifecycle::IsFromBeforeCreation(createdAt - EntityLifecycle::LATE_PACKET_WINDOW_MS, createdAt));
+    CHECK(!EntityLifecycle::IsFromBeforeCreation(30u * 24u * 3600u * 1000u, 3600u * 1000u));
+}
+
+void RoundRobinIds()
+{
+    // the server's vehicle and ped ids: the next free one after the last handed out, so a freed id isn't handed out again
+    // at once (upstream: lowest free, the id of the vehicle removed in the same tick)
+    bool taken[6] = {};
+    auto isFree = [&](int id) { return !taken[id]; };
+    int last = -1;
+    for (int expected = 0; expected < 6; expected++)
+    {
+        const int id = EntityLifecycle::NextFreeId(last, 6, isFree);
+        CHECK(id == expected);
+        taken[id] = true;
+        last = id;
+    }
+    CHECK(EntityLifecycle::NextFreeId(last, 6, isFree) == -1);  // all taken
+    taken[2] = false;                                            // 2 goes
+    taken[4] = false;                                            // then 4
+    CHECK(EntityLifecycle::NextFreeId(last, 6, isFree) == 2);    // after 5 the search wraps: 2 is the next free
+    taken[2] = true;
+    last = 2;
+    taken[0] = false;
+    CHECK(EntityLifecycle::NextFreeId(last, 6, isFree) == 4);  // 4 before 0, which was freed later in the cycle
+    // the client's temp ids keep the same rule
+    CHECK(VehicleSyncPolicy::NextTempId(last, 6, isFree) == 4);
+}
+
+void TempRecords()
+{
+    using VehicleSyncPolicy::IsTempRecordExpired;
+    using VehicleSyncPolicy::TEMP_RECORD_MAX_AGE_MS;
+    CHECK(!IsTempRecordExpired(1000, 1000 + TEMP_RECORD_MAX_AGE_MS - 1));
+    CHECK(IsTempRecordExpired(1000, 1000 + TEMP_RECORD_MAX_AGE_MS));
+    const uint32_t beforeWrap = std::numeric_limits<uint32_t>::max() - 100;
+    CHECK(!IsTempRecordExpired(beforeWrap, 500));                     // age 601
+    CHECK(IsTempRecordExpired(beforeWrap, TEMP_RECORD_MAX_AGE_MS));   // age MAX + 101
+    // a confirmation for a slot without a record (it expired): the vehicle goes everywhere, asked by its creator
+    CHECK(VehicleSyncPolicy::DecideConfirm(false, false) == eConfirm::UNKNOWN_TEMP);
+    CHECK(VehicleSeatPolicy::AcceptRemove(VehicleSync::REMOVE_UNCONFIRMED, false, true, false));
+}
+
+void ExpiredAssignments()
+{
+    using VehicleSyncPolicy::eExpiredAssignment;
+    CHECK(VehicleSyncPolicy::DecideExpiredAssignment(false, false) == eExpiredAssignment::NOTHING);
+    CHECK(VehicleSyncPolicy::DecideExpiredAssignment(false, true) == eExpiredAssignment::NOTHING);
+    // "you sync it" for a vehicle this game doesn't have: removed everywhere, as a takeover with nothing to take over
+    CHECK(VehicleSyncPolicy::DecideExpiredAssignment(true, false) == eExpiredAssignment::REMOVE_EVERYWHERE);
+    CHECK(VehicleSyncPolicy::DecideExpiredAssignment(true, true) ==
+          eExpiredAssignment::REMOVE_EVERYWHERE_AND_LOCAL_RECORD);
+    // the server takes it while that game is still the syncer; if the vehicle has moved on, the game gets it back
+    using VehicleSeatPolicy::eRemove;
+    CHECK(VehicleSeatPolicy::DecideRemove(VehicleSync::REMOVE_BY_SYNCER, false, true, false, false, false, true) ==
+          eRemove::REMOVE);
+    CHECK(VehicleSeatPolicy::DecideRemove(VehicleSync::REMOVE_BY_SYNCER, false, false, false, false, false, true) ==
+          eRemove::REJECT_AND_RESEND);
+}
+
+void Removals()
+{
+    using VehicleSeatPolicy::DecideRemove;
+    using VehicleSeatPolicy::eRemove;
+    // stamped before the vehicle existed: about an older vehicle with the id, nothing happens, whoever sent it
+    CHECK(DecideRemove(VehicleSync::REMOVE_BY_SYNCER, true, true, true, true, true, true) == eRemove::DROP_STALE);
+    // the review's crash scenario on the server side: the host's game destroyed a car it still synced while the friend
+    // had already started driving it (the server made the friend the syncer): rejected, and the host gets it back
+    CHECK(DecideRemove(VehicleSync::REMOVE_BY_SYNCER, false, false, true, true, false, false) ==
+          eRemove::REJECT_AND_RESEND);
+    // the creator before its confirmation, the host for its mission
+    CHECK(DecideRemove(VehicleSync::REMOVE_UNCONFIRMED, false, false, true, false, false, true) == eRemove::REMOVE);
+    CHECK(DecideRemove(VehicleSync::REMOVE_BY_HOST_MISSION, false, false, false, true, true, false) == eRemove::REMOVE);
+    CHECK(DecideRemove(VehicleSync::REMOVE_BY_HOST_MISSION, false, true, true, false, false, true) ==
+          eRemove::REJECT_AND_RESEND);
+    // the syncer's game starts over: a car of the host's scripts goes back to the host, anything else everywhere
+    CHECK(VehicleSeatPolicy::AcceptRemove(VehicleSync::REMOVE_SYNCER_RESTARTED, true, false, false));
+    CHECK(!VehicleSeatPolicy::AcceptRemove(VehicleSync::REMOVE_SYNCER_RESTARTED, false, true, true));
+    CHECK(DecideRemove(VehicleSync::REMOVE_SYNCER_RESTARTED, false, true, false, false, true, true) ==
+          eRemove::GIVE_TO_HOST);
+    CHECK(DecideRemove(VehicleSync::REMOVE_SYNCER_RESTARTED, false, true, false, false, false, true) == eRemove::REMOVE);
+    // the host itself starts over: its mission is gone with its game
+    CHECK(DecideRemove(VehicleSync::REMOVE_SYNCER_RESTARTED, false, true, true, true, true, false) == eRemove::REMOVE);
+    // a restarting game that no longer syncs the car gets it back like any rejected removal
+    CHECK(DecideRemove(VehicleSync::REMOVE_SYNCER_RESTARTED, false, false, false, false, true, true) ==
+          eRemove::REJECT_AND_RESEND);
+    CHECK(std::string(VehicleSync::RemoveReasonName(VehicleSync::REMOVE_SYNCER_RESTARTED)) == "syncer-restarted");
+}
+
+void LeavingAVehicle()
+{
+    using VehicleSyncPolicy::ChooseLocalUpdate;
+    using VehicleSyncPolicy::eLocalUpdate;
+    CHECK(ChooseLocalUpdate(false, false, false) == eLocalUpdate::ON_FOOT);
+    CHECK(ChooseLocalUpdate(true, true, false) == eLocalUpdate::DRIVER);
+    CHECK(ChooseLocalUpdate(true, false, false) == eLocalUpdate::PASSENGER);
+    CHECK(ChooseLocalUpdate(true, true, true) == eLocalUpdate::NONE);   // getting out: no driver update
+    CHECK(ChooseLocalUpdate(true, false, true) == eLocalUpdate::NONE);  // nor a passenger update
+    // the vehicle's own state goes out as idle updates meanwhile
+    CHECK(VehicleSyncPolicy::IsDrivenForIdleUpdates(true, false));
+    CHECK(!VehicleSyncPolicy::IsDrivenForIdleUpdates(true, true));
+    CHECK(!VehicleSyncPolicy::IsDrivenForIdleUpdates(false, false));
+
+    // The review's case on the server: the host drives, the friend sits beside it. The host gets out (VEHICLE_EXIT); its
+    // game used to send driver updates through the exit, each of which put it back into the driver's seat, so the friend
+    // never took the car over. Now its game sends none until it is out.
+    FakeServer server;
+    server.vehicles.push_back({1});
+    Player host{0}, friendPlayer{1};
+    server.Enter(host, 1, false, 0);
+    server.DriverUpdate(host, 1);
+    server.Enter(friendPlayer, 1, true, 0);
+    server.PassengerUpdate(friendPlayer, 1, 0);
+    CHECK(server.Find(1)->syncer == &host);
+    server.Exit(host);  // VEHICLE_EXIT at the start of the exit
+    if (ChooseLocalUpdate(true, true, true) == eLocalUpdate::DRIVER)  // during the exit animation
+        server.DriverUpdate(host, 1);
+    server.PassengerUpdate(friendPlayer, 1, 0);
+    CHECK(server.Find(1)->m_pPlayers[0] == nullptr && server.Find(1)->syncer == &friendPlayer);
+    // an exit that ends without getting out (the player keeps driving): the driver updates come back and so does the seat
+    if (ChooseLocalUpdate(true, true, false) == eLocalUpdate::DRIVER)
+        server.DriverUpdate(host, 1);
+    CHECK(server.Find(1)->m_pPlayers[0] == &host && server.Find(1)->syncer == &host);
+    server.CheckConsistent({&host, &friendPlayer});
+}
+
+void SeatsOnFoot()
+{
+    using VehicleSeatPolicy::OnFootSeatTimeoutMs;
+    using VehicleSeatPolicy::ShouldFreeSeatOnFoot;
+    // an entry that never completed: the seat recorded at VEHICLE_ENTER stays while the player may still be getting in
+    CHECK(!ShouldFreeSeatOnFoot(true, 1000 + OnFootSeatTimeoutMs - 1, 1000));
+    CHECK(ShouldFreeSeatOnFoot(true, 1000 + OnFootSeatTimeoutMs, 1000));
+    CHECK(!ShouldFreeSeatOnFoot(false, 1000 + OnFootSeatTimeoutMs, 1000));  // nothing to free
+    const uint32_t beforeWrap = std::numeric_limits<uint32_t>::max() - 100;
+    CHECK(!ShouldFreeSeatOnFoot(true, 500, beforeWrap));  // 601 ms across the wrap
+}
+
 int main()
 {
     AssignmentsAreStated();
@@ -479,5 +716,12 @@ int main()
     Seats();
     LeaveRule();
     SyncerCorrection();
+    LifecycleOrder();
+    RoundRobinIds();
+    TempRecords();
+    ExpiredAssignments();
+    Removals();
+    LeavingAVehicle();
+    SeatsOnFoot();
     std::puts("vehicle_sync: all checks passed");
 }

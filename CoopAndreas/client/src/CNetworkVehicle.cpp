@@ -10,11 +10,12 @@
 // or a VEHICLE_SPAWN that reuses the id) was destroyed behind CNetworkPlayer's back: invisible from then on, and the
 // next task given to it crashed (0x4D68BA). Players are warped out before the vehicle is deleted; a network player's
 // ped still seated in any vehicle being destroyed is kept by PlayerHooks (CNetworkPlayer::KeepFlaggedPed).
-static void TakePlayersOutOfVehicle(CVehicle* pVehicle, int vehicleid)
+static unsigned int TakePlayersOutOfVehicle(CVehicle* pVehicle, int vehicleid)
 {
+    unsigned int nTakenOut = 0;  // private build (vehicle sync protocol, --coopdiag)
     if (pVehicle == nullptr || !pVehicle->IsVTableValid())
     {
-        return;
+        return nTakenOut;
     }
 
     CPed* apOccupants[1 + ARRAY_SIZE(pVehicle->m_apPassengers)]{};
@@ -54,6 +55,7 @@ static void TakePlayersOutOfVehicle(CVehicle* pVehicle, int vehicleid)
                     task.m_bWarpingOutOfCar = true;
                     task.ProcessPed(pPed);
                 }
+                nTakenOut++;
             }
         }
         else if (auto pNetworkPlayer = CNetworkPlayerManager::GetPlayer(pPed))
@@ -62,13 +64,15 @@ static void TakePlayersOutOfVehicle(CVehicle* pVehicle, int vehicleid)
             sprintf_s(szDetail, "vehicle=%d", vehicleid);
             pNetworkPlayer->RemoveFromVehicle(pVehicle);
             pNetworkPlayer->LogPedDiagnostic("taken-out", "vehicle-deleted-for-network", szDetail);
+            nTakenOut++;
         }
     }
+    return nTakenOut;
 }
 
-void CNetworkVehicle::TakePlayersOut(CVehicle* pVehicle, int vehicleid)
+unsigned int CNetworkVehicle::TakePlayersOut(CVehicle* pVehicle, int vehicleid)
 {
-    TakePlayersOutOfVehicle(pVehicle, vehicleid);
+    return TakePlayersOutOfVehicle(pVehicle, vehicleid);
 }
 
 CNetworkVehicle::CNetworkVehicle(int vehicleid, int modelid, CVector pos, float rotation, unsigned char color1, unsigned char color2, unsigned char createdBy)
@@ -86,9 +90,30 @@ CNetworkVehicle::CNetworkVehicle(int vehicleid, int modelid, CVector pos, float 
     m_nModelId = modelid;
     m_nCreatedBy = createdBy;
 
-    if (!CreateVehicle(vehicleid, modelid, pos, rotation, color1, color2))
-        return;
+    // private build (vehicle sync protocol): the spawn's state until the syncer's first update, so a takeover can
+    // recreate a copy that is lost before then (SetOrientation(0, 0, rotation) below: right (cos, sin, 0), forward
+    // (-sin, cos, 0), which RecreateVehicle turns back into the heading)
+    RememberState(pos, CVector(cosf(rotation), sinf(rotation), 0.0f), CVector(-sinf(rotation), cosf(rotation), 0.0f),
+        color1, color2);
 
+    if (!CreateVehicle(vehicleid, modelid, pos, rotation, color1, color2))
+    {
+        // private build (vehicle sync protocol): a copy that couldn't be made now (the vehicle pool is full, or the model
+        // didn't load) is a lost copy like the others, recreated from its syncer's next update; upstream kept the record
+        // without a vehicle, and every later update of it was dropped. No game makes a copy of a train.
+        if (!IsTrainModel(modelid))
+        {
+            m_bCopyLost = true;
+            CNetworkVehicleManager::OnCopyCreateFailed(vehicleid, modelid, createdBy);
+        }
+        return;
+    }
+}
+
+bool CNetworkVehicle::IsTrainModel(int modelid)
+{
+    const auto* pModelInfo = static_cast<CVehicleModelInfo*>(CModelInfo::ms_modelInfoPtrs[modelid]);
+    return pModelInfo != nullptr && pModelInfo->m_nVehicleType == VEHICLE_TRAIN;
 }
 
 bool CNetworkVehicle::CreateVehicle(int vehicleid, int modelid, CVector pos, float rotation, unsigned char color1, unsigned char color2)
@@ -102,6 +127,11 @@ bool CNetworkVehicle::CreateVehicle(int vehicleid, int modelid, CVector pos, flo
         CStreaming::SetModelIsDeletable(modelid);
         CStreaming::SetModelTxdIsDeletable(modelid);
     }
+
+    // private build (vehicle sync protocol): no vehicle from a model that didn't load (the vehicle constructors build its
+    // parts from the model's clump); the record stays a lost copy and the next update tries again
+    if (CStreaming::ms_aInfoForModel[modelid].m_nLoadState != LOADSTATE_LOADED)
+        return false;
 
     switch (((CVehicleModelInfo*)CModelInfo::ms_modelInfoPtrs[modelid])->m_nVehicleType)
     {
@@ -224,6 +254,18 @@ CNetworkVehicle* CNetworkVehicle::CreateHosted(CVehicle* vehicle)
     networkVehicle->m_nPaintJob = (char)vehicle->GetRemapIndex();
     networkVehicle->m_nTempId = CNetworkVehicleManager::AddToTempList(networkVehicle);
     networkVehicle->m_nCreatedBy = vehicle->m_nCreatedBy;
+    // private build (vehicle sync protocol): no VEHICLE_SPAWN without a temp slot (all 255 wait for their confirmation):
+    // its VEHICLE_CONFIRM couldn't name the record, and the vehicle would be on the server and the other games without
+    // anybody syncing it. It stays in this game only.
+    if (networkVehicle->m_nTempId == 255)
+    {
+        CNetworkVehicleManager::LogFrequentEvent("temp-full", -1, "model=%d createdBy=%d", networkVehicle->m_nModelId,
+            networkVehicle->m_nCreatedBy);
+        CNetworkVehicleManager::OnTempSlotsFull();
+        delete networkVehicle;
+        return nullptr;
+    }
+    networkVehicle->m_nTempSince = GetTickCount();
 
     Packets::Vehicles::VehicleSpawn vehicleSpawnPacket{};
     vehicleSpawnPacket.vehicleid = 0;

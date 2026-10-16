@@ -1,4 +1,5 @@
 #include "../client/src/CPedSyncState.h"
+#include "../shared/network/entity_lifecycle.h"
 #include <cstdio>
 #include <cstdlib>
 #include <limits>
@@ -194,6 +195,33 @@ void RecoveryThrottle()
     CHECK(wrap.ShouldAttempt(989)); // Age 1000.
 }
 
+// private build (vehicle sync protocol review): the server's ped ids and the order of PED_SPAWN/PED_REMOVE
+// (shared/network/entity_lifecycle.h, applied in server/src/CNetworkPedManager.cpp, PacketHandlers/peds.cpp, CPacketFactory)
+void PedIdsAndRemovals()
+{
+    // A client finds a ped by the first record with its id (CNetworkPedManager::GetPed), and its PED_REMOVE handler deletes
+    // that record; a syncing one even sends PED_REMOVE back and leaves its ped unsynced. With the sender's clock on the
+    // relayed spawns and removals, a game whose clock ran ahead could have the server's PED_CONFIRM of a reused id handled
+    // before the late PED_SPAWN and PED_REMOVE of the ped that had it, and the removal then hit the new ped (a mission
+    // ped of the host's). The server stamps both itself now, and hands out ids round robin.
+    CHECK(EntityLifecycle::UsesServerTime(ePacketType::PED_SPAWN));
+    CHECK(EntityLifecycle::UsesServerTime(ePacketType::PED_REMOVE));
+    CHECK(!EntityLifecycle::UsesServerTime(ePacketType::PED_CONFIRM));  // made by the server: its clock anyway
+    CHECK(!EntityLifecycle::UsesServerTime(ePacketType::PED_ONFOOT));
+    CHECK(!EntityLifecycle::UsesServerTime(ePacketType::PED_DRIVER_UPDATE));
+
+    bool taken[4] = {true, false, false, false};
+    auto isFree = [&](int id) { return !taken[id]; };
+    CHECK(EntityLifecycle::NextFreeId(0, 4, isFree) == 1);
+    taken[1] = true;
+    taken[0] = false;                                       // ped 0 goes
+    CHECK(EntityLifecycle::NextFreeId(1, 4, isFree) == 2);  // not 0 again at once
+
+    // a late removal or update stamped before the server created the ped with that id is dropped by the server
+    CHECK(EntityLifecycle::IsFromBeforeCreation(9999, 10000));
+    CHECK(!EntityLifecycle::IsFromBeforeCreation(10050, 10000));
+}
+
 int main()
 {
     PoolLifetime();
@@ -202,5 +230,6 @@ int main()
     CancellationAndStreamingLoss();
     RecreatedPlayerPedReference();
     RecoveryThrottle();
+    PedIdsAndRemovals();
     std::puts("ped_sync_state: all checks passed");
 }
