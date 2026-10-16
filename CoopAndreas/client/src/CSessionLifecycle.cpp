@@ -35,7 +35,13 @@ constexpr int CUTSCENE_CLEAR_FRAMES = 30;
 constexpr unsigned int CUTSCENE_NOT_LOADED = 0;
 constexpr unsigned int CUTSCENE_LOADED = 2;
 
-std::vector<CSessionLifecycle::Subscriber> ms_subscribers;
+// built on first use: modules subscribe from CCore::Init, which runs during the DLL's static initialization (the plugin
+// object in Main.cpp is a global), so a namespace-scope vector could still be unconstructed then
+std::vector<CSessionLifecycle::Subscriber>& Subscribers()
+{
+    static std::vector<CSessionLifecycle::Subscriber> subscribers;
+    return subscribers;
+}
 CSessionHostState ms_hostState;
 CHostMissionState ms_hostMission;
 CHostLossTimer ms_hostLoss;
@@ -143,9 +149,10 @@ void Emit(const SSessionEvent& event)
     LogEvent(event);
     ++ms_nEvents;
     // by index: a subscriber may subscribe another one
-    for (size_t i = 0; i < ms_subscribers.size(); i++)
+    std::vector<CSessionLifecycle::Subscriber>& subscribers = Subscribers();
+    for (size_t i = 0; i < subscribers.size(); i++)
     {
-        ms_subscribers[i](event);
+        subscribers[i](event);
     }
 }
 
@@ -316,7 +323,7 @@ void CSessionLifecycle::Subscribe(Subscriber subscriber)
 {
     if (subscriber != nullptr)
     {
-        ms_subscribers.push_back(subscriber);
+        Subscribers().push_back(subscriber);
     }
 }
 
