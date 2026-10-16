@@ -81,8 +81,9 @@ WS-1 birleştirildi (d633f08: dünya durumu kaydı, şehir kilidi ona taşındı
 değişti, main artık 0.1.0-alpha ve 0.3.103 ile bağlanamaz). M1 birleştirildi (675cfe9: görev yazıları, başlıklar ve
 geçiş ödülleri arkadaşa; 102 hikâye betiğinde her geçiş ödülü kurala takılıyor, #10'un bahsi yalnızca host'ta, ödemesi
 (bahsin iki katı) ikinize; #103'teki 250.000$ geçişten kareler önce verildiği için o görev uyarlanırken karar verilecek).
-3. dalga çalışıyor: M2 işaretler, M3 küreler, M4 sayaçlar, WS-3 kapılar ve garajlar, WS-4 görev ayarları, P1 arkadaşın
-saygısının kayıtla saklanması.
+3. dalga birleştirildi (2f8cf8e'ye kadar): M2 görev işaretleri, M3 sarı küreler (18 kanca), M4 sayaçlar ve
+zamanlayıcılar (5 kanca), WS-3 garajlar ve dükkân kapıları, WS-4 görev sonu ayarları, P1 arkadaşın saygısının kayıtla
+saklanması. Kanca denetimi 411 nokta; on politika testi geçiyor. Sırada: #1–#10 dönüşümü (C1) ve uyarlama rehberi.
 
 ## Sonraki işler (öncelik sırasıyla)
 - **Sağlamlık:** geçersiz oyuncu tutamacı verilen co-op komutları host'u çökertiyor (ör. arkadaş görev ortasında
