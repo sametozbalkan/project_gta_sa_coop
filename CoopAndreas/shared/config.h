@@ -11,8 +11,9 @@
 // save, PLAYER_STATE_SNAPSHOT and PLAYER_STATE_RESTORE). 0.3.103 is the last version of this line (tag v0.3.103-alpha).
 // From here our own numbering (CLAUDE.md, Fork changes, Version): 0.1.0 = group 1 with the mirror layer and the
 // world-state registry (docs/design/README.md); WORLD_STATE replaced UPDATE_CITY_UNLOCKED at its position, so a 0.3.103
-// game must never meet this one.
-#define COOPANDREAS_VERSION "0.1.0-alpha"
+// game must never meet this one. 0.1.1 = vehicle sync protocol (VEHICLE_REMOVE reason, ASSIGN_VEHICLE bSyncing and
+// model), a player leaving during the host's mission, story starts only on the host, small fixes.
+#define COOPANDREAS_VERSION "0.1.1-alpha"
 struct Config
 {
     static constexpr uint16_t DEFAULT_PORT = 6767;
