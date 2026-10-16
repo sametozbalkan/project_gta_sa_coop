@@ -78,7 +78,11 @@ bitince öneri olarak sunulacak, kullanıcı onaylarsa grup 2 yeni kalıpla baş
   ve host'ta eski bir araç işaretçisi kalıyor (`Hooks/WorldHooks.cpp`); sunucu yolcu koltuğu -1'i sürücü koltuğuna
   çeviriyor (`server/src/PacketHandlers/vehicles.cpp`).
 - **Görev boyutu sınırı:** Reuniting The Families (#27) 69.000 baytlık sınıra 561 bayt uzakta; #27'den önce ya görev
-  içinde kısaltma ya da sınırı yükselten istemci yaması.
+  içinde kısaltma ya da sınırı yükselten istemci yaması. ReVa ile ilk bulgular (2026-10-16): 200.000 (MAIN) yalnızca
+  `CTheScripts::Init`'te iki okumada, 69.000 yalnızca görev yükleme komutunun (0417) işleyicisinde geçiyor; toplam
+  269.000, Hoodlum exe'sinde bir sayaç olarak duruyor (0x401CF8). Betik alanını (0xA49960) 21 fonksiyon 58 yerde
+  kullanıyor ve hemen arkasında başka bir değişken var: alan yerinde büyütülemez; ya taşınır (bütün kullanımlar
+  yamalanır) ya da görev bloğu için başka bir yol bulunur.
 - **Köprü bariyerleri (The Green Sabre #28'den önce):** San Fierro/Las Venturas köprülerindeki bariyerler bir harita
   nesne grubu; host'un görevleri kaldırınca arkadaşın oyununda fiziksel olarak duruyor. Çözüm: ilgili IPL komutları
   (0776/0777/0778) uyarlanmış görevlerde senkron + oyuna sonradan katılana anlık durum. Aynı pakete: sonradan
@@ -118,4 +122,9 @@ bitince öneri olarak sunulacak, kullanıcı onaylarsa grup 2 yeni kalıpla baş
 - Arkadaşın saklanan durumu takma adıyla eşleşir; takma ad değişirse bulunmaz. `.coop` dosyası kaydıyla birlikte taşınmalı.
 
 ## Bakım
+- **ReVa (Ghidra MCP)** kuruldu (2026-10-16), yalnızca bu projede: Claude Code bu klasörde açılınca kendiliğinden
+  başlar (~8 sn, ~2 GB RAM), tamamen yerel. gta_sa.exe bir kez analiz edildi, gta-reversed ve plugin-sdk adları
+  aktarıldı (`tools/ghidra/`). Kaldırmak için `claude mcp remove ReVa -s local`. Kullanıcı ortamındaki `JAVA_HOME` artık
+  olmayan bir klasörü gösteriyor (JDK 21.0.12'ye güncellenmiş); ReVa kendi ayarıyla çalışıyor, istenirse `JAVA_HOME`
+  `C:\Program Files\Java\latest\jdk-21` yapılabilir.
 - Arkadaşın Wi-Fi'ı ~90 ms sıçramalar yapıyor olabilir (güç tasarrufu); kablo ya da Maksimum Performans.
