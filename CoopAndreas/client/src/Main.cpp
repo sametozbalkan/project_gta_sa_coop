@@ -33,7 +33,7 @@
 #include <network/packets/scripts.h>
 #include <CNetworkEntityBlip.h>
 #include <CRadioSync.h>
-#include <CCityUnlockSync.h>
+#include <CWorldStateRegistry.h>
 #include <CPlayerStateSave.h>
 #include <CSessionLifecycle.h>
 
@@ -94,7 +94,7 @@ public:
             CDebugVehicleSpawner::Process();
             CRadioSync::Process();
             CSessionLifecycle::Process(); // private build: session lifecycle, before the modules that ask it
-            CCityUnlockSync::Process();
+            CWorldStateRegistry::Process(); // private build: world-state registry (the city unlock is its entry 0)
             CPlayerStateSave::Process(); // private build: player state for co-op saves
 
             if (/*CNetwork::m_bConnected*/ CNetwork::m_bAuthenticated)

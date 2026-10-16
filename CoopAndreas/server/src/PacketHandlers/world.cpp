@@ -2,6 +2,7 @@
 #include "stdafx.h"
 #include "network/packet_handler.h"
 #include "network/packets/world.h"
+#include "CHostManager.h"
 
 PACKET_HANDLER(
     ePacketType::GAME_WEATHER_TIME, Packets::World::GameWeatherTime* pGameWeatherTime, CNetworkPlayer* pNetworkPlayer)
@@ -37,12 +38,10 @@ PACKET_HANDLER(ePacketType::UPDATE_MOON_SIZE, Packets::World::UpdateMoonSize* pU
 	GetPacketFactory().SendToAll(*pUpdateMoonSize, pNetworkPlayer);
 }
 
-// private build (city unlock sync): the host's STAT_CITY_UNLOCKED, relayed to everyone else
-PACKET_HANDLER(ePacketType::UPDATE_CITY_UNLOCKED, Packets::World::UpdateCityUnlocked* pUpdateCityUnlocked,
-	CNetworkPlayer* pNetworkPlayer)
+// private build (world-state registry, client/src/CWorldStateRegistry.h): the host's entries, relayed to everyone else
+// with the sender filled in; dropped when the sender isn't the host
+PACKET_HANDLER(ePacketType::WORLD_STATE, Packets::World::WorldState* pWorldState, CNetworkPlayer* pNetworkPlayer)
 {
-	if (pNetworkPlayer->m_bIsHost)
-	{
-		GetPacketFactory().SendToAll(*pUpdateCityUnlocked, pNetworkPlayer);
-	}
+	pWorldState->playerid = pNetworkPlayer->m_iPlayerId;
+	CHostManager::SendFromHostToOthers(*pWorldState, pNetworkPlayer);
 }

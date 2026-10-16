@@ -4,7 +4,7 @@
 #include <CWeatherSync.h>
 #include <CMoonSync.h>
 #include <game_sa/CTagManager.h>
-#include <CCityUnlockSync.h>
+#include <CWorldStateRegistry.h>
 
 PACKET_HANDLER(ePacketType::GAME_WEATHER_TIME, Packets::World::GameWeatherTime* pGameWeatherTime)
 {
@@ -77,8 +77,8 @@ PACKET_HANDLER(ePacketType::UPDATE_MOON_SIZE, Packets::World::UpdateMoonSize* pU
 	CMoonSync::HandlePacket(pUpdateMoonSize);
 }
 
-// private build: city unlock sync
-PACKET_HANDLER(ePacketType::UPDATE_CITY_UNLOCKED, Packets::World::UpdateCityUnlocked* pUpdateCityUnlocked)
+// private build: world-state registry (the host's entries; the city unlock is entry 0)
+PACKET_HANDLER(ePacketType::WORLD_STATE, Packets::World::WorldState* pWorldState)
 {
-	CCityUnlockSync::HandlePacket(pUpdateCityUnlocked);
+	CWorldStateRegistry::HandlePacket(*pWorldState);
 }

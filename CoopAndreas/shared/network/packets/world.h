@@ -1,6 +1,7 @@
 #pragma once
 #include "CWeather.h"
 #include <CExplosion.h>
+#include "network/world_state.h" // private build: world-state registry
 
 namespace Packets::World
 {
@@ -202,22 +203,46 @@ private:
     }
 };
 
-// private build (city unlock sync): the host's STAT_CITY_UNLOCKED (181, "CitiesPassed" in the scripts), sent when
-// it changes and to every player who connects; the server relays it from the host only
-class UpdateCityUnlocked : public Packet
+// private build (world-state registry, client/src/CWorldStateRegistry.h): one entry's state from the host, in the
+// format of network/world_state.h. The host sends an entry when it changes, and in full when a player joins, when it
+// becomes the host and once its game runs again after a new game or a load. The server relays it from the host only and
+// fills in the sender, so the other games can drop what a former host sent before it left. Replaces
+// UPDATE_CITY_UNLOCKED at its position in ePacketType (the city unlock is entry 0).
+class WorldState : public Packet
 {
-    DEFINE_PACKET_TYPE(UpdateCityUnlocked, ePacketType::UPDATE_CITY_UNLOCKED, ePacketChannel::EVENT);
+    DEFINE_PACKET_TYPE(WorldState, ePacketType::WORLD_STATE, ePacketChannel::EVENT);
 
 public:
-    // the story scripts set 0 (new game) to 4: at 0 San Fierro and Las Venturas are closed, at 1 Las Venturas
-    uint8_t cityUnlocked{};
+    SenderPlayerId playerid{};                   // the host, filled in by the server
+    uint8_t entry = 0;                           // the entry's wire id (CWorldStateEntry::Id)
+    uint8_t kind = WorldStateWire::KIND_FULL;    // KIND_FULL or KIND_RECORDS
+    int size = 0;                                // bytes used in data, the layout header included
+    uint8_t data[WorldStateWire::MAX_DATA_SIZE]{};
 
 private:
     template <typename Stream>
     bool Serialize(Stream& stream)
     {
-        serialize_int(stream, cityUnlocked, 0, UINT8_MAX);
+        // the bit writer only asserts its buffer bound: a size out of range is refused before anything is written
+        if (Stream::IsWriting && (size < WorldStateWire::LAYOUT_HEADER_SIZE || size > WorldStateWire::MAX_DATA_SIZE))
+        {
+            return false;
+        }
+        serialize_object(stream, playerid);
+        serialize_int(stream, entry, 0, UINT8_MAX);
+        serialize_int(stream, kind, WorldStateWire::KIND_FULL, WorldStateWire::KIND_RECORDS);
+        serialize_int(stream, size, WorldStateWire::LAYOUT_HEADER_SIZE, WorldStateWire::MAX_DATA_SIZE);
+        serialize_bytes(stream, data, size);
         return true;
+    }
+
+public:
+    std::string ToString() const override
+    {
+        char text[48];
+        snprintf(text, sizeof(text), "entry %d %s, %d bytes", entry,
+            kind == WorldStateWire::KIND_FULL ? "full" : "records", size);
+        return text;
     }
 };
 

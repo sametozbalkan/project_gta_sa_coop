@@ -6,7 +6,6 @@
 #include <CWeatherSync.h>
 #include <CMoonSync.h>
 #include <game_sa/CTagManager.h>
-#include <CCityUnlockSync.h>
 #include <CSessionLifecycle.h>
 
 // private build: the host's join snapshot, also sent when this game becomes the host while players are in already (the
@@ -17,7 +16,7 @@ static void SendHostJoinSnapshot()
     CEntryExitMarkerSync::ms_bUpdateAfterProcessingThisFrame = true;
     CTagSync::SyncCurrentState();
     CMoonSync::SyncCurrentState();
-    CCityUnlockSync::SyncCurrentState(); // private build: city unlock sync
+    // (the world state, the city unlock among it, goes out from CWorldStateRegistry on PLAYER_JOINED)
 }
 
 PACKET_HANDLER(ePacketType::PLAYER_CONNECTED, Packets::System::PlayerConnected* pPlayerConnected)

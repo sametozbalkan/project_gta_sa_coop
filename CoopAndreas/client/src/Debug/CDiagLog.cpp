@@ -2,6 +2,7 @@
 #include "CDiagLog.h"
 #include "CNetworkKeepAlive.h"
 #include "CSessionLifecycle.h"
+#include "CWorldStateRegistry.h"
 #include <CCamera.h>
 #include <CGame.h>
 #include <CMenuManager.h>
@@ -29,6 +30,7 @@ static void WriteSnapshot(FILE* file)
         CNetworkKeepAlive::GetDroppedCount(), player.m_nPlayerState, player.m_pPed, szForeground,
         foregroundPid == GetCurrentProcessId() ? "" : " (NOT FOCUSED)");
     CSessionLifecycle::WriteDiagSummary(file); // private build: session lifecycle
+    CWorldStateRegistry::WriteDiagSummary(file); // private build: world-state registry
 
     // scripts: name, IP offset into the script space, ms until it wakes up
     fprintf(file, "  scripts:");
