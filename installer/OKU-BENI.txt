@@ -14,7 +14,7 @@ KURULUM
    - Başka bir klasör için: Kur.bat -GameDir D:\GTASA_Coop
 3. Windows "bilgisayarınız korundu" derse: "Ek bilgi" > "Yine de çalıştır".
 
-OYNAMA (host oveRange; sen ona bağlanırsın)
+OYNAMA (sunucuyu host açar, sen ona bağlanırsın)
 1. Host sunucuyu ve tüneli açmış olmalı.
 2. Masaüstünden "CoopAndreas Tünel - Bağlan" > host'u kendisi bulur, pencere açık kalsın.
 3. Masaüstünden "CoopAndreas" > Start Game > Connect (127.0.0.1 : 6767 hazır gelir) > New Game.

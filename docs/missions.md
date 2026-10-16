@@ -15,8 +15,10 @@ column belong to MAIN and stay as they are.
 
 | Status | Meaning |
 |---|---|
-| **Adapted** | Upstream ported it with co-op commands; `CoopAndreas/README.md` lists it as checked. Still needs our in-game test. |
+| **Adapted** | Upstream ported it with co-op commands; `CoopAndreas/README.md` lists it as checked. |
 | **Ported (test pending)** | Our fork ported and compiled it with the size/save checks passing. Two-player acceptance is still pending (`docs/test-grup-1.md`). |
+| **…, tested** | Played through in one of our two-player tests (#1–#6: group 1 test on 0.3.102-alpha, 2026-10-15/16). |
+| **Ported (retest pending)** | Our two-player test found a bug in or around the mission; the fix ships in the build named in the risks column and the mission is tested again. |
 | **Skipped** | Upstream replaced the mission body with the state the mission leaves behind (In the Beginning). |
 | **Warning** | Vanilla mission plus two `Coop.AddChatMessage` lines ("This mission is currently unsupported…") after `script_name`. The chat line shows only on the host (`1D00` is not synced). |
 | **Warning (lost)** | The warning lines sit before the mission's label, so they compile into the tail of the previous mission after its last `return` and never run (upstream bug). They add 210 bytes to the previous mission. |
@@ -40,13 +42,13 @@ check the source before porting.
 
 | # | Mission | Script / file | No. | Size (free) | Status | Trigger | Co-op risks |
 |---|---|---|---|---|---|---|---|
-| 1 | In the Beginning | `INTRO` | 2 | 12,635 (56,365) | **Skipped** | MAIN (new game) | Upstream starts with the end-of-mission setup and calls the original cleanup (starts `INT`, `MOB_LA1`, `MOB_RAN`, `INTROST`); intro cutscene and BMX ride never play. The contact blip is host-only. |
-| 2 | Big Smoke | `INTRO1` | 11 | 25,664 (43,336) | **Adapted** | INT =0 | BMX ride: each extra player gets a BMX and a blip. |
-| 3 | Ryder | `INTRO2` | 12 | 19,958 (49,042) | **Adapted** | INT =1 | Barber: stores every player's hair (`GetNetworkPlayerInternalId`). |
-| 4 | Tagging Up Turf | `SWEET1` | 13 | 20,795 (48,205) | **Adapted** | SWEET =0 | Tag counting relies on our fork's tag sync. Two players ride in Sweet's car, a third in Ryder's. |
-| 5 | Cleaning The Hood | `SWEET1B` | 14 | 22,116 (46,884) | **Adapted** | SWEET =1 | Uses `TeleportPlayersToHostSafely`. |
-| 6 | Drive-Thru | `SWEET3` | 15 | 20,096 (48,904) | **Ported (test pending)** | SWEET =2 | Friend gets a separate Greenwood and joins the chase; all seats in Sweet's car remain occupied by the original cast. Arrivals mainly follow the host. |
-| 7 | Nines And AK's | `SWEET2` | 16 | 25,902 (43,098) | **Ported (test pending)** | SWEET =3 | Friend rides in the rear and joins the gas-tank shot. Bottle practice remains host-only (script objects aren't synced). |
+| 1 | In the Beginning | `INTRO` | 2 | 12,635 (56,365) | **Skipped, tested** | MAIN (new game) | Upstream starts with the end-of-mission setup and calls the original cleanup (starts `INT`, `MOB_LA1`, `MOB_RAN`, `INTROST`); intro cutscene and BMX ride never play. The contact blip is host-only. |
+| 2 | Big Smoke | `INTRO1` | 11 | 25,664 (43,336) | **Adapted, tested** | INT =0 | BMX ride: each extra player gets a BMX and a blip. |
+| 3 | Ryder | `INTRO2` | 12 | 19,958 (49,042) | **Adapted, tested** | INT =1 | Barber: stores every player's hair (`GetNetworkPlayerInternalId`). |
+| 4 | Tagging Up Turf | `SWEET1` | 13 | 20,795 (48,205) | **Adapted, tested** | SWEET =0 | Tag counting relies on our fork's tag sync. Two players ride in Sweet's car, a third in Ryder's. |
+| 5 | Cleaning The Hood | `SWEET1B` | 14 | 22,116 (46,884) | **Adapted, tested** | SWEET =1 | Uses `TeleportPlayersToHostSafely`. |
+| 6 | Drive-Thru | `SWEET3` | 15 | 20,096 (48,904) | **Ported, tested** | SWEET =2 | Friend gets a separate Greenwood and joins the chase; all seats in Sweet's car remain occupied by the original cast. Arrivals mainly follow the host. |
+| 7 | Nines And AK's | `SWEET2` | 16 | 25,902 (43,098) | **Ported (retest pending)** | SWEET =3 | Friend rides in the rear and joins the gas-tank shot. Bottle practice remains host-only (script objects aren't synced). Group 1 test (0.3.102): the host vanished on the friend's screen after the opening cutscene and the friend crashed at the Binco door (0x4D68BA): a vehicle deleted on the friend's side had destroyed the host's ped there. Fixed in 0.3.103 (players are taken out before a vehicle is deleted, a lost remote player ped is recreated); retest pending. |
 | 8 | Drive-By | `SWEET4` | 17 | 26,581 (42,419) | **Ported (test pending)** | SWEET =4 | Separate Greenwood and Tec-9 for the friend; departure/arrival gates include them. Vehicle-health counter remains host-only; wanted checks read the host. |
 | 9 | Sweet's Girl | `HOODS5` | 18 | 17,925 (51,075) | **Ported (test pending)** | SWEET =5 | Friend helps clear attackers, then uses rear-right seat in a four-door rescue car. Sweet's health counter remains host-only. |
 | 10 | Cesar Vialpando | `SWEET6` | 19 | 38,358 (30,642) | **Ported (test pending)** | SWEET =6 | Mod shop, betting and lowrider rhythm game remain host-only; friend rides along or watches, and receives the shared outcome. |
