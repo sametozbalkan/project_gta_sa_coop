@@ -20,7 +20,8 @@ enum class eSessionEvent : uint8_t
     // oldHostId -> newHostId (-1 = nobody); bWasLocal / bIsLocal: this game was / is the host
     HOST_CHANGED,
     // host side: playerId connected, or was already connected when this game became the host (bTakeover; the server
-    // pins the story host, who can connect after the others). For the join snapshots.
+    // pins the story host, who can connect after the others). For the join snapshots. Takeover events come once this
+    // game has its first server-time answer, so packets sent from them are stamped right.
     PLAYER_JOINED,
     // playerId left (bWasHost: it was the host, HOST_CHANGED to nobody follows); it is still in CNetworkPlayerManager
     // while the subscribers run and deleted right after
@@ -87,8 +88,10 @@ public:
     static void OnAuthenticated();                                    // PLAYER_HANDSHAKE, after m_bAuthenticated
     static void OnPlayerConnected(int playerId, bool bAlreadyConnected);  // PLAYER_CONNECTED, after the player is added
     static void OnPlayerDisconnected(int playerId);                   // PLAYER_DISCONNECTED, before the player is deleted
-    // PLAYER_ASSIGN_HOST, after the handler set CLocalPlayer::m_bIsHost: true when this game has just become the host
-    static bool OnHostAssigned(int playerId);
+    // PLAYER_ASSIGN_HOST, after the handler set CLocalPlayer::m_bIsHost: true when this game has just become the host.
+    // takeoverSnapshot: the host join snapshot, sent before the takeover's PLAYER_JOINED events once this game has its
+    // first server-time answer (CServerTime::m_serverTimeOffset != 0)
+    static bool OnHostAssigned(int playerId, void (*takeoverSnapshot)() = nullptr);
     static void OnHostMissionFlag(bool bOnMission);       // ON_MISSION_FLAG_SYNC from the host (games that aren't it)
     static void OnLocalHostMissionFlag(bool bOnMission);  // Main.cpp sent ON_MISSION_FLAG_SYNC as the host
     static void OnGameLoaded(const char* saveFileName);   // the GenericLoad hook, after a successful load

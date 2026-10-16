@@ -4,6 +4,7 @@
 #include "COpCodeSync.h"
 #include "CNetworkCheckpoint.h"
 #include "CNetworkEntityBlip.h"
+#include "CServerTime.h"
 #include <CTimer.h>
 #include <cstdarg>
 #include <vector>
@@ -45,6 +46,8 @@ uint32_t ms_nFreePlayMs = 0;       // GetFreePlayDuration, once per frame
 int ms_nCutsceneClearFrames = 0;   // a host cutscene still to clear after the host left
 unsigned int ms_nEvents = 0;       // --coopdiag summary
 char ms_szLoadedSave[MAX_PATH]{};  // from OnGameLoaded until SAVE_LOADED
+bool ms_bTakeoverPending = false;  // this game became the host with players in; their join snapshots wait for the clock
+void (*ms_pfnTakeoverSnapshot)() = nullptr;  // OnHostAssigned's takeoverSnapshot
 
 const char* ToString(eSessionEvent type)
 {
@@ -251,9 +254,40 @@ void SettleHostLoss()
     EmitHostMission(false, false, true);
 }
 
+// The takeover's join snapshots (OnHostAssigned) wait for this game's first server-time answer: packets sent before it
+// carry the PC's uptime as their stamp (CServerTime, g_serverTime) and wait in the other games' packet buffers
+// (CPacketBuffer), and a story host who connects second becomes the host in its handshake frame, before CServerTime has
+// even asked (it asks only once authenticated).
+void ReleaseTakeoverIfReady()
+{
+    if (!ms_bTakeoverPending || CServerTime::m_serverTimeOffset == 0)
+    {
+        return;
+    }
+    ms_bTakeoverPending = false;
+    if (!ms_hostState.IsLocalHost())
+    {
+        return;  // the host changed again meanwhile
+    }
+    LogLine("event=takeover-released players=%d", static_cast<int>(CNetworkPlayerManager::m_pPlayers.size()));
+    if (ms_pfnTakeoverSnapshot != nullptr)
+    {
+        ms_pfnTakeoverSnapshot();
+    }
+    for (CNetworkPlayer* pNetworkPlayer : CNetworkPlayerManager::m_pPlayers)
+    {
+        SSessionEvent event;
+        event.type = eSessionEvent::PLAYER_JOINED;
+        event.playerId = pNetworkPlayer->m_iPlayerId;
+        event.bTakeover = true;
+        Emit(event);
+    }
+}
+
 void OnSessionClosed()
 {
     ms_bSessionOpen = false;
+    ms_bTakeoverPending = false;
 
     // no packet is handled after a disconnect (Main.cpp processes the packet buffer only while connected), so a remote
     // host's mission ends here at once
@@ -367,6 +401,7 @@ void CSessionLifecycle::Process()
     {
         OnSessionClosed();
     }
+    ReleaseTakeoverIfReady();
 
     if (ms_hostLoss.IsDue(GetTickCount(), HOST_LOSS_DELAY_MS))
     {
@@ -446,7 +481,7 @@ void CSessionLifecycle::OnPlayerDisconnected(int playerId)
     }
 }
 
-bool CSessionLifecycle::OnHostAssigned(int playerId)
+bool CSessionLifecycle::OnHostAssigned(int playerId, void (*takeoverSnapshot)())
 {
     CSessionHostState::STransition transition;
     if (!ms_hostState.OnAssign(playerId, transition))
@@ -465,15 +500,19 @@ bool CSessionLifecycle::OnHostAssigned(int playerId)
 
     if (transition.bIsLocal)
     {
-        // the players who are in already get the join snapshots of this game now
-        for (CNetworkPlayer* pNetworkPlayer : CNetworkPlayerManager::m_pPlayers)
+        // the players who are in already get the join snapshots of this game, as soon as it has its first server-time
+        // answer (now, or from Process)
+        ms_pfnTakeoverSnapshot = takeoverSnapshot;
+        ms_bTakeoverPending = !CNetworkPlayerManager::m_pPlayers.empty();
+        if (ms_bTakeoverPending && CServerTime::m_serverTimeOffset == 0)
         {
-            SSessionEvent event;
-            event.type = eSessionEvent::PLAYER_JOINED;
-            event.playerId = pNetworkPlayer->m_iPlayerId;
-            event.bTakeover = true;
-            Emit(event);
+            LogLine("event=takeover-waiting-for-server-clock");
         }
+        ReleaseTakeoverIfReady();
+    }
+    else
+    {
+        ms_bTakeoverPending = false;
     }
     return transition.bIsLocal;
 }

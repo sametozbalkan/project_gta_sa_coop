@@ -8,9 +8,11 @@
 // unchanged wire format, new binary version so both players install the fix;
 // 103 = remote player ped recovery (pool-checked network player peds, recreated when the game destroyed them,
 // players taken out of a vehicle before it is deleted for the network) and the other players' state kept with the host's
-// save, PLAYER_STATE_SNAPSHOT and PLAYER_STATE_RESTORE). 0.3.103 is the last version of this line; the next package
-// starts our own numbering (CLAUDE.md, Fork changes, Version)
-#define COOPANDREAS_VERSION "0.3.103-alpha"
+// save, PLAYER_STATE_SNAPSHOT and PLAYER_STATE_RESTORE). 0.3.103 is the last version of this line (tag v0.3.103-alpha).
+// From here our own numbering (CLAUDE.md, Fork changes, Version): 0.1.0 = group 1 with the mirror layer and the
+// world-state registry (docs/design/README.md); WORLD_STATE replaced UPDATE_CITY_UNLOCKED at its position, so a 0.3.103
+// game must never meet this one.
+#define COOPANDREAS_VERSION "0.1.0-alpha"
 struct Config
 {
     static constexpr uint16_t DEFAULT_PORT = 6767;

@@ -116,11 +116,11 @@ PACKET_HANDLER(ePacketType::PLAYER_ASSIGN_HOST, Packets::System::PlayerAssignHos
         CTagSync::SyncCurrentState();
         CChat::AddMessage("[Player] You are the host now");
 
-        // private build: session lifecycle; the players who are in already haven't had this game's join snapshot
-        if (CSessionLifecycle::OnHostAssigned(pPlayerAssignHost->playerid) && !CNetworkPlayerManager::m_pPlayers.empty())
-        {
-            SendHostJoinSnapshot();
-        }
+        // private build: session lifecycle; the players who are in already haven't had this game's join snapshot. It
+        // goes out with the takeover's PLAYER_JOINED events once this game has its first server-time answer (a story
+        // host who connects second becomes the host in its handshake frame; earlier packets would carry the PC's uptime
+        // as their stamp and wait in the others' packet buffers).
+        CSessionLifecycle::OnHostAssigned(pPlayerAssignHost->playerid, &SendHostJoinSnapshot);
         return;
     }
     
