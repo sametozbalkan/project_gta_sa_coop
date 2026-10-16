@@ -256,8 +256,11 @@ copies one: no copies of host prints, dialogue lines or help, no relay helpers (
 host's texts or fail reasons to the network players), no blips on entities the host blips, no checkpoints
 at the host's spheres. A copy shows twice on the other player's screen: a `print` copy twice in the queue,
 a blip copy as a second icon on the target, a checkpoint copy as a second marker at the same place (a
-`print_now` copy only restarts the same text). The co-op display commands are for what differs from the
-host:
+`print_now` copy only restarts the same text). Never put a per-player blip on an entity the host blips:
+`Coop.ClearAllEntityBlipsForNetworkPlayer` (1D0D) removes every blip on an entity that carries a per-player
+blip, the mirrored one included (gta-reversed `Radar.cpp`). A checkpoint whose coordinates are variables can
+still sit on a host marker: check the host's locate commands with the sphere flag (1 or `$blob_flag`) before
+keeping it. The co-op display commands are for what differs from the host:
 
 | Commands | Use after the mirror layer |
 |---|---|

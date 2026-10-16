@@ -150,75 +150,94 @@ Her görevde başarısızlık denemesini **başarılı bitirmeden önce** yapın
 
 ### #2 Big Smoke (`INTRO1`)
 
-- [ ] İkiniz birlikte başlayın; arkadaşın ayrı BMX'i ve onun mavi işareti gelir. Bisiklet yolu, ara sahneler ve eve
-  dönüş kilitlenmeden biter. Hedef yazıları ve sarı küreler bir kez görünür.
+- [ ] İkiniz birlikte başlayın; arkadaşın ayrı BMX'i ve onun mavi işareti gelir (host'un kendi BMX'inin işaretini de
+  görür; bu normal). Arkadaş BMX'e binip inince kendi işareti ve "bisiklete bin" yazısı gelip gider. Diyaloglar ve
+  hedef yazıları bir kez, Grove Street'te tek küre görünür. Bisiklet yolu ve eve dönüş kilitlenmeden biter.
+- [ ] Arkadaş Sweet'in 60 m'den fazla gerisinde kalınca "çok uzaktasın" uyarısı gelir, yetişince kalkar.
+- [ ] Geçiş: saygı ikinize (+3).
 - [ ] A3'teki trafik denemesini bu görevde yapın.
 
 ### #3 Ryder (`INTRO2`)
 
 - [ ] Berber ve pizza akışı, restoran sahnesi ve Grove'a dönüş biter; arkadaş kontrolünü geri alır. Restoran
   görevlisinin tüfeğe geçtiği sahneyi bir kez normal izleyerek, bir kez atlayarak geçin; çökme ya da donma olmamalı.
+- [ ] Arkadaşın Greenwood'unda mavi işaret var; "aracını kırmızı işarete sür" ve "Ryder'ı eve götür" yazıları
+  arkadaşın kendi konumuna göre gelir. Berberde ve evde tek küre görünür.
+- [ ] Geçiş: saygı ikinize (+3).
 
 ### #4 Tagging Up Turf (`SWEET1`)
 
 - [ ] Bir Grove tag'ini arkadaş tek başına tamamlasın; host tekrar sıkmadan görev ilerlesin. Diğer tag'leri paylaşın;
   aynı tag'e birlikte sıkınca tamamlanma gerilemesin. İki kişiyken Sweet'in arabasında birlikte gidin.
+- [ ] Sweet'in arabasında tek işaret var. Arkadaşın "Sweet'le git" ve "Sweet'in arabasına dön" yazıları kendi
+  durumunu izler; çatıdaki noktaya varınca tel çit yardımı arkadaşa gelir.
+- [ ] Geçiş: ikinize de **$200**, saygı (+3) ve 1.000 sprey.
 
 ### #5 Cleaning The Hood (`SWEET1B`)
 
 - [ ] Dövüşe ve ev içi çatışmaya birlikte katılın; giriş ve çıkış yerleştirmesi düzgün, bitişte serbest kontrol var.
+- [ ] Her hedef yazısı bir kez, her hedefte tek işaret ya da küre görünür.
+- [ ] Arkadaş Ryder'dan 30 m'den fazla uzaklaşınca "çok uzaktasın" yazısı gelir; 10 m'ye dönünce o anki hedef yeniden
+  görünür.
+- [ ] Geçiş: saygı ikinize (+3).
 
 ### #6 Drive-Thru (`SWEET3`)
 
 - [ ] İlk sahneden sonra arkadaş kendi **Greenwood** arabasını ve onun mavi işaretini görür. Host'un arabasındaki
   koltuklar CJ, Sweet, Ryder ve Smoke'a ait; arkadaş o arabaya binmeye çalışınca indirilir.
-- [ ] Cluckin' Bell hedefi, drive-thru noktası ve Sweet'in arabası işareti arkadaşta bir kez görünür. Drive-thru
-  sahnesinde arkadaşın aracı çıkış şeridine taşınır; araçlar üst üste binmez.
-- [ ] Kovalamacada arkadaş **Tec-9 ve 300 mermi** ile drive-by yardımını alır, Ballas aracının işaretini görür ve
-  hasara katkı verir.
+- [ ] Cluckin' Bell hedefi ve Sweet'in arabası işareti arkadaşta bir kez görünür; arkadaş kendi aracındayken çıkış
+  şeridinde kendine ait bir işaretçi görür. Drive-thru sahnesinde arkadaşın aracı çıkış şeridine taşınır; araçlar
+  üst üste binmez.
+- [ ] Kovalamacada arkadaş **Tec-9 ve 300 mermi** ile iki drive-by yardım yazısını alır, Ballas aracında tek kırmızı
+  işaret görür ve hasara katkı verir. "Ballas'ları öldür" yazısı bir kez görünür.
 - [ ] Başarısızlık: host'un görev arabasını kaybedin ya da bir yoldaşın ölmesine izin verin.
-- [ ] Geçiş: ikinize de **$200** ve saygı. Tec-9 arkadaşta kalır; bu normaldir.
+- [ ] Geçiş: ikinize de **$200** ve saygı (+5). Tec-9 arkadaşta kalır; bu normaldir.
 
 ### #7 Nines And AK's (`SWEET2`)
 
 - [ ] Önce **B1**'i uygulayın.
-- [ ] Arkadaş Smoke'un arabasının **arka sağ koltuğuna** biner; oturunca varış noktası gelir, dışarıda kalınca "araca
-  dön" uyarısı gelir.
+- [ ] Arkadaş Smoke'un arabasının **arka sağ koltuğuna** biner. Smoke'un arabasında tek işaret, Emmet'te tek küre
+  görünür; arkadaş 1,5 saniyeden uzun araç dışında kalınca "Smoke'un arabasına dön" uyarısı gelir.
 - [ ] Emmet'e varışta arkadaş da hedefin yaklaşık 10 m yakınında olmalı; uzaktayken geçiş bekler.
 - [ ] Şişe eğitimini host yapar. Patlatılacak araç aşamasında arkadaş ayrı atış noktasına alınır, tabanca ve hedef
   gelir; arkadaşın ateşi aracı patlatıp aşamayı ilerletebilir. Patlayan araca yaklaşmayın.
-- [ ] Binco'da dükkân eğitimi host'a aittir; arkadaş dışarıda bekler.
-- [ ] Başarısızlık: ilgili fazda Smoke'u, Emmet'i ya da Smoke'un arabasını kaybedin.
-- [ ] Geçiş: saygı ikinize; para ödülü yok.
+- [ ] Binco'da tek küre görünür; dükkân eğitimi host'a aittir, arkadaş dışarıda bekler.
+- [ ] Başarısızlık: ilgili fazda Smoke'u, Emmet'i ya da Smoke'un arabasını kaybedin; neden yazısı bir kez görünür,
+  arkadaşın tabancası 5 mermiye iner.
+- [ ] Geçiş: saygı ikinize (+4); para ödülü yok.
 
 ### #8 Drive-By (`SWEET4`)
 
 - [ ] Arkadaş ayrı bir **Greenwood ve Tec-9 (1000 mermi)** alır; host'un arabası CJ ve üç yoldaşa ayrıdır.
 - [ ] Arkadaş yaya kalınca ilk sürüş fazı ilerlemez; geride kalırsa host bekler, yaklaşınca akış sürer.
-- [ ] Ballas'ların işaretleri arkadaşta da görünür; arkadaş kendi arabasından ateş ederek katkı verir.
+- [ ] Her Balla'da tek kırmızı işaret görünür; arkadaşa "mahalleyi tara" yazısı gelir ve kendi arabasından ateş
+  ederek katkı verir. Sonra arkadaşın da 2 yıldızı olur; aranma ve boyacı yazıları bir kez görünür.
 - [ ] **Yeni:** host'un araç can göstergesi arkadaşın ekranında da görünür ve değeri değişir.
 - [ ] Polis aşamasında görevin aranma yükseltmesi iki tarafta uygulanır; Pay 'n' Spray host'un yıldızlarına göre
   değerlendirilir.
 - [ ] Başarısızlık: bir yoldaşın ölmesine ya da host'un görev aracının kaybına izin verin.
-- [ ] Geçiş: ikinize de **$500** ve saygı; gösterge ve işaretler kalkar.
+- [ ] Geçiş: ikinize de **$500** ve saygı (+6); gösterge ve işaretler kalkar.
 
 ### #9 Sweet's Girl (`HOODS5`)
 
-- [ ] Arkadaş host'un yanına alınır; kurtarma hedefi ve saldırganların işaretleri arkadaşta görünür.
+- [ ] Arkadaş host'un yanına alınır ve tabanca alır; kurtarma hedefi ve her saldırganda tek kırmızı işaret görünür.
 - [ ] **Yeni:** Sweet'in can çubuğu arkadaşın ekranında da görünür ve değeri değişir.
 - [ ] Dört kapılı araçta Sweet ve kız arkadaşı ön sağ ve arka sol koltuklara, arkadaş **arka sağ koltuğa** alınır;
   arkadaş önce o koltuğa oturmuşsa silinmeden doğru yere taşınır.
+- [ ] Geride kalan kişide (Sweet ya da kız arkadaşı) tek mavi işaret görünür.
 - [ ] Grove'a dönüşte arkadaş araçtan iner, el sıkışma sahnesinde yaya noktasına alınır.
 - [ ] Başarısızlık: Sweet'in ya da kız arkadaşının ölmesine izin verin.
-- [ ] Geçiş: saygı ikinize; para ödülü yok.
+- [ ] Geçiş: saygı ikinize (+7); para ödülü yok.
 
 ### #10 Cesar Vialpando (`SWEET6`)
 
-- [ ] Willowfield garajına giderken arkadaş garajın yaklaşık 10 m yakınına gelmeden geçiş beklenir. Mod garajını
-  görev sırasında host tek başına kullanır; arkadaş dışarıda bekler.
+- [ ] Garaj yazısı bir kez (kuyrukta iki kez değil), garajda ve buluşmada tek küre görünür. Arkadaş garajın yaklaşık
+  10 m yakınına gelmeden geçiş beklenir. Mod garajını görev sırasında host tek başına kullanır; arkadaş dışarıda
+  bekler.
 - [ ] Modifiyeden sonra arkadaş lowrider'ın arka koltuğunda gider ya da takip eder; buluşmada yaklaşık 15 m yakında
   olmalıdır.
-- [ ] Bahis ve ritim oyununu yalnız host oynar. **Bahis sırasında arkadaşın parası değişmez.**
+- [ ] Bahis ve ritim oyununu yalnız host oynar. **Bahis sırasında arkadaşın parası değişmez.** Yarışma diyalogları
+  ve başarısızlık yazıları bir kez görünür.
 - [ ] Başarısızlık: host bir turu kaybetsin; sonuç yazısı arkadaşa da gelir, kamera ve tuşlar normale döner.
 - [ ] Geçiş: "Mission passed" ekranındaki para ikinize de gelir (bahsin iki katı; arkadaş bahis yatırmadığı halde).
 - [ ] Görevden sonra **A3**'teki mod garajı kontrolünü yapın.
