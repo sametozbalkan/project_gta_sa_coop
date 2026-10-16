@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "CEntryExitMarkerSync.h"
 #include "CEntryExitManager.h"
+#include "CWorldStateEntries.h" // private build: the world-state registry's EntryExits adapter
 
 void CEntryExitMarkerSync::Send()
 {
@@ -20,6 +21,7 @@ void CEntryExitMarkerSync::Send()
     }
 
     GetPacketFactory().Send(packet);
+    CWorldStateEntryExits::OnSent(packet); // private build: what went out, for the adapter's poll
 
 #ifdef PACKET_DEBUG_MESSAGES
     CChat::AddMessage("CEntryExitMarkerSync::Send %d %d %d", CEntryExitManager::ms_bDisabled,
@@ -45,8 +47,10 @@ void CEntryExitMarkerSync::Receive(const Packets::Scripts::EnExSync& packet)
                 static_cast<int16_t>(std::floor(pEntryExit->m_recEntrance.bottom)) == packet.enexes[i].rectBottom &&
                 pEntryExit->m_nArea == packet.enexes[i].areaId)
             {
-                pEntryExit->m_nFlags = packet.enexes[i].flags;
+                // private build: keeps this game's own transition bits (W-D7)
+                CWorldStateEntryExits::ApplyHostFlags(pEntryExit, packet.enexes[i].flags);
             }
         }
     }
+    CWorldStateEntryExits::OnReceived(); // private build: the world-state registry re-applies it from now on
 }

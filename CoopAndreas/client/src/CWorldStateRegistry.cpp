@@ -158,6 +158,8 @@ void CreateEntries()
 {
     Add<CWorldStateCityUnlock>();      // 0
     Add<CWorldStateMaxWantedLevel>();  // 1
+    Add<CWorldStateGarages>();         // 4
+    Add<CWorldStateEntryExits>();      // no wire id (CWorldStateEntryExits::LOCAL_ID)
     Add<CWorldStateMissionSettings>(); // 8
 }
 

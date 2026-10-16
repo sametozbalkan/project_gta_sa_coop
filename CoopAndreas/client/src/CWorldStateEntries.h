@@ -354,3 +354,51 @@ public:
     bool Capture(Blob& blob) override;
     void Apply(const Blob& desired, const Blob& local) override;
 };
+class CEntryExit;
+struct SEntryExitFlags;
+namespace Packets::Scripts
+{
+class EnExSync;
+}
+
+// 4: the garages' type and whether they are active (W5); not their doors, not Michelle's garage.
+// CWorldStateEntriesDoors.cpp
+class CWorldStateGarages final : public CWorldStateEntry
+{
+public:
+    uint8_t Id() const override { return 4; }
+    const char* Name() const override { return "Garages"; }
+    uint32_t IntervalMs() const override { return 1000; }
+    uint16_t RecordSize() const override;
+    bool Init() override { return true; }
+    bool Capture(Blob& blob) override;
+    void Apply(const Blob& desired, const Blob& local) override;
+};
+
+// The EntryExits adapter (W10, W-D7): upstream's ENEX_SYNC carries the host's entry-exit flags and the server keeps the
+// last one for joiners. The adapter adds what it lacks: the host sends it again when its flags changed without a script
+// command (a save load), and the other games put the host's flags back after their own scripts changed them (their
+// INTRO closes the shops again at a new game), keeping their own transition bits and leaving their girlfriend dates and
+// mod garage visits alone. It has no wire id: its Id() only names it inside the registry, nothing goes out as
+// WORLD_STATE for it. CWorldStateEntriesDoors.cpp
+class CWorldStateEntryExits final : public CWorldStateEntry
+{
+public:
+    static constexpr uint8_t LOCAL_ID = 0xFF;  // never on the wire, never a wire id of another entry
+
+    uint8_t Id() const override { return LOCAL_ID; }
+    const char* Name() const override { return "EntryExits"; }
+    uint32_t IntervalMs() const override { return 1000; }
+    bool Init() override { return true; }
+    bool Capture(Blob& blob) override;
+    void Apply(const Blob& desired, const Blob& local) override;
+
+    // --- CEntryExitMarkerSync ---
+    // Send: the packet that went out (the host's poll compares with it)
+    static void OnSent(const Packets::Scripts::EnExSync& packet);
+    // Receive: one of the host's markers for a local one with the same key; this game keeps its own transition bits,
+    // and a marker this game's player is passing through is left to the re-apply once the transition is over
+    static void ApplyHostFlags(CEntryExit* pEntryExit, const SEntryExitFlags& hostFlags);
+    // Receive, at the end: CEntryExitMarkerSync::ms_lastData now holds the host's state, the registry re-applies it
+    static void OnReceived();
+};
