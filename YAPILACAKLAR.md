@@ -89,21 +89,30 @@ zamanlayıcılar (5 kanca), WS-3 garajlar ve dükkân kapıları, WS-4 görev so
 saklanması. Kanca denetimi 411 nokta; on politika testi geçiyor. C1 (#2–#10 dönüşümü, 9.181 bayt kazanç) ve uyarlama
 rehberi birleştirildi. **0.1.0-alpha paketlendi** (etiket `v0.1.0-alpha`, test listesi `docs/test-0.1.0.md`); host'un
 oyununa kuruldu, iki oyunculu test bekliyor.
+**0.1.1 hazırlanıyor** (2026-10-17; main'de, paketlenmedi; 0.1.0 testinden sonra, testte çıkan düzeltmelerle birlikte
+gelecek, test listesi `docs/test-0.1.1.md`):
+- **Araç senkronu:** aracı kimin yönettiği açıkça bildiriliyor; araç kayıtları aracın yok edilmesiyle bitiyor; host
+  görevinin sildiği araç her yerden kalkıyor; sunucuda oyuncu başına tek koltuk var; çıkan oyuncunun sürdüğü host görev
+  arabası host'a geçiyor. Paket biçimi değişti: main artık 0.1.1-alpha ve 0.1.0 ile bağlanamaz.
+- **Görev ortasında ayrılan oyuncu:** host'ta yer tutucu karakter, SWEET1 ve SWEET3'te ek denetim, sahiplenilen dükkân
+  çalışanının devri.
+- **Diğerleri:** hikâye görevleri yalnız host'ta başlıyor; Alt+Tab'da tuşlar bırakılıyor; sunucunun özel karakter
+  listesi düzeltildi; Ghidra ad hattı `FUNC_` tanımlarını okuyor.
+- **Durum:** kanca denetimi 416 nokta, 13 politika testi geçiyor. Araç paketini ayrı bir ajan inceliyor.
 
 ## Sonraki işler (öncelik sırasıyla)
-- **Sağlamlık:** geçersiz oyuncu tutamacı verilen co-op komutları host'u çökertiyor (ör. arkadaş görev ortasında
-  düşerse); 0.3.103'te host tarafındaki yazı ve işaret komutlarına boş oyuncu denetimi eklendi, kalan yerler ayrıca
-  taranacak. Görevi kimin başlatabileceğini denetleyen host kontrolü (`CanPlayerStartMission`) upstream'de yorum satırı.
 - **Nesne senkronu** (#60'tan önce): görevlerin açtığı, taşıdığı ya da sildiği kapılar, geçitler ve kulübeler arkadaşta
   `INITIAL`'ın bıraktığı gibi kalıyor (CoopAndreas nesne senkronlamıyor); ayrı tasarım gerekiyor.
-- Sunucunun özel karakter modeli izin listesi ters çalışıyor (her özel model kabul ediliyor); küçük düzeltme.
-- Araç: ReVa ad hattı plugin-sdk'nin `FUNC_<Sınıf>__<Metot>` tanımlarını okumuyor (ör. `CMissionCleanup::Process`
-  adsız görünüyor); `gta_names.py`'ye eklenmeli.
-- **Araç senkron protokolü** (ayrı gtasa-coder-high işi): `ASSIGN_VEHICLE` aracı kimin senkronladığını belirleyen
-  bayrağı ayarlamak yerine tersine çeviriyor (iki taraf anlaşamayabilir); onaylanmadan silinen geçici araç eski bir
-  işaretçi bırakıyor; host'un görevi arkadaşın sürdüğü (arkadaşın senkronladığı) aracı silerse silme arkadaşa gitmiyor
-  ve host'ta eski bir araç işaretçisi kalıyor (`Hooks/WorldHooks.cpp`); sunucu yolcu koltuğu -1'i sürücü koltuğuna
-  çeviriyor (`server/src/PacketHandlers/vehicles.cpp`).
+- **Host'un kendi bağlantısı görev ortasında koparsa:** INTRO1, INTRO2, SWEET1, SWEET1B ve SWEET2'deki ağ kimliği
+  bekleme döngülerinin zaman aşımı yok; görev host'ta takılabilir. SWEET3'teki 2 saniyelik zaman aşımı bunlara da
+  eklenmeli (görev içi küçük değişiklik).
+- **Araç senkronunda açık kalanlar** (0.1.1 incelemesine göre güncellenecek):
+  - binmeye başlanıp tamamlanmayan koltuk sunucuda kayıtlı kalıyor;
+  - NPC'nin sürdüğü kayıp kopya ancak boşta ya da sürücü güncellemesiyle geri geliyor;
+  - aracı yöneten oyuncunun oyunu yeniden başlarsa onun yönettiği host görev arabaları host'a dönmek yerine siliniyor;
+  - `CoopAndreas_diag.log`'da araç senkronu özet satırı yok.
+- **Görev uyarlama denetleyicisi:** ayrılan oyuncu kurallarını (denetim ve kullanım aynı karede, `wait` arada değil)
+  tarayan betik `tools/` altına alınıp `compile-scm.ps1`'e bağlanabilir.
 - **Görev boyutu sınırı:** Reuniting The Families (#27) 69.000 baytlık sınıra 561 bayt uzakta. Yansıtma katmanıyla
   #27'nin küçük bir uyarlaması bu alana sığıyor (kayıt 2, oyuncu toplama 11, ışınlama 11 bayt); sınırı yükseltmek
   artık #27 için şart değil, ama co-op bilardo (`POOL2`) gibi büyük işler için gerekebilir. ReVa ile ilk bulgular (2026-10-16): 200.000 (MAIN) yalnızca
@@ -113,8 +122,8 @@ oyununa kuruldu, iki oyunculu test bekliyor.
   yamalanır) ya da görev bloğu için başka bir yol bulunur.
 - **Görev uyarlanırken verilecek kararlar:** #26'da SWEET7 host'un saygısını 200'e çekiyor (`0629`), yansımıyor;
   #103'teki 250.000$ geçişten kareler önce verildiği için yansımıyor.
-- **Temizlik:** dünya durumu kaydına yerel kaynaklı girişler için arayüz (kapı adaptörü şu an sahte bir paket yolu
-  kullanıyor).
+- **Temizlik** (0.1.0 testinden sonra; testte denenen kapı koduna dokunuyor): dünya durumu kaydına yerel kaynaklı
+  girişler için arayüz (kapı adaptörü şu an sahte bir paket yolu kullanıyor).
 - **Görevlerden önce gelecek altyapı paketleri** (`docs/design/README.md` 4. bölüm; her biri ihtiyaç duyan gruptan
   önce): M5 yarış kontrol noktaları ve betik küreleri (#22, grup 3), WS-5 çete bölgeleri ve savaşları, arkadaşın
   öldürdüklerinin host'un savaşında sayılması dahil (#25, grup 4), WS-2 köprü bariyerleri ve yollar (#28, grup 4),
@@ -135,8 +144,6 @@ oyununa kuruldu, iki oyunculu test bekliyor.
   büyük kısmı bitene kadar kalır.
 - **Buy Me a Coffee:** hesap açılınca README'nin başına rozet ve `.github/FUNDING.yml` (GitHub'ın Sponsor düğmesi).
   Bağış gönüllü kalır; parayla açılan özellik ya da erken erişim yok, GTA/Rockstar logosu yok.
-- Alt+Tab'a küçük ek: pencere arka plana geçerken "tuşlar bırakıldı" bilgisi gönderilsin (diğer ekranda basılı kalan
-  tuşla yürümeye devam etmesin).
 - Upstream PR #106 **alınmadı**: sonradan katılan oyuncu diğerinin parasını sıfırlıyor, aynı anda kazanılan para
   kayboluyor, hileler iki oyunda birden çalışıyor. Para herkesin kendine kalıyor (uyarlanmış görevlerin ödülü ikinize de
   ödeniyor), hileler yerel kalıyor; aranma seviyesi 2. dalgada host'un görev komutlarıyla geliyor.
@@ -149,7 +156,8 @@ oyununa kuruldu, iki oyunculu test bekliyor.
 
 ## Bilinen sınırlamalar
 - Eski (Steam) kayıtlar yüklenemez; her zaman New Game. Co-op kaydını host alır: güvenli evde, görev dışındayken.
-- Alt+Tab'da oyun duraklar (host'taysa görev de bekler); bağlantı kopmaz.
+- Alt+Tab'da oyun duraklar (host'taysa görev de bekler); bağlantı kopmaz. 0.1.1'den itibaren basılı tuşlar diğer
+  ekranda bırakılır.
 - Arkadaşın saklanan durumu takma adıyla eşleşir; takma ad değişirse bulunmaz. `.coop` dosyası kaydıyla birlikte taşınmalı.
 
 ## Bakım
@@ -158,4 +166,6 @@ oyununa kuruldu, iki oyunculu test bekliyor.
   aktarıldı (`tools/ghidra/`). Kaldırmak için `claude mcp remove ReVa -s local`. Kullanıcı ortamındaki `JAVA_HOME` artık
   olmayan bir klasörü gösteriyor (JDK 21.0.12'ye güncellenmiş); ReVa kendi ayarıyla çalışıyor, istenirse `JAVA_HOME`
   `C:\Program Files\Java\latest\jdk-21` yapılabilir.
+- Ghidra ad hattının yeni adları (11) projeye henüz işlenmedi: bu klasörde ReVa'lı hiçbir oturum açık değilken
+  `pwsh -File tools/ghidra/update-project.ps1` çalıştırılmalı.
 - Arkadaşın Wi-Fi'ı ~90 ms sıçramalar yapıyor olabilir (güç tasarrufu); kablo ya da Maksimum Performans.
