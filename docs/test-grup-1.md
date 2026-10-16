@@ -1,8 +1,12 @@
 # Grup 1 — iki oyunculu kabul testi (#1–#10)
 
-Hedef sürüm: **CoopAndreas 0.3.102-alpha**. Bu belge kaynak kodundan çıkarılan beklenen davranışları ve
-oyuncuların uygulayacağı testleri içerir. **İki oyunculu oyun testi bekliyor.**
-Kutular yalnızca iki bilgisayarda gözlendikten sonra işaretlenir.
+Hedef sürüm: **CoopAndreas 0.3.103-alpha**. Bu belge kaynak kodundan çıkarılan beklenen davranışları ve
+oyuncuların uygulayacağı testleri içerir. Kutular yalnızca iki bilgisayarda gözlendikten sonra işaretlenir.
+
+**Durum (2026-10-16):** 0.3.102-alpha ile yapılan ilk turda #1–#6 sorunsuz geçti. #7 Nines And AK's'te açılış
+sahnesinden sonra host arkadaşın ekranında kayboldu ve geri gelmedi; host Binco'nun kapısından girince arkadaşın
+oyunu çöktü (0x4D68BA). 0.3.103-alpha bunu düzeltir ve arkadaşın eşyalarını host'un kaydıyla saklamayı ekler.
+Bu turda önce aşağıdaki **0.3.103 öncelikli kontroller**, sonra #7–#10.
 
 ## Hazırlık ve oturum
 
@@ -19,7 +23,8 @@ Kutular yalnızca iki bilgisayarda gözlendikten sonra işaretlenir.
    `CoopAndreas Tünel - Host` / `1-Host-ac.bat` tünelini açar. **Host oyuna ilk bağlanır**; ilk bağlanan
    oyuncu görev host'u seçilir. Sonra arkadaş `CoopAndreas Tünel - Bağlan` / `3-Oyuna-baglan.bat` ile bağlanır.
 4. İkiniz `CoopAndreas` kısayolundan (`gta_sa.exe --coop`) açın; Connect: `127.0.0.1:6767`, farklı takma adlar.
-   Sol altta ikinizde de **0.3.102-alpha** görünmeli. `Version mismatch` varsa teste başlamayın, aynı paketi kurun.
+   Sol altta ikinizde de **0.3.103-alpha** görünmeli. `Version mismatch` varsa teste başlamayın, aynı paketi kurun.
+   Bu turda ikiniz de oyun klasöründeki **`CoopAndreas (tani)`** kısayolunu kullanın (aşağıya bakın).
 5. Bu tam sıra testi **New Game** ile başlar. **Eski Steam/tek oyunculu kaydı yüklemeyin**: farklı SCM nedeniyle
    çökebilir. Bu uyarı, aynı co-op hattında oluşturulan kayıtların paketten pakete korunması hedefinden ayrıdır.
    Co-op kaydını yalnız host, görev dışında güvenli evde alır; arkadaşın kaydı host ilerlemesinin yerine kullanılmaz.
@@ -27,6 +32,64 @@ Kutular yalnızca iki bilgisayarda gözlendikten sonra işaretlenir.
    Başka görev açılmış olsa da sırayı değiştirmeyin; hileyle görev veya ilerleme bayrağı atlamayın.
 
 Oturum kaydı: tarih `____` · host `____` · arkadaş `____` · paket/SHA-256 `____` · manifest `____`.
+
+## 0.3.103 — öncelikli kontroller
+
+İkiniz de oyunu oyun klasöründeki **`CoopAndreas (tani)`** kısayoluyla açın (`--coop --coopdiag`; kurulum bu
+kısayolu oluşturur). Açmadan önce oyun klasöründeki eski `CoopAndreas_ped_sync.log` dosyasını silin. Sorun olursa
+iki taraftan `C:\Games\GTASA_Coop\CoopAndreas_ped_sync.log`, varsa `CoopAndreas_crashes\*.log` ve saati gönderin.
+Logda `phase=hidden` (iç mekânlarda) ve `taken-out` satırları normaldir; `destroyed`, `recreated`, `missing`,
+`clumpless` ya da `invalid` görürseniz o anı not edin.
+
+### A. #7 Nines And AK's yeniden — host'un kaybolması ve Binco çökmesi
+
+Bulgu (0.3.102): açılış sahnesinden sonra arkadaşın oyunu, içinde host'un oturduğu bir aracı sildi. Oyun bir aracı
+silerken içindekileri de siler; bu yüzden host'un karakteri arkadaşın oyununda yok oldu (görünmez, isim etiketi yok,
+radar eski konumu gösterir). Host Binco'nun kapısından girince silinmiş karaktere kapı animasyonu verilmeye çalışıldı
+ve arkadaşın oyunu çöktü. 0.3.103: araç silinmeden önce içindeki oyuncular dışarı alınır, oyun bir ağ oyuncusunu
+silmez; karakter yine de kaybolursa en geç 1 saniyede kıyafeti ve konumuyla yeniden oluşturulur.
+
+- [ ] #7'yi baştan sona oynayın: açılış sahnesi, arkadaşın Smoke'un arka koltuğuna binmesi, Emmet'e yolculuk,
+  araçtan iniş, Emmet sahnesi, şişe alıştırması, patlatılacak araç, Grove'a dönüş. Arkadaş host'u **her an** görür;
+  host yayayken başının üstünde isim etiketi vardır. Host bir an kaybolursa ~1 saniyede geri gelmeli; saati yazın.
+- [ ] Binco kapısında host içeri girip çıkar, arkadaş dışarıdan izler. Arkadaşın oyunu çökmez; host kapıdan geçerken
+  görünür, içerideyken görünmez, çıkınca yeniden görünür.
+- [ ] Görev dışında host iki üç kapıdan daha girip çıksın (Sweet'in evi, bir Cluckin' Bell); aynı beklenti.
+
+### B. Araçlar
+
+- [ ] Host birkaç araca normal binip insin; sonra bir araçtan inip onu patlatsın.
+- [ ] Arkadaş, host'un sürdüğü araçta yolcu olsun; önce host, sonra arkadaş insin. Kimse kaybolmaz, kimse araçtan
+  kendiliğinden düşmez.
+- [ ] Bir görev içinde arkadaşın oturduğu aracı silerse (ör. ara sahne geçişinde) arkadaş aracın yerinde yaya kalır
+  ve görev arkadaşı tanımaya devam eder: yazılar ve işaretler ona gelmeye devam eder.
+- [ ] Arkadaş, host'un arabasına ve motosikletine G ile yolcu olarak binsin; host'un ekranında oturmuş görünür.
+- [ ] Arkadaşa özel yazı, işaret ya da kontrol noktası olan bir görev fazında (ör. #6 veya #8) arkadaş oyundan
+  çıksın: host'un oyunu çökmez, görev host'ta devam eder.
+
+### C. Arkadaşın durumunun kayıtla saklanması
+
+Arkadaşın silahları (mermi ve şarjör), canı, zırhı, parası, kıyafetleri (saç ve dövme dahil), dövüş stili,
+kazandığı özellikler (sınırsız koşu, hızlı şarjör vb.) ve vücut/beceri istatistikleri, host kayıt alınca host'un
+kaydının yanına `GTASAsf<n>.b.coop` olarak yazılır. Host o kaydı yükleyip arkadaş bağlanınca geri gelir. Eşleşme
+arkadaşın **takma adıyla** yapılır; takma adı değiştirmeyin. Saygı (respect) saklanmaz. Son değişiklikten sonra
+kayıt almadan önce ~3 saniye bekleyin. Sohbet satırları İngilizcedir.
+
+- [ ] (a) Oturumlar arası: arkadaş silah, zırh, para, yeni kıyafet, saç ve dövme alsın. Host kayıt noktasında kayıt
+  alır; host'un sohbetinde "Kept the state of 1 other player(s)" görünür, kaydın yanında `.coop` dosyası oluşur.
+  İkiniz çıkın. Host oyunu açıp o kaydı yükler ("This save keeps the state of 1 other player(s)"). Arkadaş New Game
+  ile bağlanır; giriş kararması bitince arkadaşın sohbetinde "Your saved player state is back" görünür. Silah ve
+  mermi, zırh, para, kıyafet, dövüş stili ve istatistik ekranı kontrol edilir.
+- [ ] (b) Çökme sonrası: arkadaş bir şey değiştirsin, 3 sn beklesin, oyununu kapatsın. Host'un sohbetinde
+  "<isim> disconnected" görünene kadar bekleyin (30–60 sn). Arkadaş New Game ile yeniden bağlanır; son durumu gelir.
+- [ ] (c) Geri alma: host kayıt alır (arkadaşın durumu X). Arkadaş durumunu değiştirir (Y). Host o kaydı yükler,
+  arkadaş bağlı kalır. Arkadaş yaya olunca X'e döner.
+- [ ] (d) Arkadaş yokken kayıt: arkadaş Z durumuna gelir, 3 sn bekler, çıkar. Host kayıt alır. Sonraki oturumda
+  arkadaş New Game ile bağlanınca Z gelir.
+- [ ] (e) Yan dosyası olmayan kayıt: daha eski bir co-op kaydı yüklenince sohbette "This save keeps no other
+  player's state" görünür; oyun normal yüklenir, arkadaş yeni oyun durumunda kalır.
+
+Not: host'un oyunu çökerse arkadaş host olur; ikiniz de oyunu yeniden başlatın.
 
 ### Açılış çözünürlüğü
 
@@ -36,7 +99,7 @@ Oturum kaydı: tarih `____` · host `____` · arkadaş `____` · paket/SHA-256 `
 - [ ] Oyun içi görüntü ayarlarında seçilen çözünürlük doğru, görüntü kesilmiyor; kapatıp yeniden açınca
   çözünürlük tekrar seçilebiliyor. Önceden çalışan düşük çözünürlükler de kullanılabiliyor.
 
-Bu istemci düzeltmesi de 0.3.102-alpha yazar; güncel paketi **manifest commit'i veya ZIP SHA-256** ile ayırt edin.
+Bu düzeltme 0.3.103-alpha'da da vardır; güncel paketi **manifest commit'i veya ZIP SHA-256** ile ayırt edin.
 Çözünürlük listesi için sürücü ve kod kontrolleri yapıldı; gerçek pencere/oyun görüntüsü kabulü bekliyor.
 
 ## Her görevde uygulanacak ortak kontrol
@@ -59,6 +122,9 @@ geçersiz oyuncu tutamacı sağlamlığı ayrı bilinen iştir.
 
 ## #1–#5 kısa regresyon — sırayla
 
+0.3.102 turunda #1–#6 geçti. Bu turda yalnızca bir co-op kaydı yoksa ve #7'ye ulaşmak için yeniden oynanıyorsa
+tekrarlanır.
+
 | Sıra | Kontrol | Sonuç |
 |---|---|---|
 | #1 In the Beginning (`INTRO`) | New Game Grove Street başlangıcına ulaşır. Bu pakette havaalanı ara sahnesi ve ilk BMX yolculuğu upstream tarafından atlanır; oynanmış kabul etmeyin. | ☐ geçti ☐ kaldı |
@@ -72,11 +138,10 @@ geçersiz oyuncu tutamacı sağlamlığı ayrı bilinen iştir.
 
 ### Öncelik: #3 Ryder — restoran/tüfek çökmesi
 
-**0.3.102-alpha düzeltmesinin iki oyunculu oyun kabulü bekliyor; çökme giderildi diye doğrulanmış değildir.**
+**0.3.102 turunda bu sahnede çökme bildirilmedi.** Yeniden oynanırsa aşağıdaki kontroller yine geçerlidir.
 New Game'den #1–#2'yi normal sırada tamamlayarak #3'e gelin. İkinci geçiş türünü denemek için uygun host co-op
 kaydı/yeniden normal oynama kullanın; görev tetiklerini, NPC oluşturmayı veya hikâye bayraklarını zorla atlamayın.
-Arkadaş bu denemeyi `--coopdiag` ile açsın; Windows Çalıştır penceresinde:
-`"C:\Games\GTASA_Coop\gta_sa.exe" --coop --coopdiag` (`--coop` modun yüklenmesi için gereklidir).
+Arkadaş bu denemeyi oyun klasöründeki `CoopAndreas (tani)` kısayoluyla (`--coop --coopdiag`) açsın.
 Erteleme veya geçersiz NPC gibi bir tanı olayı oluşursa oyun klasörüne **`CoopAndreas_ped_sync.log`** yazılır.
 Çökme veya NPC'nin normale dönmemesi durumunda
 bu dosyayı varsa çökme loguyla birlikte alın. Kayıt `deferred/resumed/invalid/cancelled` olaylarını ve NPC'nin
@@ -125,6 +190,9 @@ Kaynak: `CoopAndreas/scm/scripts/SWEET3.txt`, `SWEET3_COOP_START`,
   Tec-9 ve kalan mermisi arkadaşta kalıyor; bu bir temizlik hatası sayılmaz.
 
 ## #7 Nines And AK's — `SWEET2`
+
+0.3.102 turu: açılış sahnesinden sonra host arkadaşın ekranında kayboldu, Binco kapısında arkadaşın oyunu çöktü.
+Düzeltme 0.3.103'te; önce yukarıdaki **A** bölümünü uygulayın.
 
 Kaynak: `CoopAndreas/scm/scripts/SWEET2.txt`, `SWEET2_COOP_ENTER_SMOKES_CAR`,
 `SWEET2_COOP_FOLLOW_SMOKES_CAR`, benzin deposu bölümü ve `SWEET2_COOP_FAILED`.
@@ -237,8 +305,8 @@ Los Santos dışındaki şehir kilidi senkronunun bulunması, köprü bariyerler
 
 | Görev | Başarı yolu | Başarısızlık/tekrar | Temizlik | Not / hata kaydı |
 |---|---|---|---|---|
-| #6 Drive-Thru | bekliyor | bekliyor | bekliyor | |
-| #7 Nines And AK's | bekliyor | bekliyor | bekliyor | |
+| #6 Drive-Thru | geçti (0.3.102) | bekliyor | bekliyor | |
+| #7 Nines And AK's | kaldı (0.3.102), 0.3.103 ile tekrar | bekliyor | bekliyor | Host kayboldu; Binco kapısında çökme |
 | #8 Drive-By | bekliyor | bekliyor | bekliyor | |
 | #9 Sweet's Girl | bekliyor | bekliyor | bekliyor | |
 | #10 Cesar Vialpando | bekliyor | bekliyor | bekliyor | |

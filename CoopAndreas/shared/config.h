@@ -7,7 +7,9 @@
 // from the host's missions and city unlock sync, UPDATE_CITY_UNLOCKED; 102 = NPC render/lifetime sync fix,
 // unchanged wire format, new binary version so both players install the fix;
 // 103 = remote player ped recovery (pool-checked network player peds, recreated when the game destroyed them,
-// players taken out of a vehicle before it is deleted for the network), unchanged wire format)
+// players taken out of a vehicle before it is deleted for the network) and the other players' state kept with the host's
+// save, PLAYER_STATE_SNAPSHOT and PLAYER_STATE_RESTORE). 0.3.103 is the last version of this line; the next package
+// starts our own numbering (CLAUDE.md, Fork changes, Version)
 #define COOPANDREAS_VERSION "0.3.103-alpha"
 struct Config
 {

@@ -273,6 +273,8 @@ try {
     $gameExe = Join-Path $GameDir 'gta_sa.exe'
     New-Shortcut (Join-Path $GameDir 'CoopAndreas.lnk') $gameExe '--coop' $GameDir
     New-Shortcut (Join-Path $GameDir 'CoopAndreas Server.lnk') (Join-Path $GameDir 'server\server.exe') '' (Join-Path $GameDir 'server')
+    # tanı kaydıyla açılış (--coopdiag): CoopAndreas_diag.log ve CoopAndreas_ped_sync.log oyun klasörüne yazılır
+    New-Shortcut (Join-Path $GameDir 'CoopAndreas (tani).lnk') $gameExe '--coop --coopdiag' $GameDir
     if (-not $NoDesktopShortcuts) {
         $desktop = [Environment]::GetFolderPath('Desktop')
         New-Shortcut (Join-Path $desktop 'CoopAndreas.lnk') $gameExe '--coop' $GameDir

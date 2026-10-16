@@ -23,6 +23,13 @@ OYNAMA (sunucuyu host açar, sen ona bağlanırsın)
 
 NOTLAR
 - Eski kayıtlar CoopAndreas'ta yüklenemez; her zaman New Game.
+- Eşyaların (silah ve mermi, can, zırh, para, kıyafet, saç, dövme, beceriler) host kayıt alınca onun kaydının
+  yanında saklanır. Host o kaydı yükleyip sen New Game ile bağlanınca geri gelir. Takma adını değiştirme;
+  eşleşme takma adla yapılır.
+- Oyunun çökerse host'ta "bağlantın koptu" görünene kadar (30-60 sn) bekle, sonra New Game ile yeniden bağlan;
+  son durumun geri gelir.
+- Bir sorunu incelemek gerekirse oyunu oyun klasöründeki "CoopAndreas (tani)" kısayoluyla aç ve oradaki
+  CoopAndreas_ped_sync.log dosyasını host'a gönder.
 - Alt+Tab yapınca oyun duraklar ama bağlantı kopmaz. Host Alt+Tab'dayken görev de bekler.
 - Oyunun sol alt köşesinde sürüm yazar. İki tarafta aynı olmalı; "Version mismatch" görürsen
   host'un gönderdiği son paketi kur.

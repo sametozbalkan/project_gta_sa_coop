@@ -1,9 +1,10 @@
 # Yapılacaklar
 
-Durum (2026-10-15): host (oveRange) ve arkadaşı ilk co-op oturumunu Steam tüneliyle oynadı, çalışıyor.
-Proje GitHub'da: github.com/sametozbalkan/project_gta_sa_coop. Grup 1 teslimatı kullanıcının isteğiyle
-`codex/group1-delivery` branch'inde hazırlanıyor; bu teslimatta Codex ve `gpt-6.1-sol / high` ajanları kullanılıyor.
-Önceki görev uyarlamaları `main` üzerinde duruyor.
+Durum (2026-10-16): host ve arkadaşı Steam tüneliyle oynuyor. Grup 1'in ilk iki oyunculu turunda (0.3.102) #1–#6
+geçti; #7'de bulunan hata 0.3.103'te düzeltildi, ikinci tur bekleniyor.
+Proje GitHub'da: github.com/sametozbalkan/project_gta_sa_coop. Grup 1 teslimatı ve düzeltmeleri `codex/group1-delivery`
+branch'inde: teslimatı Codex hazırladı, 2026-10-16'dan beri mimar (Claude) ve Opus 5.5 ajanları sürdürüyor. `main`,
+grup 1 onaylanınca bu branch'e getirilir.
 
 ## 1. dalga (bitti; test paketi 0.3.100-alpha, test listesi `docs/test-dalga-1.md`)
 | İş | Ajan | Durum |
@@ -22,26 +23,19 @@ Proje GitHub'da: github.com/sametozbalkan/project_gta_sa_coop. Grup 1 teslimatı
 |---|---|---|
 | Görevlerin aranma komutları host'tan iki oyuncuya; San Fierro/Las Venturas kilidi arkadaşa da (sürüm 0.3.101) | gtasa-coder-high | birleştirildi (59d055e) |
 | Görev grubu 1: #6 Drive-Thru, #7 Nines And AK's, #8 Drive-By, #9 Sweet's Girl, #10 Cesar Vialpando | gtasa-coder / -high | kaynaklar main'de (ecbab75, e4f12f7, 2f9cfda, c297af5, 14b15e9); birlikte derlendi, test onayı bekliyor |
-| Ryder restoran/pompalı sahnesinde arkadaşın çökmesi (0x4D68BA) | gpt-6.1-sol / high | 0.3.102-alpha: NPC yaşam süresi/model koruması ve en güncel durumu erteleme kodlandı; C++ derlemesi ve yerel politika testleri geçti, iki oyunculu tekrar testi bekliyor |
+| Ryder restoran/pompalı sahnesinde arkadaşın çökmesi (0x4D68BA) | gpt-6.1-sol / high | 0.3.102-alpha: NPC yaşam süresi/model koruması ve en güncel durumu erteleme; 0.3.102 turunda bu sahnede çökme bildirilmedi |
+| Nines And AK's: host arkadaşın ekranında kayboldu, Binco kapısında arkadaş çöktü (0x4D68BA) | gtasa-coder-high | 0.3.103-alpha: arkadaşın oyunu, içinde host'un oturduğu aracı silince oyun host'un karakterini de siliyordu. Araç silinmeden önce oyuncular dışarı alınıyor, oyun ağ oyuncularını silmiyor, kaybolan karakter 1 saniyede yeniden oluşturuluyor; kapı, araç, silah ve kıyafet işlemleri karakter hazır değilse bekliyor. Derlendi, iki oyunculu test bekliyor |
+| Arkadaşın eşyalarını host'un kaydıyla saklama | gtasa-coder-high | 0.3.103-alpha (abf127d): silah, can, zırh, para, kıyafet, dövüş stili, özellikler ve beceri istatistikleri kaydın yanında `.coop` dosyasında; yükleyince ve çökme sonrası yeniden bağlanınca geri gelir. İki yeni paket türü. Derlendi, iki oyunculu test bekliyor |
+| README (İngilizce + Türkçe), gizlilik belgesi, kurulumda tanı kısayolu | gtasa-coder + mimar | README birleştirildi (9113d9d); isim ve Buy Me a Coffee rozeti bekliyor |
 | Açılıştaki Device Selection listesinde 2560×1440 yok | Codex + gpt-6.1-sol / high inceleme | Açılışa ait ayrı en-boy oranı filtresi, doğrulanan 1.0 US baytlarıyla kaldırıldı; gerçek pencere seçimi kullanıcı testi bekliyor. İstemci düzeltmesi, sürüm/protokol 0.3.102-alpha kalır. |
 
-Grup 1 teslimatı **0.3.101-alpha**: `main.scm` ve `script.img` güncel kaynaklardan üretildi; kayıt uyumluluğu
-ve boyut denetimleri geçti. C++ derlemesi ve tünel yayını başarılı; mod `C:\Games\GTASA_Coop` içine kuruldu,
-beş dosyanın SHA-256'sı derleme çıktısıyla eşleşiyor. Oyun/sunucu/tünel başlatılmadı; oyun içi kabul yapılmadı.
-Test listesi: `docs/test-grup-1.md` (pakette `TEST-LISTESI.md`). Arkadaş paketi:
-`dist/CoopAndreas-Kurulum.zip`; `manifest.json` kaynak commit'ini ve dosya SHA-256'larını, yanındaki
-`.zip.sha256` arşiv özetini verir. Eski paket/kurulum ve yerel doğrulama günlükleri
-`backups/group1-delivery-20261015/` altında tutulur (git dışında).
-Bu paket mevcut 1.0 US kurulumu günceller; ~880 MB ilk kurulum yamaları pakete eklenmez.
-
-Güncel düzeltme paketi **0.3.102-alpha**: NPC'nin oyun havuzu referansı nesil bilgisiyle doğrulanır;
-model veya animasyon altyapısı hazır değilken silah/çömelme/nişan işlemleri bekler. Yalnızca son durum
-en fazla 2 saniye saklanır; silinme, sahiplik ve araç durumu değişimlerinde iptal edilir.
-Görev betikleri ve kayıt biçimi değişmez. Aynı paket yolundan dağıtılır; iki tarafta yeni sürüm kurulmalıdır.
-Öncelikli kabul testi Ryder'ın restoran çıkışıdır (`docs/test-grup-1.md`); çökme yolunun kodda korunması,
-sahnenin oyunda doğrulandığı anlamına gelmez. `--coopdiag` ile olay oluşursa `CoopAndreas_ped_sync.log`
-yerel tanı dosyasına yazılır. Önceki paket/kurulum ve bu düzeltmenin doğrulamaları
-`backups/npc-sync-fix-20261015/` altındadır (git dışında).
+Teslimatlar (arkadaş paketi `dist/CoopAndreas-Kurulum.zip`; `manifest.json` kaynak commit'ini ve dosya SHA-256'larını,
+yanındaki `.zip.sha256` arşiv özetini verir; eski paketler ve doğrulama günlükleri `backups/` altında, git dışında):
+- **0.3.101-alpha** (Codex, 2026-10-15): grup 1 görev dosyaları birlikte derlendi (kayıt ve boyut denetimleri geçti),
+  test listesi `docs/test-grup-1.md` (pakette `TEST-LISTESI.md`), doğrulanabilir paket.
+- **0.3.102-alpha** (Codex): Ryder sahnesindeki NPC çökmesi; açılış penceresinde geniş ekran çözünürlükleri.
+- **0.3.103-alpha** (2026-10-16): host'un kaybolması ve Binco çökmesi düzeltmesi, arkadaşın durumunun kayıtla
+  saklanması, kurulumda `CoopAndreas (tani)` kısayolu. **Eski sürüm düzeninin son paketi.** İki tarafta da kurulmalı.
 
 ## Görev grupları (plan)
 Görevler hikâye sırasıyla, gruplar halinde uyarlanıyor; her grup tek pakette gelir. **Bir grup bitince paket size
@@ -52,7 +46,7 @@ paketten pakete açılmaya devam eder (derleme hattı her pakette denetler). Lis
 - Los Santos: grup 1 #6–#10 (Sweet), grup 2 #11–#17 (Smoke, Ryder), grup 3 #18–#22 (müzik ve Cesar),
   grup 4 #23–#28 (Crash, Doberman, Los Sepulcros, Reuniting The Families, The Green Sabre).
 - Sonra Badlands (#29–#39), San Fierro (#40–#65), çöl (#66–#74), Las Venturas (#75–#92), Los Santos'a dönüş (#93–#103).
-- #1–#5 upstream'de uyarlanmış; sizin testiniz bekleniyor.
+- #1–#6 ilk turda (0.3.102) geçti; #7–#10 ikinci turda (0.3.103).
 
 ## Grup 1 testinden sonra, grup 2'den önce: mimari iyileştirmeler (kullanıcıyla konuşuldu, onaylanırsa)
 Temel model kalıyor: görev host'ta çalışır, arkadaş yansımasını görür. İki iyileştirme önerildi; grup 1 testi
@@ -76,7 +70,13 @@ bitince öneri olarak sunulacak, kullanıcı onaylarsa grup 2 yeni kalıpla baş
 
 ## Sonraki işler (öncelik sırasıyla)
 - **Sağlamlık:** geçersiz oyuncu tutamacı verilen co-op komutları host'u çökertiyor (ör. arkadaş görev ortasında
-  düşerse); görevi kimin başlatabileceğini denetleyen host kontrolü (`CanPlayerStartMission`) upstream'de yorum satırı.
+  düşerse); 0.3.103'te host tarafındaki yazı ve işaret komutlarına boş oyuncu denetimi eklendi, kalan yerler ayrıca
+  taranacak. Görevi kimin başlatabileceğini denetleyen host kontrolü (`CanPlayerStartMission`) upstream'de yorum satırı.
+- **Araç senkron protokolü** (ayrı gtasa-coder-high işi): `ASSIGN_VEHICLE` aracı kimin senkronladığını belirleyen
+  bayrağı ayarlamak yerine tersine çeviriyor (iki taraf anlaşamayabilir); onaylanmadan silinen geçici araç eski bir
+  işaretçi bırakıyor; host'un görevi arkadaşın sürdüğü (arkadaşın senkronladığı) aracı silerse silme arkadaşa gitmiyor
+  ve host'ta eski bir araç işaretçisi kalıyor (`Hooks/WorldHooks.cpp`); sunucu yolcu koltuğu -1'i sürücü koltuğuna
+  çeviriyor (`server/src/PacketHandlers/vehicles.cpp`).
 - **Görev boyutu sınırı:** Reuniting The Families (#27) 69.000 baytlık sınıra 561 bayt uzakta; #27'den önce ya görev
   içinde kısaltma ya da sınırı yükselten istemci yaması.
 - **Köprü bariyerleri (The Green Sabre #28'den önce):** San Fierro/Las Venturas köprülerindeki bariyerler bir harita
@@ -86,10 +86,20 @@ bitince öneri olarak sunulacak, kullanıcı onaylarsa grup 2 yeni kalıpla baş
 - **Görevlerin isteyeceği istemci özellikleri** (sırası gelince): yangın (#23), çete savaşları (#25, #98), römork (#31),
   RC araçlar (#44–#46), paraşüt (#72, #81, #89), jetpack (#73). Tek kişilik mini oyunlarda (#10 lowrider, #18 dans,
   #43 sürücü okulu, #70 uçuş okulu) ikinci oyuncu izler.
-- **Bağımsız proje (yeniden adlandırma), isim bekleniyor.** Oyuncunun gördüğü her yerde yeni ad (oyundaki sürüm
-  yazısı ve mesajlar, DLL/klasör/ini adları, kısayollar, kurulum, README), kendi sürüm numaramız, upstream otomatik
-  takip edilmez. İç kod adları kalır. Lisans gereği kalanlar: GPL-3.0, LICENSE, kaynak dosyalarındaki orijinal telif
-  satırları ve README'de tek satırlık teşekkür. Kurulum eski adları taşır, kayıtlar etkilenmez. İsim gelince grup arasında.
+- **Bağımsız proje (yeniden adlandırma), isim bekleniyor** (öneriler: Tandem, Grove Pact, Riding Shotgun). Tek paket:
+  oyundaki pencere başlığı, sürüm yazısı ve mesajlar; DLL, mod klasörü, ini, başlatıcı, kısayol, kurulum, paket ve log
+  adları; repodaki `CoopAndreas/` klasörü, betikler, belgeler ve adı içeren birkaç kod tanımı; istenirse GitHub repo adı.
+  Kalanlar: GPL-3.0 ve LICENSE, DLL'deki orijinal telif satırı ("Tornamic (C) 2026", yanına bizimki eklenir), README'de
+  tek teşekkür satırı, git geçmişi, genel "co-op" kelimeleri (`Coop.` görev komutları, kayıttaki "(Coop)" öneki).
+  Kurulum eski kurulumu yeni ada taşır (dosyalar, kısayollar, ini'deki takma ad ve sunucu), kayıtlar etkilenmez.
+  Aynı pakette: ENet'in lisans dosyası (`third_party/enet`'te eksik). Upstream otomatik takip edilmez.
+- **Sürümleme** (kullanıcının kararı, 2026-10-16): 0.3.103 eski düzenin son paketi. Sonraki paketten (isim değişikliği
+  ya da grup 2, hangisi önce) itibaren orta sayı = teslim edilen görev grubu (grup 1 = 0.1, grup 2 = 0.2 …), son sayı =
+  o grubun düzeltme paketleri, 1.0.0 = hikâyenin tamamı co-op; "-alpha" hikâyenin büyük kısmı bitene kadar kalır.
+- **Buy Me a Coffee:** hesap açılınca README'nin başına rozet ve `.github/FUNDING.yml` (GitHub'ın Sponsor düğmesi).
+  Bağış gönüllü kalır; parayla açılan özellik ya da erken erişim yok, GTA/Rockstar logosu yok.
+- **Saygı (respect) saklama:** arkadaşın saygısı şimdilik kayıtla saklanmıyor (oyun onu bileşenlerden hesaplıyor);
+  gerekirse sonra.
 - Alt+Tab'a küçük ek: pencere arka plana geçerken "tuşlar bırakıldı" bilgisi gönderilsin (diğer ekranda basılı kalan
   tuşla yürümeye devam etmesin).
 - Upstream PR #106 **alınmadı**: sonradan katılan oyuncu diğerinin parasını sıfırlıyor, aynı anda kazanılan para
@@ -105,6 +115,7 @@ bitince öneri olarak sunulacak, kullanıcı onaylarsa grup 2 yeni kalıpla baş
 ## Bilinen sınırlamalar
 - Eski (Steam) kayıtlar yüklenemez; her zaman New Game. Co-op kaydını host alır: güvenli evde, görev dışındayken.
 - Alt+Tab'da oyun duraklar (host'taysa görev de bekler); bağlantı kopmaz.
+- Arkadaşın saklanan durumu takma adıyla eşleşir; takma ad değişirse bulunmaz. `.coop` dosyası kaydıyla birlikte taşınmalı.
 
 ## Bakım
 - Arkadaşın Wi-Fi'ı ~90 ms sıçramalar yapıyor olabilir (güç tasarrufu); kablo ya da Maksimum Performans.
