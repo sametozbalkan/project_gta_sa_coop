@@ -1,7 +1,8 @@
 # Yapılacaklar
 
 Durum (2026-10-16): host ve arkadaşı Steam tüneliyle oynuyor. Grup 1'in ilk iki oyunculu turunda (0.3.102) #1–#6
-geçti; #7'de bulunan hata 0.3.103'te düzeltildi, ikinci tur bekleniyor.
+geçti; #7'de bulunan hata 0.3.103'te düzeltildi. 0.3.103 testi atlandı (kullanıcının kararı): ikinci tur doğrudan
+0.1.0 ile yapılacak.
 Proje GitHub'da: github.com/sametozbalkan/project_gta_sa_coop. Grup 1 teslimatını Codex `codex/group1-delivery`
 branch'inde hazırladı, mimar (Claude) ve Opus 5.5 ajanları sürdürdü; 2026-10-16'da branch `main`'e alındı ve iş
 `main`'den devam ediyor.
@@ -74,8 +75,8 @@ Tasarımlar ve plan hazır (2026-10-16; kararlar onaylandı, uygulama başladı)
 M1 + WS-1, sonra M2–M4 + WS-3 + WS-4, sonra #1–#10 dönüşümü (C1) ve New Game'den yeniden test. İhtiyaç duyan gruptan
 önce: M5 (#22), WS-2 köprü bariyerleri (#28), WS-5 çeteler (#25), WS-6 (#42), nesne senkronu tasarımı (#60), WS-7 (#99).
 Kullanıcı kararları (2026-10-16): görev geçiş ödülü (para ve saygı) ikinize, bahis ve harcamalar yalnızca host'ta; çete
-savaşını host'un oyunu başlatır, arkadaşın öldürdükleri de sayılır; host sabitleme. Uygulama test beklenmeden başladı:
-0.3.103 testi bitene kadar oyuna yeni sürüm kurulmuyor, 0.3.103 düzeltmeleri `v0.3.103-alpha` etiketinden çıkar.
+savaşını host'un oyunu başlatır, arkadaşın öldürdükleri de sayılır; host sabitleme. 0.3.103 testi atlandı:
+0.1.0 doğrudan iki kişiyle test edilecek; 0.3.103'ün kontrolleri 0.1.0 test listesinde (`v0.3.103-alpha` etiketi duruyor).
 İlerleme: L0 birleştirildi (eca37e3: oturum olayları, host sabitleme, host düşünce arkadaşın kontrolü geri alması);
 WS-1 birleştirildi (d633f08: dünya durumu kaydı, şehir kilidi ona taşındı, en yüksek aranma seviyesi; paket biçimi
 değişti, main artık 0.1.0-alpha ve 0.3.103 ile bağlanamaz). M1 birleştirildi (675cfe9: görev yazıları, başlıklar ve

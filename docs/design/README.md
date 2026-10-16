@@ -1,8 +1,8 @@
 # Mirror layer and world-state registry: decisions and plan
 
 Status (2026-10-16): both designs reviewed by the architect, decisions confirmed by the user (section 1). Implementation
-started the same day at the user's request, before the two-player test of 0.3.103: nothing is deployed to the game copy
-until the user has finished that test, and fixes for 0.3.103 come from the tag `v0.3.103-alpha`. The designs:
+started the same day; the user then skipped the 0.3.103 test, so 0.1.0 goes straight to the two-player test with the
+0.3.103 checks in its test list (the tag `v0.3.103-alpha` keeps the 0.3.103 source). The designs:
 
 - `mirror-layer.md`: everything the host's mission shows on screen reaches the other players (texts, blips, locate
   spheres and markers, timers and counters).
