@@ -1,6 +1,7 @@
 # World-state registry (design)
 
-Status: design only (2026-10-16, base `main` f5cffae, 0.3.103-alpha). Nothing here is implemented. Scope agreed with
+Status: designed 2026-10-16 on main f5cffae; WS-1, WS-3 and WS-4 implemented for 0.1.0 (WS-2, WS-5–WS-7 later). Where
+the code differs from this design, `README.md` section 7 says so. Scope agreed with
 the user: the state that sets the rules of the host's world is defined in one place in client code and reaches the
 other players by itself, when it changes and when someone joins. The mission mirror layer
 (`docs/design/mirror-layer.md`, designed in parallel) covers what the host's mission shows on screen; section 3.9

@@ -118,3 +118,26 @@ wrappers are built), and `scripts/compile-scm.ps1` with its save check for C1.
   (the layout header disables an entry instead of writing wrong slots), whether the friend's kills count in the host's
   gang war.
 - Both: nothing is tested in game; the first package re-tests #1–#10 from a New Game.
+
+## 7. Where the code differs from the designs
+
+Recorded at merge time (CLAUDE.md, Fork changes, has the details of each package).
+
+- **Rewards** (M-D3): mirrored for every host mission, registered or not; `0109` and `0998` left the general replay.
+  `mirror-layer.md` 4.5 still says registration gives the rewards. The mission-passed stat (147) still follows the
+  host in registered ports, because `0318` stays in `COpCodeSync`'s list.
+- **Packets:** one header per mirror package (`mirror_blips.h`, `mirror_areas.h`, `mirror_hud.h`) instead of one
+  `mirror.h`; every new relay goes through `CHostManager::SendFromHostToOthers`/`SendFromHostToPlayer`.
+- **Areas** carry the host's area code, so an interior marker isn't drawn on the street outside.
+- **Timers:** the five optional `Add*` wrappers were built (gym machines and side missions share counter slots);
+  hook audit baseline 411.
+- **EnEx:** the per-player mask is 0xA01A (from the 1.0 bytes), not 0x0008|0x2000; the adapter feeds the registry
+  a locally built FULL with each `ENEX_SYNC` (a registry API for local sources is a later cleanup) and waits during
+  the friend's own girlfriend date and mod garage scripts.
+- **Garages:** Michelle's garage stays per player.
+- **Mission settings:** checked every frame, not every 250 ms, and reset on the friend when the host leaves during
+  its mission.
+- **Lifecycle:** a takeover's join snapshot and PLAYER_JOINED events wait for the first server-time answer;
+  subscribers live in a function-local static.
+- **Respect** (P1, not in the designs): mission, kill and clothes respect are kept with the player state (CAPS v2).
+

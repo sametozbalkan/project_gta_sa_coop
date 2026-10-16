@@ -1,6 +1,7 @@
 # Mission mirror layer (design)
 
-Status: design only, 2026-10-16, on main `f5cffae` (0.3.103-alpha). Nothing here is implemented. The user approved
+Status: designed 2026-10-16 on main `f5cffae`; M1–M4 implemented for 0.1.0 (M5 later). Where the code differs from this
+design, `README.md` section 7 says so. The user approved
 the idea; the architect's decisions on section 9 and the merged plan with the world-state registry are in
 `README.md` in this folder.
 
