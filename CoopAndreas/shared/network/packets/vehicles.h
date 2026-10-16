@@ -1,5 +1,10 @@
 #pragma once
 #include <CVehicle.h>
+#include "network/vehicle_sync.h"
+
+// private build (vehicle sync protocol): the wire values below and the plugin-sdk enum agree
+static_assert(VehicleSync::CREATED_BY_RANDOM == RANDOM_VEHICLE && VehicleSync::CREATED_BY_MISSION == MISSION_VEHICLE,
+    "eVehicleCreatedBy");
 
 namespace Packets::Vehicles
 {
@@ -38,12 +43,16 @@ class VehicleRemove : public Packet
 
 public:
     int vehicleid{};
+    // private build (vehicle sync protocol): VehicleSync::eRemoveReason, who asks for the removal; the server accepts it
+    // from the syncer (as upstream), from the vehicle's creator before its confirmation and from the host for its mission
+    uint8_t reason = VehicleSync::REMOVE_BY_SYNCER;
 
 private:
     template <typename Stream>
     bool Serialize(Stream& stream)
     {
         serialize_int(stream, vehicleid, 0, Config::MAX_SERVER_VEHICLES - 1);
+        serialize_int(stream, reason, 0, VehicleSync::REMOVE_REASON_MAX);
         return true;
     }
 };
@@ -392,8 +401,8 @@ public:
     Packets::Players::SHealthSnapshot playerHealth{};
     Packets::Players::SWeaponSnapshot playerWeapon{};
     Packets::Players::SKeySnapshot playerKeys{};
-    bool driveby;
-    int8_t seatid;
+    bool driveby = false;
+    int8_t seatid = VehicleSync::SEAT_UNKNOWN;  // private build: -1 when the sender doesn't find its seat (was 0, seat 1)
 
 private:
     template <typename Stream>
@@ -417,12 +426,19 @@ class AssignVehicleSyncer : public Packet
 
 public:
     int vehicleid{};
+    // private build (vehicle sync protocol): what the receiver is now, its syncer (true) or not (false); upstream sent the
+    // same packet to the old and the new syncer and each flipped its state. modelid tells a receiver that doesn't know
+    // the vehicle yet (an assignment it keeps until the vehicle appears) this vehicle from an older one with the same id.
+    bool bSyncing = false;
+    uint16_t modelid = MODEL_LANDSTAL;
 
 private:
     template <typename Stream>
     bool Serialize(Stream& stream)
     {
         serialize_int(stream, vehicleid, 0, Config::MAX_SERVER_VEHICLES - 1);
+        serialize_bool(stream, bSyncing);
+        serialize_int(stream, modelid, MODEL_LANDSTAL, MODEL_UTILTR1);
 
         return true;
     }

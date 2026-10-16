@@ -7,6 +7,13 @@ PACKET_HANDLER(
     ePacketType::VEHICLE_SPAWN, Packets::Vehicles::VehicleSpawn* pVehicleSpawn, CNetworkPlayer* pNetworkPlayer)
 {
     pVehicleSpawn->vehicleid = CNetworkVehicleManager::GetFreeID();
+    // private build (vehicle sync protocol): no record with id -1 (nothing could be sent for it anyway)
+    if (pVehicleSpawn->vehicleid < 0)
+    {
+        logger::warn("%s spawned a vehicle, but all %d vehicle ids are taken", pNetworkPlayer->GetName().c_str(),
+            Config::MAX_SERVER_VEHICLES);
+        return;
+    }
     GetPacketFactory().SendToAll(*pVehicleSpawn, pNetworkPlayer);
 
     // send it back to the syncer of the vehicle so that he knows the id
@@ -22,6 +29,9 @@ PACKET_HANDLER(
     vehicle->m_nPrimaryColor = pVehicleSpawn->color1;
     vehicle->m_nSecondaryColor = pVehicleSpawn->color2;
     vehicle->m_nCreatedBy = pVehicleSpawn->createdBy;
+    // private build (vehicle sync protocol)
+    vehicle->m_pCreator = pNetworkPlayer;
+    vehicle->m_bHostMission = VehicleSeatPolicy::IsHostMission(vehicle->m_nCreatedBy, pNetworkPlayer->m_bIsHost);
 
     CNetworkVehicleManager::Add(vehicle);
 }
@@ -31,11 +41,21 @@ PACKET_HANDLER(
 {
     if (auto vehicle = CNetworkVehicleManager::GetVehicle(pVehicleRemove->vehicleid))
     {
-        if (vehicle->m_pSyncer == pNetworkPlayer)
+        // private build (vehicle sync protocol): the syncer, the creator for a vehicle its game lost before
+        // VEHICLE_CONFIRM, or the host whose mission deleted a vehicle another game syncs (VehicleSync::eRemoveReason)
+        if (VehicleSeatPolicy::AcceptRemove(pVehicleRemove->reason, vehicle->m_pSyncer == pNetworkPlayer,
+                vehicle->m_pCreator == pNetworkPlayer, pNetworkPlayer->m_bIsHost))
         {
             GetPacketFactory().SendToAll(*pVehicleRemove, pNetworkPlayer);
 
-            CNetworkVehicleManager::Remove(vehicle);
+            if (pVehicleRemove->reason != VehicleSync::REMOVE_BY_SYNCER)
+            {
+                printf("[Vehicle] : %s (id %d) removed vehicle %d (%s)\n", pNetworkPlayer->GetName().c_str(),
+                    pNetworkPlayer->m_iPlayerId, vehicle->m_nVehicleId,
+                    pVehicleRemove->reason == VehicleSync::REMOVE_UNCONFIRMED ? "gone before its confirmation"
+                                                                              : "the host's mission deleted it");
+            }
+            CNetworkVehicleManager::Delete(vehicle);
         }
         else
         {
@@ -59,6 +79,8 @@ PACKET_HANDLER(ePacketType::VEHICLE_IDLE_UPDATE, Packets::Vehicles::VehicleIdleU
         else
         {
             logger::warn("%s tried to update someone else's vehicle (idle)", pNetworkPlayer->GetName().c_str());
+            // private build (vehicle sync protocol): that game still thinks it syncs the vehicle; it hears it doesn't
+            vehicle->CorrectStaleSyncer(pNetworkPlayer);
         }
     }
     else
@@ -92,10 +114,13 @@ PACKET_HANDLER(
 {
     if (auto pNetworkVehicle = CNetworkVehicleManager::GetVehicle(pVehicleEnter->vehicleid))
     {
-        if (pVehicleEnter->bPassenger)
-            pNetworkVehicle->SetOccupant(pVehicleEnter->seatid + 1, pNetworkPlayer);
-        else
-            pNetworkVehicle->SetOccupant(0, pNetworkPlayer);
+        // private build (vehicle sync protocol): an unknown passenger seat (-1) isn't recorded (upstream made it seat 0,
+        // the driver's); the sender's next VEHICLE_PASSENGER_UPDATE names its seat
+        const int seat = VehicleSeatPolicy::SeatFromEnter(pVehicleEnter->bPassenger, pVehicleEnter->seatid);
+        if (seat >= 0)
+        {
+            pNetworkVehicle->SetOccupant(static_cast<int8_t>(seat), pNetworkPlayer);
+        }
 
         pVehicleEnter->playerid = pNetworkPlayer->m_iPlayerId;
         GetPacketFactory().SendToAll(*pVehicleEnter, pNetworkPlayer);
@@ -111,13 +136,8 @@ PACKET_HANDLER(ePacketType::VEHICLE_EXIT, Packets::Vehicles::VehicleExit* pVehic
     pVehicleExit->playerid = pNetworkPlayer->m_iPlayerId;
     GetPacketFactory().SendToAll(*pVehicleExit, pNetworkPlayer);
 
-    if (auto pNetworkVehicle = CNetworkVehicleManager::GetVehicle(pNetworkPlayer->m_nVehicleId))
-    {
-        if (pNetworkPlayer->m_nSeatId >= 0)
-        {
-            pNetworkVehicle->SetOccupant(pNetworkPlayer->m_nSeatId, nullptr);
-        }
-    }
+    // private build (vehicle sync protocol): the seat it held, whichever it was (CVehicleSeatPolicy.h)
+    pNetworkPlayer->RemoveFromVehicle();
 }
 
 PACKET_HANDLER(
@@ -178,23 +198,20 @@ PACKET_HANDLER(ePacketType::VEHICLE_PASSENGER_UPDATE,
         pVehiclePassengerUpdate->playerid = pNetworkPlayer->m_iPlayerId;
         GetPacketFactory().SendToAll(*pVehiclePassengerUpdate, pNetworkPlayer);
 
-        pNetworkVehicle->SetOccupant(pVehiclePassengerUpdate->seatid + 1, pNetworkPlayer);
-
-        if (pNetworkVehicle->m_nCreatedBy == MISSION_VEHICLE)
+        // private build (vehicle sync protocol): an unknown seat (-1, the sender didn't find its ped among the
+        // passengers) isn't recorded and changes no syncer; upstream read it as seat 0 (here 1)
+        const int seat = VehicleSeatPolicy::SeatFromPassenger(pVehiclePassengerUpdate->seatid);
+        if (seat < 0)
         {
             return;
         }
+        pNetworkVehicle->SetOccupant(static_cast<int8_t>(seat), pNetworkPlayer);
 
-        if (!pNetworkVehicle->m_pPlayers[0] && !pNetworkVehicle->m_bUsedByPed)  // if no driver
+        // no driver: a passenger becomes the syncer (not of a mission vehicle, nor of one a ped drives)
+        if (auto pNewSyncer = VehicleSeatPolicy::ChoosePassengerSyncer<CNetworkPlayer>(*pNetworkVehicle,
+                pNetworkVehicle->m_nCreatedBy == MISSION_VEHICLE, pNetworkVehicle->m_bUsedByPed))
         {
-            for (uint8_t i = 1; i < 8; i++)
-            {
-                if (auto pNewSyncer = pNetworkVehicle->m_pPlayers[i])
-                {
-                    pNetworkVehicle->ReassignSyncer(pNewSyncer);
-                    break;
-                }
-            }
+            pNetworkVehicle->ReassignSyncer(pNewSyncer);
         }
     }
     else
@@ -211,6 +228,8 @@ PACKET_HANDLER(ePacketType::SET_VEHICLE_CREATED_BY, Packets::Vehicles::SetVehicl
         if (auto pNetworkVehicle = CNetworkVehicleManager::GetVehicle(pSetVehicleCreatedBy->vehicleid))
         {
             pNetworkVehicle->m_nCreatedBy = pSetVehicleCreatedBy->createdBy;
+            // private build (vehicle sync protocol): the host's scripts own it while they keep it a mission vehicle
+            pNetworkVehicle->m_bHostMission = VehicleSeatPolicy::IsHostMission(pNetworkVehicle->m_nCreatedBy, true);
             GetPacketFactory().SendToAll(*pSetVehicleCreatedBy, pNetworkPlayer);
         }
     }

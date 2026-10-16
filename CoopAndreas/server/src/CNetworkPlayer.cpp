@@ -16,17 +16,7 @@ std::string CNetworkPlayer::GetName()
 
 void CNetworkPlayer::RemoveFromVehicle()
 {
-    if (this->m_nSeatId < 0 || this->m_nSeatId > 7)
-        return;
-
-    if (auto vehicle = CNetworkVehicleManager::GetVehicle(this->m_nVehicleId))
-    {
-        if (vehicle->m_pPlayers[this->m_nSeatId] == this)
-        {
-            vehicle->SetOccupant(this->m_nSeatId, nullptr);
-        }
-    }
-
-    this->m_nVehicleId = -1;
-    this->m_nSeatId = -1;
+    // private build (vehicle sync protocol): out of the seat it holds, and of any stale second one (CVehicleSeatPolicy.h)
+    VehicleSeatPolicy::LeaveSeat<CNetworkVehicle>(
+        this, [](int vehicleid) { return CNetworkVehicleManager::GetVehicle(vehicleid); });
 }

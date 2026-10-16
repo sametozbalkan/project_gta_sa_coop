@@ -13,17 +13,24 @@ void CNetworkVehicle::ReassignSyncer(CNetworkPlayer* newSyncer)
 {
     if (m_pSyncer != newSyncer)
     {
+        // private build (vehicle sync protocol): each receiver hears what it is now instead of flipping its state
         Packets::Vehicles::AssignVehicleSyncer packet{};
         packet.vehicleid = m_nVehicleId;
+        packet.modelid = m_nModelId;
 
         // send to the old vehicle syncer
         if (m_pSyncer)
         {
+            packet.bSyncing = false;
             GetPacketFactory().Send(packet, m_pSyncer);
         }
 
         // send to the new
-        GetPacketFactory().Send(packet, newSyncer);
+        if (newSyncer)
+        {
+            packet.bSyncing = true;
+            GetPacketFactory().Send(packet, newSyncer);
+        }
 
         m_pSyncer = newSyncer;
     }
@@ -31,20 +38,24 @@ void CNetworkVehicle::ReassignSyncer(CNetworkPlayer* newSyncer)
 
 void CNetworkVehicle::SetOccupant(int8_t seatid, CNetworkPlayer* player)
 {
-    if (seatid < 0 || seatid > 7)
+    // private build (vehicle sync protocol): one seat in one vehicle per player (CVehicleSeatPolicy.h); upstream left the
+    // player's previous seat recorded
+    VehicleSeatPolicy::SetOccupant(*this, seatid, player,
+        [](int vehicleid) { return CNetworkVehicleManager::GetVehicle(vehicleid); });
+}
+
+void CNetworkVehicle::CorrectStaleSyncer(CNetworkPlayer* player)
+{
+    if (player == nullptr || player == m_pSyncer || !m_syncerCorrection.ShouldSend(g_serverTime))
+    {
         return;
-
-    if (this->m_pPlayers[seatid])
-    {
-        this->m_pPlayers[seatid]->m_nVehicleId = -1;
-        this->m_pPlayers[seatid]->m_nSeatId = -1;
     }
 
-    this->m_pPlayers[seatid] = player;
-
-    if (player)
-    {
-        player->m_nVehicleId = this->m_nVehicleId;
-        player->m_nSeatId = seatid;
-    }
+    Packets::Vehicles::AssignVehicleSyncer packet{};
+    packet.vehicleid = m_nVehicleId;
+    packet.modelid = m_nModelId;
+    packet.bSyncing = false;
+    GetPacketFactory().Send(packet, player);
+    printf("[Vehicle] : %s (id %d) isn't the syncer of vehicle %d, told it so\n", player->GetName().c_str(),
+        player->m_iPlayerId, m_nVehicleId);
 }

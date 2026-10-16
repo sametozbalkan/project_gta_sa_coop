@@ -8,6 +8,7 @@
 #include <CEntryExitTransitionSync.h>
 #include <CShotInfo.h>
 #include <game_sa/CTagManager.h>
+#include <intrin.h>
 
 // static void __cdecl CWeather__ForceWeather_Hook(short id)
 // {
@@ -82,11 +83,30 @@ static void __cdecl CWorld__Add_Hook(CEntity* entity)
         if (entity->m_nType == eEntityType::ENTITY_TYPE_VEHICLE)
         {
             CVehicle* vehicle = (CVehicle*)entity;
-            if (CNetworkVehicleManager::GetVehicle(vehicle) != nullptr)  // fixes a strange bug
+            // private build (vehicle sync protocol): a vehicle that already has a record (ours waiting for VEHICLE_CONFIRM,
+            // or a network vehicle the game takes out of the world and adds again) isn't networked a second time, but it
+            // still reaches the world. Upstream returned before CWorld::Add here ("fixes a strange bug": the duplicate
+            // VEHICLE_SPAWN of such a vehicle), which left the vehicle out of the world, and a stale record in a reused
+            // pool slot did that to a brand-new vehicle. A vehicle already linked into the world (its entry list,
+            // CPhysical +0xB0, which IsVehiclePointerValid 0x6E38F0 reads too) isn't added twice.
+            CNetworkVehicle* pRecord = CNetworkVehicleManager::GetVehicle(vehicle);
+            if (pRecord == nullptr)
             {
+                pRecord = CNetworkVehicleManager::GetTempVehicle(vehicle);
+            }
+            if (pRecord == nullptr)
+            {
+                CNetworkVehicle::CreateHosted(vehicle);
+            }
+            else if (vehicle->m_pCollisionList != nullptr)
+            {
+                CNetworkVehicleManager::LogFrequentEvent("add-skipped", pRecord->m_nVehicleId, "in-world=1");
                 return;
             }
-            CNetworkVehicle* networkVehicle = CNetworkVehicle::CreateHosted(vehicle);
+            else
+            {
+                pRecord->m_bHostMissionDelete = false;
+            }
         }
         else if (entity->m_nType == eEntityType::ENTITY_TYPE_PED)
         {
@@ -106,13 +126,13 @@ static void __cdecl CWorld__Remove_Hook(CEntity* entity)
 {
     if (entity->m_nType == eEntityType::ENTITY_TYPE_VEHICLE)
     {
-        CVehicle* vehicle = (CVehicle*)entity;
-        CNetworkVehicle* networkVehicle = CNetworkVehicleManager::GetVehicle(vehicle);
-        if (networkVehicle && networkVehicle->m_bSyncing)
-        {
-            CNetworkVehicleManager::Remove(networkVehicle);
-            delete networkVehicle;
-        }
+        // private build (vehicle sync protocol): records end where the vehicle does, in the ~CVehicle hook
+        // (VehicleHooks.cpp), which also sees the vehicles no hooked site removes; upstream ended only the records of
+        // vehicles this game synced, here, and left every other record with a dangling pointer. This call names the site
+        // for the diag log and gets the players out of a copy the host's mission deletes (DELETE_CAR). The sites by
+        // caller: CNetworkVehicleManager.cpp (removeSiteClasses).
+        CNetworkVehicleManager::OnWorldRemove(
+            (CVehicle*)entity, reinterpret_cast<uintptr_t>(_ReturnAddress()) - 5);
     }
     else if (entity->m_nType == eEntityType::ENTITY_TYPE_PED)
     {

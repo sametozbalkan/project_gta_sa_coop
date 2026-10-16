@@ -302,33 +302,89 @@ void __fastcall CVehicle__SetVehicleCreatedBy_Hook(CVehicle* This, SKIP_EDX, int
 {
     This->SetVehicleCreatedBy(createdBy);
 
-    if (!CLocalPlayer::m_bIsHost)
-        return;
-
-    if (auto pNetworkVehicle = CNetworkVehicleManager::GetVehicle(This))
+    if (CLocalPlayer::m_bIsHost)
     {
-        Packets::Vehicles::SetVehicleCreatedBy packet{};
-        packet.vehicleid = pNetworkVehicle->m_nVehicleId;
-        packet.createdBy = (eVehicleCreatedBy)createdBy;
-        GetPacketFactory().Send(packet);
+        if (auto pNetworkVehicle = CNetworkVehicleManager::GetVehicle(This))
+        {
+            Packets::Vehicles::SetVehicleCreatedBy packet{};
+            packet.vehicleid = pNetworkVehicle->m_nVehicleId;
+            packet.createdBy = (eVehicleCreatedBy)createdBy;
+            GetPacketFactory().Send(packet);
+        }
     }
+
+    // private build (vehicle sync protocol): on every game, the record keeps the value and a copy this game doesn't sync
+    // stays MISSION_VEHICLE (CNetworkVehicleManager::OnLocalCreatedByChanged)
+    CNetworkVehicleManager::OnLocalCreatedByChanged(This, createdBy);
 }
 
+// MARK_CAR_AS_NO_LONGER_NEEDED (01C3, call 0x47D775), the mission cleanup (00D8's CMissionCleanup::Process, call 0x468AEB)
+// and CTaskSimpleCreateCarAndGetIn (0x64CED4, 0x64D186) release a vehicle here (private build comment):
+// 1.0 US CTheScripts::CleanUpThisVehicle (0x486670, jmp to 0x1565CA0 in .HOODLUM) turns
+// a MISSION_VEHICLE into a RANDOM_VEHICLE (cmp byte ptr [esi+4A4h],2, then SetVehicleCreatedBy(1) at 0x1565CFC; gta-reversed
+// has the check the other way round), after which that game's population code may delete it
 void CTheScripts__CleanUpThisVehicle_Hook(CVehicle* vehicle)
 {
     CTheScripts::CleanUpThisVehicle(vehicle);
 
-    if (!CLocalPlayer::m_bIsHost)
+    // private build (vehicle sync protocol): the game may pass NULL; the value is read before a copy goes back to
+    // MISSION_VEHICLE
+    if (vehicle == nullptr)
         return;
+    const int createdBy = vehicle->m_nCreatedBy;
 
-    if (auto networkVehicle = CNetworkVehicleManager::GetVehicle(vehicle))
+    if (CLocalPlayer::m_bIsHost)
     {
-        Packets::Vehicles::SetVehicleCreatedBy packet{};
-        packet.vehicleid = networkVehicle->m_nVehicleId;
-        int createdBy = vehicle->m_nCreatedBy;
-        packet.createdBy = (eVehicleCreatedBy)createdBy;
-        GetPacketFactory().Send(packet);
+        if (auto networkVehicle = CNetworkVehicleManager::GetVehicle(vehicle))
+        {
+            Packets::Vehicles::SetVehicleCreatedBy packet{};
+            packet.vehicleid = networkVehicle->m_nVehicleId;
+            packet.createdBy = (eVehicleCreatedBy)createdBy;
+            GetPacketFactory().Send(packet);
+        }
     }
+
+    // private build: on every game, as in CVehicle__SetVehicleCreatedBy_Hook
+    CNetworkVehicleManager::OnLocalCreatedByChanged(vehicle, createdBy);
+}
+
+// private build (vehicle sync protocol): every vehicle the game destroys passes CVehicle::~CVehicle (0x6E2B40,
+// gta-reversed Vehicle.cpp), called by the destructors of the vehicle classes: CAutomobile::~CAutomobile 0x6A61E0 at
+// 0x6A625E (CHeli, CPlane, CMonsterTruck, CQuadBike and CTrailer run it), CBike::~CBike 0x6B57A0 at 0x6B5800 (CBmx runs it),
+// CBoat::~CBoat 0x6F00F0 at 0x6F016D, CTrain::~CTrain 0x6F54D0 at 0x6F5510 (sets CTrain's vtable 0x872370 first) and
+// CVehicle's deleting destructor 0x6E38A0 at 0x6E38A4. Each is a call rel32 (E8) with this in ecx (dumpbin of
+// C:\Games\GTASA_Coop\gta_sa.exe); the other references are the compiler's exception unwind funclets (0x847F63 to
+// 0x848AC3), which no vehicle constructor reaches. The vehicle's pool slot is freed after the destructors, so the record
+// still matches its slot generation here. A site that doesn't hold that call at start-up is skipped.
+namespace
+{
+constexpr uintptr_t VEHICLE_DESTRUCTOR = 0x6E2B40;
+const uintptr_t vehicleDestructorCallAddresses[] = {0x6A625E, 0x6B5800, 0x6E38A4, 0x6F016D, 0x6F5510};
+}  // namespace
+
+static void __fastcall CVehicle__Destructor_Hook(CVehicle* This)
+{
+    CNetworkVehicleManager::OnVehicleDestroyed(This);
+    plugin::CallMethod<VEHICLE_DESTRUCTOR, CVehicle*>(This);
+}
+
+static void InjectVehicleDestructorHooks()
+{
+    int hooked = 0;
+    int total = 0;
+    for (uintptr_t site : vehicleDestructorCallAddresses)
+    {
+        total++;
+        const uint8_t firstByte = patch::GetUChar(static_cast<int>(site), false);
+        const uintptr_t target = site + 5 + static_cast<uintptr_t>(patch::GetInt(static_cast<int>(site + 1), false));
+        if (firstByte != 0xE8 || target != VEHICLE_DESTRUCTOR)
+        {
+            continue;
+        }
+        patch::RedirectCall(static_cast<int>(site), CVehicle__Destructor_Hook);
+        hooked++;
+    }
+    CNetworkVehicleManager::OnDestructorHooksInstalled(hooked, total);
 }
 
 CPed* BmxFix_FindPlayerPed_Hook(CVehicle* vehicle)
@@ -512,6 +568,8 @@ void VehicleHooks::InjectHooks()
     patch::RedirectCall(0x53A9A7 + 2, BmxFix_FindPlayerPed_Hook);
     patch::RedirectCall(0x53A990, CPlayerPed__DoStuffToGoOnFire_Hook);
     patch::RedirectCall(0x53A9B7, CFireManager__StartFire_Hook);
+
+    InjectVehicleDestructorHooks(); // private build (vehicle sync protocol)
 
     // patch::RedirectCall(0x6D6494, CVehicle__PreRenderDriverAndPassengers_Hook); // TODO: enable this and in
     // proccontrol too

@@ -24,6 +24,7 @@ PACKET_HANDLER(ePacketType::VEHICLE_SPAWN, Packets::Vehicles::VehicleSpawn* pVeh
         new CNetworkVehicle(pVehicleSpawn->vehicleid, pVehicleSpawn->modelid, pVehicleSpawn->pos,
             pVehicleSpawn->rot.m_angle, pVehicleSpawn->color1, pVehicleSpawn->color2, pVehicleSpawn->createdBy);
     CNetworkVehicleManager::Add(pNetworkVehicle);
+    CNetworkVehicleManager::OnSpawned(pNetworkVehicle); // private build (vehicle sync protocol): an assignment that came first
 }
 
 PACKET_HANDLER(ePacketType::VEHICLE_REMOVE, Packets::Vehicles::VehicleRemove* pVehicleRemove)
@@ -31,12 +32,9 @@ PACKET_HANDLER(ePacketType::VEHICLE_REMOVE, Packets::Vehicles::VehicleRemove* pV
 #ifdef PACKET_DEBUG_MESSAGES
     CChat::AddMessage("VEHICLE REMOVE %d", pVehicleRemove->vehicleid);
 #endif
-    CNetworkVehicle* pNetworkVehicle = CNetworkVehicleManager::GetVehicle(pVehicleRemove->vehicleid);
-    if (pNetworkVehicle)
-    {
-        CNetworkVehicleManager::Remove(pNetworkVehicle);
-        delete pNetworkVehicle;
-    }
+    // private build (vehicle sync protocol): whatever the reason and whether this game synced it, the vehicle goes (players
+    // out first) and so does its record; upstream's record destructor sent the removal back when this game synced it
+    CNetworkVehicleManager::OnRemovePacket(pVehicleRemove->vehicleid);
 }
 
 PACKET_HANDLER(ePacketType::VEHICLE_CONFIRM, Packets::Vehicles::VehicleConfirm* pVehicleConfirm)
@@ -45,16 +43,9 @@ PACKET_HANDLER(ePacketType::VEHICLE_CONFIRM, Packets::Vehicles::VehicleConfirm* 
     CChat::AddMessage("VEHICLE CONFIRM %d %d", pVehicleConfirm->vehicleid, pVehicleConfirm->tempid);
 #endif
 
-    if (pVehicleConfirm->tempid < ARRAY_SIZE(CNetworkVehicleManager::m_apTempVehicles))
-    {
-        CNetworkVehicle* pTempVehicle = CNetworkVehicleManager::m_apTempVehicles[pVehicleConfirm->tempid];
-        if (pTempVehicle)
-        {
-            pTempVehicle->m_nVehicleId = pVehicleConfirm->vehicleid;
-            CNetworkVehicleManager::Add(pTempVehicle);
-            CNetworkVehicleManager::m_apTempVehicles[pVehicleConfirm->tempid] = nullptr;
-        }
-    }
+    // private build (vehicle sync protocol): a vehicle the game destroyed before this is removed on every game, an
+    // assignment that came first applies now
+    CNetworkVehicleManager::OnConfirmed(pVehicleConfirm->tempid, pVehicleConfirm->vehicleid);
 }
 
 PACKET_HANDLER(ePacketType::VEHICLE_IDLE_UPDATE, Packets::Vehicles::VehicleIdleUpdate* pVehicleIdleUpdate)
@@ -64,7 +55,12 @@ PACKET_HANDLER(ePacketType::VEHICLE_IDLE_UPDATE, Packets::Vehicles::VehicleIdleU
     if (pNetworkVehicle == nullptr)
         return;
 
-    if (!pNetworkVehicle->m_pVehicle)
+    // private build (vehicle sync protocol): the syncer's state, and a copy this game lost comes back where it is
+    pNetworkVehicle->RememberState(pVehicleIdleUpdate->pos, pVehicleIdleUpdate->roll, pVehicleIdleUpdate->rot,
+        pVehicleIdleUpdate->color1, pVehicleIdleUpdate->color2);
+    if (!pNetworkVehicle->GetLiveVehicle() &&
+        !CNetworkVehicleManager::RecreateLostCopy(pNetworkVehicle, pVehicleIdleUpdate->pos, pVehicleIdleUpdate->roll,
+            pVehicleIdleUpdate->rot, pVehicleIdleUpdate->color1, pVehicleIdleUpdate->color2))
         return;
 
     if (pNetworkVehicle->m_pVehicle->m_matrix == nullptr)
@@ -106,9 +102,19 @@ PACKET_HANDLER(ePacketType::VEHICLE_DRIVER_UPDATE, Packets::Vehicles::VehicleDri
     if (pNetworkVehicle == nullptr || pNetworkPlayer == nullptr)
         return;
 
-    CVehicle* pVehicle = pNetworkVehicle->m_pVehicle;
-    if (!pVehicle->IsVTableValid())
-        return;
+    // private build (vehicle sync protocol): the driver's state, and a copy this game lost comes back where the driver
+    // has it (upstream read a NULL or freed vehicle here)
+    pNetworkVehicle->RememberState(pVehicleDriverUpdate->pos, pVehicleDriverUpdate->roll, pVehicleDriverUpdate->rot,
+        pVehicleDriverUpdate->color1, pVehicleDriverUpdate->color2);
+    CVehicle* pVehicle = pNetworkVehicle->GetLiveVehicle();
+    if (pVehicle == nullptr)
+    {
+        pVehicle = CNetworkVehicleManager::RecreateLostCopy(pNetworkVehicle, pVehicleDriverUpdate->pos,
+            pVehicleDriverUpdate->roll, pVehicleDriverUpdate->rot, pVehicleDriverUpdate->color1,
+            pVehicleDriverUpdate->color2);
+        if (pVehicle == nullptr)
+            return;
+    }
 
     // private build: a missing or broken ped is recreated at the vehicle and seated only while it has a clump and
     // intelligence; the vehicle is updated either way
@@ -184,9 +190,9 @@ PACKET_HANDLER(ePacketType::VEHICLE_ENTER, Packets::Vehicles::VehicleEnter* pVeh
 
     // private build: tasks only for a ped with a clump and intelligence (GetReadyPed)
     CPlayerPed* pPlayerPed = pNetworkPlayer->GetReadyPed();
-    CVehicle* pVehicle = pNetworkVehicle->m_pVehicle;
+    CVehicle* pVehicle = pNetworkVehicle->GetLiveVehicle(); // private build (vehicle sync protocol): may be lost
 
-    if (pPlayerPed == nullptr || !pVehicle->IsVTableValid())
+    if (pPlayerPed == nullptr || pVehicle == nullptr)
         return;
 
 #ifdef PACKET_DEBUG_MESSAGES
@@ -210,6 +216,12 @@ PACKET_HANDLER(ePacketType::VEHICLE_ENTER, Packets::Vehicles::VehicleEnter* pVeh
         if (IsPassengerSeatValid(pVehicle, pVehicleEnter->seatid))
         {
             pNetworkPlayer->EnterVehiclePassenger(pVehicle, pVehicleEnter->seatid);
+        }
+        else
+        {
+            CNetworkVehicleManager::LogFrequentEvent("seat-unknown", pVehicleEnter->vehicleid,
+                "packet=enter player=%d seat=%d maxPassengers=%d", pVehicleEnter->playerid.value, pVehicleEnter->seatid,
+                pVehicle->m_nMaxPassengers);
         }
     }
     else
@@ -352,9 +364,9 @@ PACKET_HANDLER(
         return;
     }
 
-    CVehicle* pVehicle = pNetworkVehicle->m_pVehicle;
+    CVehicle* pVehicle = pNetworkVehicle->GetLiveVehicle(); // private build (vehicle sync protocol): may be lost
 
-    if (pVehicle == nullptr || !pVehicle->IsVTableValid())
+    if (pVehicle == nullptr)
     {
         return;
     }
@@ -379,13 +391,17 @@ PACKET_HANDLER(
     }
 
     if (!pPlayerPed->m_nPedFlags.bInVehicle || pPlayerPed->m_pVehicle != pVehicle ||
-        pNetworkVehicle->m_pVehicle->m_apPassengers[pVehiclePassengerUpdate->seatid] != pPlayerPed)
+        pVehicle->m_apPassengers[pVehiclePassengerUpdate->seatid] != pPlayerPed)
     {
 #ifdef PACKET_DEBUG_MESSAGES
         CChat::AddMessage("forcing enter passenger %d", player->m_iPlayerId);
 #endif
 
-        pNetworkPlayer->WarpIntoVehiclePassenger(pNetworkVehicle->m_pVehicle, pVehiclePassengerUpdate->seatid);
+        // private build (vehicle sync protocol, --coopdiag): the seat the passenger reports wins
+        CNetworkVehicleManager::LogFrequentEvent("seat-correction", pVehiclePassengerUpdate->vehicleid,
+            "player=%d seat=%d inVehicle=%d sameVehicle=%d", pVehiclePassengerUpdate->playerid.value,
+            pVehiclePassengerUpdate->seatid, pPlayerPed->m_nPedFlags.bInVehicle, pPlayerPed->m_pVehicle == pVehicle);
+        pNetworkPlayer->WarpIntoVehiclePassenger(pVehicle, pVehiclePassengerUpdate->seatid);
     }
 
     pNetworkPlayer->ApplyWeaponSnapshot(pVehiclePassengerUpdate->playerWeapon);
@@ -408,37 +424,16 @@ PACKET_HANDLER(
 
 PACKET_HANDLER(ePacketType::ASSIGN_VEHICLE, Packets::Vehicles::AssignVehicleSyncer* pAssignVehicleSyncer)
 {
-    CNetworkVehicle* pNetworkVehicle = CNetworkVehicleManager::GetVehicle(pAssignVehicleSyncer->vehicleid);
-
-    if (!pNetworkVehicle)
-    {
-        return;
-    }
-
-    if (pNetworkVehicle->m_bSyncing)
-    {
 #ifdef PACKET_DEBUG_MESSAGES
-        CChat::AddMessage("NOT SYNCING VEHICLE %d ANYMORE", pAssignVehicleSyncer->vehicleid);
+    CChat::AddMessage("%s VEHICLE %d", pAssignVehicleSyncer->bSyncing ? "SYNCING" : "NOT SYNCING",
+        pAssignVehicleSyncer->vehicleid);
 #endif
-        pNetworkVehicle->m_bSyncing = false;
 
-        if (auto pVehicle = pNetworkVehicle->m_pVehicle)
-        {
-            pVehicle->SetVehicleCreatedBy(eVehicleCreatedBy::MISSION_VEHICLE);
-        }
-    }
-    else
-    {
-#ifdef PACKET_DEBUG_MESSAGES
-        CChat::AddMessage("SYNCING VEHICLE %d", pAssignVehicleSyncer->vehicleid);
-#endif
-        pNetworkVehicle->m_bSyncing = true;
-
-        if (auto pVehicle = pNetworkVehicle->m_pVehicle)
-        {
-            pVehicle->SetVehicleCreatedBy(pNetworkVehicle->m_nCreatedBy);
-        }
-    }
+    // private build (vehicle sync protocol): the packet says what this game now is for the vehicle (upstream flipped
+    // m_bSyncing, so a lost assignment inverted every later one); one for a vehicle this game doesn't know yet waits
+    // for it. A copy is MISSION_VEHICLE, the syncer's vehicle has its own createdBy.
+    CNetworkVehicleManager::OnAssignment(
+        pAssignVehicleSyncer->vehicleid, pAssignVehicleSyncer->modelid, pAssignVehicleSyncer->bSyncing);
 }
 
 
@@ -455,7 +450,7 @@ PACKET_HANDLER(ePacketType::SET_VEHICLE_CREATED_BY, Packets::Vehicles::SetVehicl
 
         if (pNetworkVehicle->m_bSyncing)
         {
-            if (auto pVehicle = pNetworkVehicle->m_pVehicle)
+            if (auto pVehicle = pNetworkVehicle->GetLiveVehicle()) // private build (vehicle sync protocol)
             {
                 pVehicle->SetVehicleCreatedBy(pSetVehicleCreatedBy->createdBy);
             }

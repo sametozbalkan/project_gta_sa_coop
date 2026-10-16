@@ -109,7 +109,7 @@ void CPassengerEnter::Process()
 
         for (auto pNetworkVehicle : CNetworkVehicleManager::m_pVehicles)
         {
-            if (auto pVehicle = pNetworkVehicle->m_pVehicle)
+            if (auto pVehicle = pNetworkVehicle->GetLiveVehicle()) // private build (vehicle sync protocol)
             {
                 float fLength = (pVehicle->m_matrix->pos - pPlayerPed->m_matrix->pos).Magnitude();
 
@@ -133,9 +133,17 @@ void CPassengerEnter::Process()
 
                 Packets::Vehicles::VehicleEnter packet{};
                 packet.vehicleid = pMinNetworkVehicle->m_nVehicleId;
-                packet.seatid = CCarEnterExit::ComputePassengerIndexFromCarDoor(pMinVehicle, doorId);
+                // private build (vehicle sync protocol): -1 for a door ComputePassengerIndexFromCarDoor (0x64F1E0) doesn't
+                // map (8 -> 0, 11 -> 1, 9 -> 2; 9 and 11 -> 0 on a bike or tandem seats): the server records no seat and
+                // the next VEHICLE_PASSENGER_UPDATE names it
+                packet.seatid = static_cast<int8_t>(CCarEnterExit::ComputePassengerIndexFromCarDoor(pMinVehicle, doorId));
                 packet.bForce = false;
                 packet.bPassenger = true;
+                if (packet.seatid == VehicleSync::SEAT_UNKNOWN)
+                {
+                    CNetworkVehicleManager::LogFrequentEvent("seat-unknown", packet.vehicleid, "packet=own-enter door=%d",
+                        doorId);
+                }
                 GetPacketFactory().Send(packet);
             }
         }

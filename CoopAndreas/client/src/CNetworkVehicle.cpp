@@ -66,17 +66,18 @@ static void TakePlayersOutOfVehicle(CVehicle* pVehicle, int vehicleid)
     }
 }
 
+void CNetworkVehicle::TakePlayersOut(CVehicle* pVehicle, int vehicleid)
+{
+    TakePlayersOutOfVehicle(pVehicle, vehicleid);
+}
+
 CNetworkVehicle::CNetworkVehicle(int vehicleid, int modelid, CVector pos, float rotation, unsigned char color1, unsigned char color2, unsigned char createdBy)
 {
+    // private build (vehicle sync protocol): the server gave the id to a new vehicle, so the one this game still has
+    // with it is gone: its copy and its record go (the record was left in the list before)
     if (auto vehicle = CNetworkVehicleManager::GetVehicle(vehicleid))
     {
-        if (vehicle->m_pVehicle && vehicle->m_pVehicle->IsVTableValid())
-        {
-            TakePlayersOutOfVehicle(vehicle->m_pVehicle, vehicleid); // private build
-            CWorld::Remove(vehicle->m_pVehicle);
-            delete vehicle->m_pVehicle;
-        }
-        CNetworkVehicleManager::Remove(vehicle);
+        CNetworkVehicleManager::RemoveForNetwork(vehicle, "spawn-reuses-id");
     }
 
     m_nVehicleId = vehicleid;
@@ -148,39 +149,61 @@ bool CNetworkVehicle::CreateVehicle(int vehicleid, int modelid, CVector pos, flo
     m_pVehicle->m_nSecondaryColor = color2;
     CWorld::Add(m_pVehicle);
 
+    // private build (vehicle sync protocol): the slot generation the pointer is checked against, and the copy's guards
+    m_poolReference.Capture(CPools::ms_pVehiclePool, m_pVehicle);
+    CNetworkVehicleManager::GuardCopy(m_pVehicle);
+
     return true;
 }
 
+// private build (vehicle sync protocol): a record sends and deletes nothing when it goes. CNetworkVehicleManager does
+// that where it decides it (RemoveForNetwork for VEHICLE_REMOVE, SendRemove), and the ~CVehicle hook ends the record of a
+// vehicle the game destroys (upstream: this sent VEHICLE_REMOVE for a vehicle this game synced, and deleted the copy of
+// one it didn't).
 CNetworkVehicle::~CNetworkVehicle()
 {
-    if (m_bSyncing)
-    {
-        Packets::Vehicles::VehicleRemove vehicleRemovePacket{};
-        vehicleRemovePacket.vehicleid = m_nVehicleId;
-        GetPacketFactory().Send(vehicleRemovePacket);
-    }
-    else
-    {
-        if (m_pVehicle && m_pVehicle->IsVTableValid())
-        {
-            if (m_nBlipHandle != -1)
-            {
-                CRadar::ClearBlipForEntity(eBlipType::BLIP_CAR, CPools::GetVehicleRef(m_pVehicle));
-            }
-            TakePlayersOutOfVehicle(m_pVehicle, m_nVehicleId); // private build
-            CWorld::Remove(m_pVehicle);
-            CWorld::RemoveReferencesToDeletedObject(m_pVehicle); // ?
-            delete m_pVehicle;
-        }
-    }
 }
 
 bool CNetworkVehicle::HasDriver()
 {
-    if (m_pVehicle == nullptr)
+    CVehicle* pVehicle = GetLiveVehicle(); // private build
+    if (pVehicle == nullptr)
         return false;
 
-    return m_pVehicle->m_pDriver != nullptr;
+    return pVehicle->m_pDriver != nullptr;
+}
+
+CVehicle* CNetworkVehicle::GetLiveVehicle()
+{
+    if (m_pVehicle == nullptr)
+    {
+        return nullptr;
+    }
+    if (!m_poolReference.Matches(CPools::ms_pVehiclePool, m_pVehicle) || !m_pVehicle->IsVTableValid())
+    {
+        // the ~CVehicle hook missed it (a skipped hook site): never use the pointer again
+        m_pVehicle = nullptr;
+        m_poolReference.Reset();
+        if (!m_bSyncing && m_nVehicleId >= 0)
+        {
+            m_bCopyLost = true;
+        }
+        CNetworkVehicleManager::LogEvent("pointer-stale", m_nVehicleId, "syncing=%d temp=%d", m_bSyncing,
+            m_nVehicleId < 0);
+        return nullptr;
+    }
+    return m_pVehicle;
+}
+
+void CNetworkVehicle::RememberState(
+    const CVector& position, const CVector& right, const CVector& forward, uint8_t color1, uint8_t color2)
+{
+    m_bHasLastState = true;
+    m_vecLastPosition = position;
+    m_vecLastRight = right;
+    m_vecLastForward = forward;
+    m_nLastColor1 = color1;
+    m_nLastColor2 = color2;
 }
 
 CNetworkVehicle* CNetworkVehicle::CreateHosted(CVehicle* vehicle)
@@ -188,6 +211,12 @@ CNetworkVehicle* CNetworkVehicle::CreateHosted(CVehicle* vehicle)
     vehicle->m_nTimeTillWeNeedThisCar += 5000;
 
     CNetworkVehicle* networkVehicle = new CNetworkVehicle();
+    // private build (vehicle sync protocol): the pool slot generation, checked whenever the pointer is used
+    if (!networkVehicle->m_poolReference.Capture(CPools::ms_pVehiclePool, vehicle))
+    {
+        delete networkVehicle;
+        return nullptr;
+    }
     networkVehicle->m_pVehicle = vehicle;
     networkVehicle->m_nVehicleId = -1;
     networkVehicle->m_bSyncing = true;
