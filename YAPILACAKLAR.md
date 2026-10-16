@@ -94,8 +94,6 @@ oyununa kuruldu, iki oyunculu test bekliyor.
 - **Sağlamlık:** geçersiz oyuncu tutamacı verilen co-op komutları host'u çökertiyor (ör. arkadaş görev ortasında
   düşerse); 0.3.103'te host tarafındaki yazı ve işaret komutlarına boş oyuncu denetimi eklendi, kalan yerler ayrıca
   taranacak. Görevi kimin başlatabileceğini denetleyen host kontrolü (`CanPlayerStartMission`) upstream'de yorum satırı.
-- **Host sabitleme:** yapıldı (L0, eca37e3; 0.1.0 paketiyle gelecek). Sunucunun `story-host` ayarındaki oyuncu hep
-  host, o yokken kimse host olmaz. Çöken host, sunucu eski bağlantısını düşürdükten sonra (30–60 sn) yeniden bağlanabilir.
 - **Nesne senkronu** (#60'tan önce): görevlerin açtığı, taşıdığı ya da sildiği kapılar, geçitler ve kulübeler arkadaşta
   `INITIAL`'ın bıraktığı gibi kalıyor (CoopAndreas nesne senkronlamıyor); ayrı tasarım gerekiyor.
 - Sunucunun özel karakter modeli izin listesi ters çalışıyor (her özel model kabul ediliyor); küçük düzeltme.
@@ -106,16 +104,22 @@ oyununa kuruldu, iki oyunculu test bekliyor.
   işaretçi bırakıyor; host'un görevi arkadaşın sürdüğü (arkadaşın senkronladığı) aracı silerse silme arkadaşa gitmiyor
   ve host'ta eski bir araç işaretçisi kalıyor (`Hooks/WorldHooks.cpp`); sunucu yolcu koltuğu -1'i sürücü koltuğuna
   çeviriyor (`server/src/PacketHandlers/vehicles.cpp`).
-- **Görev boyutu sınırı:** Reuniting The Families (#27) 69.000 baytlık sınıra 561 bayt uzakta; #27'den önce ya görev
-  içinde kısaltma ya da sınırı yükselten istemci yaması. ReVa ile ilk bulgular (2026-10-16): 200.000 (MAIN) yalnızca
+- **Görev boyutu sınırı:** Reuniting The Families (#27) 69.000 baytlık sınıra 561 bayt uzakta. Yansıtma katmanıyla
+  #27'nin küçük bir uyarlaması bu alana sığıyor (kayıt 2, oyuncu toplama 11, ışınlama 11 bayt); sınırı yükseltmek
+  artık #27 için şart değil, ama co-op bilardo (`POOL2`) gibi büyük işler için gerekebilir. ReVa ile ilk bulgular (2026-10-16): 200.000 (MAIN) yalnızca
   `CTheScripts::Init`'te iki okumada, 69.000 yalnızca görev yükleme komutunun (0417) işleyicisinde geçiyor; toplam
   269.000, Hoodlum exe'sinde bir sayaç olarak duruyor (0x401CF8). Betik alanını (0xA49960) 21 fonksiyon 58 yerde
   kullanıyor ve hemen arkasında başka bir değişken var: alan yerinde büyütülemez; ya taşınır (bütün kullanımlar
   yamalanır) ya da görev bloğu için başka bir yol bulunur.
-- **Köprü bariyerleri (The Green Sabre #28'den önce):** San Fierro/Las Venturas köprülerindeki bariyerler bir harita
-  nesne grubu; host'un görevleri kaldırınca arkadaşın oyununda fiziksel olarak duruyor. Çözüm: ilgili IPL komutları
-  (0776/0777/0778) uyarlanmış görevlerde senkron + oyuna sonradan katılana anlık durum. Aynı pakete: sonradan
-  katılanın en yüksek aranma seviyesi (Verdant Meadows 6'ya çıkarıyor) ve çete bölgesi gücü.
+- **Görev uyarlanırken verilecek kararlar:** #26'da SWEET7 host'un saygısını 200'e çekiyor (`0629`), yansımıyor;
+  #103'teki 250.000$ geçişten kareler önce verildiği için yansımıyor.
+- **Temizlik:** dünya durumu kaydına yerel kaynaklı girişler için arayüz (kapı adaptörü şu an sahte bir paket yolu
+  kullanıyor).
+- **Görevlerden önce gelecek altyapı paketleri** (`docs/design/README.md` 4. bölüm; her biri ihtiyaç duyan gruptan
+  önce): M5 yarış kontrol noktaları ve betik küreleri (#22, grup 3), WS-5 çete bölgeleri ve savaşları, arkadaşın
+  öldürdüklerinin host'un savaşında sayılması dahil (#25, grup 4), WS-2 köprü bariyerleri ve yollar (#28, grup 4),
+  WS-6 harita nesneleri (#42), nesne senkronu tasarımı (#60), WS-7 ayaklanma (#99). En yüksek aranma seviyesi ve
+  sonradan katılan için anlık durum 0.1.0'da geldi.
 - **Görevlerin isteyeceği istemci özellikleri** (sırası gelince): yangın (#23), çete savaşları (#25, #98), römork (#31),
   RC araçlar (#44–#46), paraşüt (#72, #81, #89), jetpack (#73). Tek kişilik mini oyunlarda (#10 lowrider, #18 dans,
   #43 sürücü okulu, #70 uçuş okulu) ikinci oyuncu izler.
@@ -126,14 +130,11 @@ oyununa kuruldu, iki oyunculu test bekliyor.
   tek teşekkür satırı, git geçmişi, genel "co-op" kelimeleri (`Coop.` görev komutları, kayıttaki "(Coop)" öneki).
   Kurulum eski kurulumu yeni ada taşır (dosyalar, kısayollar, ini'deki takma ad ve sunucu), kayıtlar etkilenmez.
   Aynı pakette: ENet'in lisans dosyası (`third_party/enet`'te eksik). Upstream otomatik takip edilmez.
-- **Sürümleme** (kullanıcının kararı, 2026-10-16): 0.3.103 eski düzenin son paketi. Sonraki paketten (isim değişikliği
-  ya da grup 2, hangisi önce) itibaren orta sayı = teslim edilen görev grubu (grup 1 = 0.1, grup 2 = 0.2 …), son sayı =
-  o grubun düzeltme paketleri, 1.0.0 = hikâyenin tamamı co-op; "-alpha" hikâyenin büyük kısmı bitene kadar kalır.
+- **Sürümleme** (kullanıcının kararı, 2026-10-16; 0.1.0 ile başladı): orta sayı = teslim edilen görev grubu (grup 1 =
+  0.1, grup 2 = 0.2 …), son sayı = o grubun düzeltme paketleri, 1.0.0 = hikâyenin tamamı co-op; "-alpha" hikâyenin
+  büyük kısmı bitene kadar kalır.
 - **Buy Me a Coffee:** hesap açılınca README'nin başına rozet ve `.github/FUNDING.yml` (GitHub'ın Sponsor düğmesi).
   Bağış gönüllü kalır; parayla açılan özellik ya da erken erişim yok, GTA/Rockstar logosu yok.
-- **Saygı (respect) saklama:** yapıldı (P1, 2604706; 0.1.0): arkadaşın görev, öldürme ve kıyafet saygısı durumuyla
-  birlikte saklanıyor (oyun toplamı bunlardan hesaplıyor). #26'da SWEET7 host'un saygısını 200'e çekiyor (`0629`), bu
-  yansımıyor; o görev uyarlanırken karar verilecek.
 - Alt+Tab'a küçük ek: pencere arka plana geçerken "tuşlar bırakıldı" bilgisi gönderilsin (diğer ekranda basılı kalan
   tuşla yürümeye devam etmesin).
 - Upstream PR #106 **alınmadı**: sonradan katılan oyuncu diğerinin parasını sıfırlıyor, aynı anda kazanılan para
