@@ -68,11 +68,14 @@ bitince öneri olarak sunulacak, kullanıcı onaylarsa grup 2 yeni kalıpla baş
    oyuna katıldığında otomatik gönderilir. Şehir kilidi bu kalıpla yapıldı; farkları tek tek kovalamak yerine genel yapı.
    Köprü bariyerleri işi bunun içinde yapılır.
 
-Tasarımlar ve plan hazır (2026-10-16, mimar inceledi; uygulama grup 1 test onayından sonra): `docs/design/README.md`
+Tasarımlar ve plan hazır (2026-10-16; kararlar onaylandı, uygulama başladı): `docs/design/README.md`
 (kararlar, iki tasarımın birleşimi, sıra), `docs/design/mirror-layer.md`, `docs/design/world-state.md`. Sonraki paket
 **0.1.0-alpha** (grup 1, yeni sürüm düzeni): ortak temel L0 (yaşam döngüsü, host'tan aktarım, host sabitleme), sonra
 M1 + WS-1, sonra M2–M4 + WS-3 + WS-4, sonra #1–#10 dönüşümü (C1) ve New Game'den yeniden test. İhtiyaç duyan gruptan
 önce: M5 (#22), WS-2 köprü bariyerleri (#28), WS-5 çeteler (#25), WS-6 (#42), nesne senkronu tasarımı (#60), WS-7 (#99).
+Kullanıcı kararları (2026-10-16): görev geçiş ödülü (para ve saygı) ikinize, bahis ve harcamalar yalnızca host'ta; çete
+savaşını host'un oyunu başlatır, arkadaşın öldürdükleri de sayılır; host sabitleme. Uygulama test beklenmeden başladı:
+0.3.103 testi bitene kadar oyuna yeni sürüm kurulmuyor, 0.3.103 düzeltmeleri `v0.3.103-alpha` etiketinden çıkar.
 
 ## Sonraki işler (öncelik sırasıyla)
 - **Sağlamlık:** geçersiz oyuncu tutamacı verilen co-op komutları host'u çökertiyor (ör. arkadaş görev ortasında
