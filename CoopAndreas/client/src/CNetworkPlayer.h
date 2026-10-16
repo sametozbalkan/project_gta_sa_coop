@@ -1,8 +1,11 @@
 #pragma once
+#include "CPedSyncState.h"
 
 class CNetworkPlayer
 {
 public:
+	// private build: read through GetLivePed()/GetReadyPed(); the game can destroy this ped on its own (see
+	// CNetworkPlayer.cpp), the pointer then names a freed or reused ped pool slot
 	CPlayerPed* m_pPed = nullptr;
 	int m_iPlayerId;
 
@@ -48,5 +51,39 @@ public:
 	void EnterVehiclePassenger(CVehicle* vehicle, int seatid);
 	void HandleTask(Packets::Players::SetPlayerTask& packet);
 	void ApplyWeaponSnapshot(Packets::Players::SWeaponSnapshot& weaponSnapshot);
+
+	// private build (remote player ped recovery)
+	CPlayerPed* GetLivePed();
+	bool IsModelReady();
+	CPlayerPed* GetReadyPed() { return IsModelReady() ? m_pPed : nullptr; }
+	CPlayerPed* GetOrRecoverPed(const CVector* position = nullptr);
+	void SetLastKnownState(const CVector& position, int areaCode = -1);
+	void SetClothes(const CPedClothesDesc& clothesDesc);
+	void ProcessPedRecovery();
+	void OnPedDestroyed(CPlayerPed* ped);
+	void KeepFlaggedPed(CPlayerPed* ped);
+	void FinishKeptPed(bool bInsideWorldProcess);
+	void LogPedDiagnostic(const char* phase, const char* reason, const char* detail = nullptr);
+
+private:
+	CPedPoolReference m_poolReference;
+	CPedRecoveryThrottle m_recoveryThrottle;
+	CVector m_vecLastPosition{};
+	float m_fLastHeading = 0.0f;
+	uint8_t m_nLastAreaCode = 0;
+	bool m_bHasLastPosition = false;
+	bool m_bClothesPending = false;
+	bool m_bDestroyingPed = false;
+	CVector m_vecKeptPosition{};
+	bool m_bKeptPending = false;
+	bool m_bKeptFlushed = false;
+	uint8_t m_nPedProblem = 0;
+	uint8_t m_nHiddenReason = 0;
+	bool m_abLoggedPedDiagnostic[11]{};
+	uint32_t m_anLastPedDiagnostic[11]{};
+
+	void RecreatePed(const char* reason);
+	void ApplyLastKnownState(CPlayerPed* ped);
+	void CheckHidden(CPlayerPed* ped);
 };
 

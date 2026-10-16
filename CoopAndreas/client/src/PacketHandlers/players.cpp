@@ -13,49 +13,62 @@ PACKET_HANDLER(ePacketType::PLAYER_ONFOOT_UPDATE, Packets::Players::OnFootUpdate
         return;
     }
 
-    CPlayerPed* pPlayerPed = pNetworkPlayer->m_pPed;
+    // private build: the snapshot is kept first; a missing or broken ped is recreated at its position
+    // (CNetworkPlayer::GetOrRecoverPed), and the ped is used only while it has a clump and intelligence
+    pNetworkPlayer->m_oldControllerState = pOnFootUpdate->keySnapshot.oldControllerState;
+    pNetworkPlayer->m_newControllerState = pOnFootUpdate->keySnapshot.newControllerState;
 
+    pNetworkPlayer->m_onFootSnapshotInterpolated = *pOnFootUpdate;
+
+    CVector vecPos = pOnFootUpdate->vecPos;
+    CPlayerPed* pPlayerPed = pNetworkPlayer->GetOrRecoverPed(&vecPos);
     if (pPlayerPed == nullptr)
     {
-        pNetworkPlayer->CreatePed(pNetworkPlayer->m_iPlayerId, pOnFootUpdate->vecPos);
-        pPlayerPed = pNetworkPlayer->m_pPed;
+        return;
     }
 
     if (pPlayerPed->m_pVehicle != nullptr && pPlayerPed->m_nPedFlags.bInVehicle)
     {
         pNetworkPlayer->RemoveFromVehicle(pPlayerPed->m_pVehicle);
+        if ((pPlayerPed = pNetworkPlayer->GetReadyPed()) == nullptr)
+        {
+            return;
+        }
     }
 
-    pNetworkPlayer->m_pPed->SetPosn(pOnFootUpdate->vecPos);
-    pNetworkPlayer->m_pPed->m_vecMoveSpeed = pOnFootUpdate->vecMoveSpeed;
+    pPlayerPed->SetPosn(pOnFootUpdate->vecPos);
+    pPlayerPed->m_vecMoveSpeed = pOnFootUpdate->vecMoveSpeed;
 
     pNetworkPlayer->ApplyWeaponSnapshot(pOnFootUpdate->weaponSnapshot);
+    if ((pPlayerPed = pNetworkPlayer->GetReadyPed()) == nullptr)
+    {
+        return;
+    }
 
-    pNetworkPlayer->m_pPed->m_fCurrentRotation = pOnFootUpdate->currentRotation.m_angle;
-    pNetworkPlayer->m_pPed->m_fAimingRotation = pOnFootUpdate->aimingRotation.m_angle;
+    pPlayerPed->m_fCurrentRotation = pOnFootUpdate->currentRotation.m_angle;
+    pPlayerPed->m_fAimingRotation = pOnFootUpdate->aimingRotation.m_angle;
 
     CUtil::SetPlayerJetpack(pNetworkPlayer, pOnFootUpdate->bHasJetpack);
+    if ((pPlayerPed = pNetworkPlayer->GetReadyPed()) == nullptr)
+    {
+        return;
+    }
 
-    if (CUtil::IsDucked(pNetworkPlayer->m_pPed) != pOnFootUpdate->bDucking)
+    if (CUtil::IsDucked(pPlayerPed) != pOnFootUpdate->bDucking)
     {
         if (pOnFootUpdate->bDucking)
         {
-            pNetworkPlayer->m_pPed->m_pIntelligence->SetTaskDuckSecondary(0);
+            pPlayerPed->m_pIntelligence->SetTaskDuckSecondary(0);
             // abort fighting and jumping tasks maybe?
         }
         else
         {
-            pNetworkPlayer->m_pPed->m_pIntelligence->ClearTaskDuckSecondary();
+            pPlayerPed->m_pIntelligence->ClearTaskDuckSecondary();
         }
     }
 
-    pNetworkPlayer->m_pPed->m_nFightingStyle = pOnFootUpdate->iFightingStyle;
-    pNetworkPlayer->m_pPed->m_nAllowedAttackMoves |= 15u;
-
-    pNetworkPlayer->m_oldControllerState = pOnFootUpdate->keySnapshot.oldControllerState;
-    pNetworkPlayer->m_newControllerState = pOnFootUpdate->keySnapshot.newControllerState;
-
-    pNetworkPlayer->m_onFootSnapshotInterpolated = *pOnFootUpdate;
+    pPlayerPed->m_nFightingStyle = pOnFootUpdate->iFightingStyle;
+    pPlayerPed->m_nAllowedAttackMoves |= 15u;
 }
 
 PACKET_HANDLER(ePacketType::PLAYER_KEY_SYNC, Packets::Players::KeyPressed* pKeyPressed)
@@ -69,8 +82,11 @@ PACKET_HANDLER(ePacketType::PLAYER_KEY_SYNC, Packets::Players::KeyPressed* pKeyP
     pNetworkPlayer->m_oldControllerState = pKeyPressed->keySnapshot.oldControllerState;
     pNetworkPlayer->m_newControllerState = pKeyPressed->keySnapshot.newControllerState;
 
-    pNetworkPlayer->m_pPed->m_fCurrentRotation = pKeyPressed->currentRotation.m_angle;
-    pNetworkPlayer->m_pPed->m_fAimingRotation = pKeyPressed->aimingRotation.m_angle;
+    if (CPlayerPed* pPlayerPed = pNetworkPlayer->GetLivePed()) // private build: no destroyed ped
+    {
+        pPlayerPed->m_fCurrentRotation = pKeyPressed->currentRotation.m_angle;
+        pPlayerPed->m_fAimingRotation = pKeyPressed->aimingRotation.m_angle;
+    }
 
     pNetworkPlayer->m_onFootSnapshotInterpolated.currentRotation = pKeyPressed->currentRotation;
     pNetworkPlayer->m_onFootSnapshotInterpolated.aimingRotation = pKeyPressed->aimingRotation;
@@ -149,9 +165,16 @@ PACKET_HANDLER(ePacketType::PLAYER_BULLET_SHOT, Packets::Players::PlayerBulletSh
         return;
     }
 
-    pNetworkPlayer->m_pPed->SetCurrentWeapon(pPlayerBulletShot->iWeaponType);
+    // private build: the shot needs the shooter's ped with a clump (weapon model, impact)
+    CPlayerPed* pPlayerPed = pNetworkPlayer->GetReadyPed();
+    if (pPlayerPed == nullptr)
+    {
+        return;
+    }
 
-    CEntity* owner = pNetworkPlayer->m_pPed;
+    pPlayerPed->SetCurrentWeapon(pPlayerBulletShot->iWeaponType);
+
+    CEntity* owner = pPlayerPed;
     CEntity* victim = nullptr;
     CVector startPoint = pPlayerBulletShot->startPos;
     CVector endPoint = pPlayerBulletShot->endPos;
@@ -192,7 +215,7 @@ PACKET_HANDLER(ePacketType::PLAYER_BULLET_SHOT, Packets::Players::PlayerBulletSh
         victim = nullptr;
     }
 
-    pNetworkPlayer->m_pPed->GetWeapon().DoBulletImpact(
+    pPlayerPed->GetWeapon().DoBulletImpact(
         owner, victim, &startPoint, &pPlayerBulletShot->endPos, &colPoint, incrementalHit);
 }
 
@@ -210,6 +233,12 @@ PACKET_HANDLER(ePacketType::ADD_PROJECTILE, Packets::Players::AddProjectile* pAd
     {
         if (auto networkPlayer = CNetworkPlayerManager::GetPlayer(pAddProjectile->creator.GetEntity()))
         {
+            // private build: a network player's projectile needs its ped with a clump and intelligence
+            if (!networkPlayer->IsModelReady())
+            {
+                return;
+            }
+
             CAimSync::ApplyNetworkPlayerContext(networkPlayer);
         }
     }
@@ -255,16 +284,8 @@ PACKET_HANDLER(ePacketType::REBUILD_PLAYER, Packets::Players::RebuildPlayer* pRe
 
         //CStatsSync::ApplyNetworkPlayerContext(networkPlayer);
 
-        pNetworkPlayer->m_pPedClothesDesc = pRebuildPlayer->clothesDesc;
-
-        if (auto pPlayerPed = pNetworkPlayer->m_pPed)
-        {
-            *pPlayerPed->m_pPlayerData->m_pPedClothesDesc = pRebuildPlayer->clothesDesc;
-            if (pPlayerPed->m_pRwClump)
-            {
-                CClothes::RebuildPlayer(pPlayerPed, false);
-            }
-        }
+        // private build: stored, and applied once the ped has a clump and intelligence again instead of never
+        pNetworkPlayer->SetClothes(pRebuildPlayer->clothesDesc);
 
         //CStatsSync::ApplyLocalContext();
     }

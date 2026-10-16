@@ -227,7 +227,7 @@ void CNetworkPlayerList::Draw()
                 if (pPlayer->m_iPlayerId == vPlayerId[i])
                 {
                     pNetworkPlayer = pPlayer;
-                    pPlayerPed = pPlayer->m_pPed;
+                    pPlayerPed = pPlayer->GetLivePed(); // private build: NULL while the ped is being recreated
                     break;
                 }
             }
@@ -237,8 +237,11 @@ void CNetworkPlayerList::Draw()
 
         DrawPing(pNetworkPlayer, fBoxX, fColumnY);
         DrawName(pNetworkPlayer, fBoxX, fColumnY);
-        DrawBars(pPlayerPed, fBoxX, fColumnY);
-        DrawWeaponIcon(pPlayerPed, fBoxX, fColumnY);
+        if (pPlayerPed) // private build
+        {
+            DrawBars(pPlayerPed, fBoxX, fColumnY);
+            DrawWeaponIcon(pPlayerPed, fBoxX, fColumnY);
+        }
 
         if (i == nPlayerCount)
         {

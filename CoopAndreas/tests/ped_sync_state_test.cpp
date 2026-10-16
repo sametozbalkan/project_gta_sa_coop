@@ -156,11 +156,51 @@ void CancellationAndStreamingLoss()
     CHECK(calls == 2);
 }
 
+// private build (remote player ped recovery)
+void RecreatedPlayerPedReference()
+{
+    // A remote player ped is destroyed and recreated: the old reference never matches again, also when the new
+    // ped lands in the same slot, and a fresh capture of the new ped does.
+    Ped objects[2]{};
+    unsigned char flags[2]{1, 7};
+    FakePool pool{objects, flags, 2};
+    CPedPoolReference player;
+    CHECK(player.Capture(&pool, &objects[1]));
+    flags[1] = 0x87; // Destroyed: the slot is free, memory and vtable bytes may remain.
+    CHECK(!player.Matches(&pool, &objects[1]));
+    flags[1] = 8; // Recreated in the same slot, next generation.
+    CHECK(!player.Matches(&pool, &objects[1]));
+    CPedPoolReference recreated;
+    CHECK(recreated.Capture(&pool, &objects[1]));
+    CHECK(recreated.Matches(&pool, &objects[1]));
+    CHECK(recreated.GetRef() == ((1 << 8) | 8));
+}
+
+void RecoveryThrottle()
+{
+    CPedRecoveryThrottle throttle;
+    CHECK(throttle.ShouldAttempt(100)); // The first loss is handled at once.
+    CHECK(!throttle.ShouldAttempt(100));
+    CHECK(!throttle.ShouldAttempt(1099)); // Age 999.
+    CHECK(throttle.ShouldAttempt(1100)); // Age 1000: retry.
+    CHECK(!throttle.ShouldAttempt(1200));
+    throttle.Reset(); // Healthy again.
+    CHECK(throttle.ShouldAttempt(1201)); // A new loss is handled at once.
+
+    CPedRecoveryThrottle wrap;
+    const uint32_t beforeWrap = std::numeric_limits<uint32_t>::max() - 10;
+    CHECK(wrap.ShouldAttempt(beforeWrap));
+    CHECK(!wrap.ShouldAttempt(988)); // Age 999 across the tick wrap.
+    CHECK(wrap.ShouldAttempt(989)); // Age 1000.
+}
+
 int main()
 {
     PoolLifetime();
     LatestAndReadiness();
     ExpiryAndWrap();
     CancellationAndStreamingLoss();
+    RecreatedPlayerPedReference();
+    RecoveryThrottle();
     std::puts("ped_sync_state: all checks passed");
 }

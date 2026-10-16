@@ -10,6 +10,8 @@ void CCommandShowTextLowPriorityForNetworkPlayer::Process(CRunningScript* script
 	script->CollectParameters(3);
 
 	auto networkPlayer = CNetworkPlayerManager::GetPlayer(CPools::GetPed(ScriptParams[2]));
+	if (networkPlayer == nullptr) // private build: a stale or disconnected player's handle does nothing
+		return;
 
 	Packets::Scripts::AddMessageGXT packet{};
 	strncpy(packet.gxt, gxt, 8);

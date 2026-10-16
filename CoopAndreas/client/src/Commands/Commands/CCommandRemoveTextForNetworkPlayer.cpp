@@ -10,6 +10,8 @@ void CCommandRemoveTextForNetworkPlayer::Process(CRunningScript* script)
 	script->CollectParameters(1);
 
 	auto networkPlayer = CNetworkPlayerManager::GetPlayer(CPools::GetPed(ScriptParams[0]));
+	if (networkPlayer == nullptr) // private build: a stale or disconnected player's handle does nothing
+		return;
 	
 	Packets::Scripts::RemoveMessageGXT packet{};
 	strncpy(packet.gxt, gxt, 8);

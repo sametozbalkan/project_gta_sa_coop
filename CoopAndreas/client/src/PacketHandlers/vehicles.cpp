@@ -5,6 +5,14 @@
 #include <CTaskSimpleCarSetPedOut.h>
 #include "CRadioSync.h"
 
+// private build: a passenger seat the vehicle has. The packets allow -1..7; m_apPassengers has 8 entries (index -1
+// is m_pDriver) and most vehicles have fewer seats (m_nMaxPassengers).
+static bool IsPassengerSeatValid(const CVehicle* pVehicle, int seatid)
+{
+    return seatid >= 0 && seatid < static_cast<int>(ARRAY_SIZE(pVehicle->m_apPassengers)) &&
+        seatid < pVehicle->m_nMaxPassengers;
+}
+
 PACKET_HANDLER(ePacketType::VEHICLE_SPAWN, Packets::Vehicles::VehicleSpawn* pVehicleSpawn)
 {
 #ifdef PACKET_DEBUG_MESSAGES
@@ -102,9 +110,15 @@ PACKET_HANDLER(ePacketType::VEHICLE_DRIVER_UPDATE, Packets::Vehicles::VehicleDri
     if (!pVehicle->IsVTableValid())
         return;
 
-    if (pNetworkPlayer->m_pPed->m_pVehicle != pVehicle || !pNetworkPlayer->m_pPed->m_nPedFlags.bInVehicle)
+    // private build: a missing or broken ped is recreated at the vehicle and seated only while it has a clump and
+    // intelligence; the vehicle is updated either way
+    CVector vecPos = pVehicleDriverUpdate->pos;
+    if (CPlayerPed* pPlayerPed = pNetworkPlayer->GetOrRecoverPed(&vecPos))
     {
-        pNetworkPlayer->WarpIntoVehicleDriver(pVehicle);
+        if (pPlayerPed->m_pVehicle != pVehicle || !pPlayerPed->m_nPedFlags.bInVehicle)
+        {
+            pNetworkPlayer->WarpIntoVehicleDriver(pVehicle);
+        }
     }
 
     pVehicle->m_matrix->pos = pVehicleDriverUpdate->pos;
@@ -115,8 +129,11 @@ PACKET_HANDLER(ePacketType::VEHICLE_DRIVER_UPDATE, Packets::Vehicles::VehicleDri
 
     pNetworkPlayer->ApplyWeaponSnapshot(pVehicleDriverUpdate->playerWeapon);
     pNetworkPlayer->m_onFootSnapshotInterpolated.healthSnapshot = pVehicleDriverUpdate->playerHealth;
-    pNetworkPlayer->m_pPed->m_fHealth = pVehicleDriverUpdate->playerHealth.iHealth;
-    pNetworkPlayer->m_pPed->m_fArmour = pVehicleDriverUpdate->playerHealth.iArmour;
+    if (CPlayerPed* pPlayerPed = pNetworkPlayer->GetLivePed()) // private build
+    {
+        pPlayerPed->m_fHealth = pVehicleDriverUpdate->playerHealth.iHealth;
+        pPlayerPed->m_fArmour = pVehicleDriverUpdate->playerHealth.iArmour;
+    }
     pNetworkPlayer->m_oldControllerState = pVehicleDriverUpdate->playerKeys.oldControllerState;
     pNetworkPlayer->m_newControllerState = pVehicleDriverUpdate->playerKeys.newControllerState;
 
@@ -165,10 +182,11 @@ PACKET_HANDLER(ePacketType::VEHICLE_ENTER, Packets::Vehicles::VehicleEnter* pVeh
         return;
     }
 
-    CPlayerPed* pPlayerPed = pNetworkPlayer->m_pPed;
+    // private build: tasks only for a ped with a clump and intelligence (GetReadyPed)
+    CPlayerPed* pPlayerPed = pNetworkPlayer->GetReadyPed();
     CVehicle* pVehicle = pNetworkVehicle->m_pVehicle;
 
-    if (!pPlayerPed->IsVTableValid() || !pVehicle->IsVTableValid())
+    if (pPlayerPed == nullptr || !pVehicle->IsVTableValid())
         return;
 
 #ifdef PACKET_DEBUG_MESSAGES
@@ -187,7 +205,12 @@ PACKET_HANDLER(ePacketType::VEHICLE_ENTER, Packets::Vehicles::VehicleEnter* pVeh
 
     if (pVehicleEnter->bPassenger)
     {
-        pNetworkPlayer->EnterVehiclePassenger(pVehicle, pVehicleEnter->seatid);
+        // private build: an unknown seat (-1 from CCarEnterExit::ComputePassengerIndexFromCarDoor) would be door -1;
+        // the next VEHICLE_PASSENGER_UPDATE seats the player
+        if (IsPassengerSeatValid(pVehicle, pVehicleEnter->seatid))
+        {
+            pNetworkPlayer->EnterVehiclePassenger(pVehicle, pVehicleEnter->seatid);
+        }
     }
     else
     {
@@ -213,8 +236,9 @@ PACKET_HANDLER(ePacketType::VEHICLE_EXIT, Packets::Vehicles::VehicleExit* pVehic
         return;
     }
 
-    CPlayerPed* pPlayerPed = pNetworkPlayer->m_pPed;
-    if (pPlayerPed->m_pVehicle == nullptr || !pPlayerPed->m_nPedFlags.bInVehicle)
+    // private build: see VEHICLE_ENTER
+    CPlayerPed* pPlayerPed = pNetworkPlayer->GetReadyPed();
+    if (pPlayerPed == nullptr || pPlayerPed->m_pVehicle == nullptr || !pPlayerPed->m_nPedFlags.bInVehicle)
     {
         return;
     }
@@ -329,20 +353,33 @@ PACKET_HANDLER(
     }
 
     CVehicle* pVehicle = pNetworkVehicle->m_pVehicle;
-    CPlayerPed* pPlayerPed = pNetworkPlayer->m_pPed;
 
-    if (pVehicle == nullptr || pPlayerPed == nullptr)
+    if (pVehicle == nullptr || !pVehicle->IsVTableValid())
     {
         return;
     }
 
-    if (!pVehicle->IsVTableValid() || !pPlayerPed->IsVTableValid())
+    // private build: m_apPassengers[seatid] below, and the seat the player is warped into
+    if (!IsPassengerSeatValid(pVehicle, pVehiclePassengerUpdate->seatid))
+    {
+        return;
+    }
+
+    // private build: the snapshot is kept first; a missing or broken ped is recreated at the vehicle and seated,
+    // armed and given drive-by tasks only while it has a clump and intelligence
+    pNetworkPlayer->m_onFootSnapshotInterpolated.healthSnapshot = pVehiclePassengerUpdate->playerHealth;
+    pNetworkPlayer->m_newControllerState = pVehiclePassengerUpdate->playerKeys.newControllerState;
+    pNetworkPlayer->m_oldControllerState = pVehiclePassengerUpdate->playerKeys.oldControllerState;
+
+    CVector vecPos = pVehicle->GetPosition();
+    CPlayerPed* pPlayerPed = pNetworkPlayer->GetOrRecoverPed(&vecPos);
+    if (pPlayerPed == nullptr)
     {
         return;
     }
 
     if (!pPlayerPed->m_nPedFlags.bInVehicle || pPlayerPed->m_pVehicle != pVehicle ||
-        pNetworkVehicle->m_pVehicle->m_apPassengers[pVehiclePassengerUpdate->seatid] != pNetworkPlayer->m_pPed)
+        pNetworkVehicle->m_pVehicle->m_apPassengers[pVehiclePassengerUpdate->seatid] != pPlayerPed)
     {
 #ifdef PACKET_DEBUG_MESSAGES
         CChat::AddMessage("forcing enter passenger %d", player->m_iPlayerId);
@@ -352,11 +389,12 @@ PACKET_HANDLER(
     }
 
     pNetworkPlayer->ApplyWeaponSnapshot(pVehiclePassengerUpdate->playerWeapon);
-    pNetworkPlayer->m_onFootSnapshotInterpolated.healthSnapshot = pVehiclePassengerUpdate->playerHealth;
-    pNetworkPlayer->m_pPed->m_fHealth = pVehiclePassengerUpdate->playerHealth.iHealth;
-    pNetworkPlayer->m_pPed->m_fArmour = pVehiclePassengerUpdate->playerHealth.iArmour;
-    pNetworkPlayer->m_newControllerState = pVehiclePassengerUpdate->playerKeys.newControllerState;
-    pNetworkPlayer->m_oldControllerState = pVehiclePassengerUpdate->playerKeys.oldControllerState;
+    if ((pPlayerPed = pNetworkPlayer->GetReadyPed()) == nullptr)
+    {
+        return;
+    }
+    pPlayerPed->m_fHealth = pVehiclePassengerUpdate->playerHealth.iHealth;
+    pPlayerPed->m_fArmour = pVehiclePassengerUpdate->playerHealth.iArmour;
 
     if (pVehiclePassengerUpdate->driveby && !CDriveBy::IsPedInDriveby(pPlayerPed))
     {

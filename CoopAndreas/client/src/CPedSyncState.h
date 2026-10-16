@@ -41,6 +41,25 @@ public:
     }
 };
 
+// private build (remote player ped recovery): when a missing or broken remote player ped may be recreated: at
+// once, then at most once per RetryMs while recreating keeps failing; Reset() once the ped is healthy again.
+// Unsigned elapsed time also handles tick wrap.
+class CPedRecoveryThrottle
+{
+    uint32_t m_lastAttempt = 0;
+    bool m_bAttempted = false;
+public:
+    static constexpr uint32_t RetryMs = 1000;
+    void Reset() { m_bAttempted = false; }
+    bool ShouldAttempt(uint32_t now)
+    {
+        if (m_bAttempted && static_cast<uint32_t>(now - m_lastAttempt) < RetryMs) return false;
+        m_bAttempted = true;
+        m_lastAttempt = now;
+        return true;
+    }
+};
+
 enum class ePedSnapshotResult { Idle, Invalid, Expired, Deferred, Applied };
 
 // Exactly one visual snapshot; unsigned elapsed time also handles tick wrap.

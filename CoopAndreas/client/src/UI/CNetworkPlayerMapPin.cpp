@@ -45,10 +45,13 @@ void CNetworkPlayerMapPin::Process()
 {
 	for (auto player : CNetworkPlayerManager::m_pPlayers)
 	{
-		CWorld::PlayerInFocus = player->GetInternalId();
-
-		if (CWorld::PlayerInFocus == -1)
+		// private build: the marker reads the ped and its CWorld::Players slot, so only a live ped is drawn (the old
+		// pointer of a ped the game destroyed kept a marker on the radar); PlayerInFocus is never left at -1
+		const int playerNum = player->GetLivePed() ? player->GetInternalId() : -1;
+		if (playerNum == -1)
 			continue;
+
+		CWorld::PlayerInFocus = playerNum;
 
 		CVector2D pos = GetPlayerMarkerPosition();
 		float angle = CalculateMarkerAngle(player);

@@ -112,17 +112,20 @@ void CNetworkPlayerNameTag::Process()
 
 	for (auto player : CNetworkPlayerManager::m_pPlayers)
 	{
-		if (!player->m_pPed)
+		// private build: only a ped with a clump and intelligence (CNetworkPlayer::GetReadyPed), never the old
+		// pointer of a ped the game destroyed
+		CPlayerPed* ped = player->GetReadyPed();
+		if (!ped)
 			continue;
 
 		CVector localPlayerCamPos = TheCamera.m_aCams[TheCamera.m_nActiveCam].m_vecSource;
 		CVector networkPlayerPos{};
 
-		if (player->m_pPed->m_pRwClump)
-			player->m_pPed->GetBonePosition(*(RwV3d*)&networkPlayerPos, 5, false);
+		if (ped->m_pRwClump)
+			ped->GetBonePosition(*(RwV3d*)&networkPlayerPos, 5, false);
 		else
 		{
-			networkPlayerPos = player->m_pPed->GetPosition();
+			networkPlayerPos = ped->GetPosition();
 			networkPlayerPos.z += 0.5f;
 		}
 		networkPlayerPos.z += 0.3f;
@@ -130,7 +133,7 @@ void CNetworkPlayerNameTag::Process()
 		float distance = (localPlayerCamPos - networkPlayerPos).Magnitude();
 		uint8_t alpha = GetHudAlpha(distance);
 
-		if (alpha == 0 || !player->m_pPed->IsVisible())
+		if (alpha == 0 || !ped->IsVisible())
 			continue;
 
 		if (!CWorld::GetIsLineOfSightClear(localPlayerCamPos, networkPlayerPos, true, false, false, true, false, false, false))
@@ -180,7 +183,7 @@ void CNetworkPlayerNameTag::Process()
 			player->GetName().c_str()
 		);
 		DrawWeaponIcon(
-			player->m_pPed,
+			ped,
 			(int)out.x - PROPORION_X(70.0f) * scale,
 			(int)out.y - PROPORION_Y(44.0f) * scale,
 			scale,

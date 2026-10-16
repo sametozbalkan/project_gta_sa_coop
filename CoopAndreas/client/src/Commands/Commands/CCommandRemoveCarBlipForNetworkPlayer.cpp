@@ -5,11 +5,11 @@ void CCommandRemoveCarBlipForNetworkPlayer::Process(CRunningScript* script)
 {
 	script->CollectParameters(2);
 
+	// private build: a stale or disconnected player's handle does nothing (the asserts are gone in a release build)
 	auto ped = CPools::GetPed(ScriptParams[0]);
-	assert(ped && "opcode 0xF05: invalid CPed*");
-
 	auto networkPlayer = CNetworkPlayerManager::GetPlayer(ped);
-	assert(networkPlayer && "opcode 0xF05: invalid CNetworkPlayer*");
+	if (networkPlayer == nullptr)
+		return;
 
 	auto vehicle = CPools::GetVehicle(ScriptParams[1]);
 	assert(vehicle && "opcode 0xF05: invalid CVehicle*");

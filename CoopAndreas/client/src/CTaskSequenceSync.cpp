@@ -227,29 +227,22 @@ void CTaskSequenceSync::HandlePacket(void* pData, int size)
 
 	if (count == 0) return;
 
-	int sequenceId = -1;
-	Command<Commands::OPEN_SEQUENCE_TASK>(&sequenceId);
-
-	if (sequenceId == -1)
-	{
-		//CChat::AddMessage("CTaskSequenceSync::HandlePacket: can't open a new sequence");
-		return;
-	}
-	
+	// private build: the ped is looked up before a sequence is opened (returning without a ped left it open), and a
+	// network ped or player gets the sequence only while it has a clump and intelligence
 	CPed* ped = nullptr;
 
 	if (pedid == -1)
 	{
 		if (auto networkPlayer = CNetworkPlayerManager::GetPlayer(playerid))
 		{
-			ped = networkPlayer->m_pPed;
+			ped = networkPlayer->GetReadyPed();
 		}
 	}
 	else
 	{
 		if (auto networkPed = CNetworkPedManager::GetPed(pedid))
 		{
-			ped = networkPed->m_pPed;
+			ped = networkPed->IsModelReady() ? networkPed->GetLivePed() : nullptr;
 		}
 	}
 
@@ -260,6 +253,15 @@ void CTaskSequenceSync::HandlePacket(void* pData, int size)
 			return;
 		}
 		ped = FindPlayerPed(0);
+	}
+
+	int sequenceId = -1;
+	Command<Commands::OPEN_SEQUENCE_TASK>(&sequenceId);
+
+	if (sequenceId == -1)
+	{
+		//CChat::AddMessage("CTaskSequenceSync::HandlePacket: can't open a new sequence");
+		return;
 	}
 
 	CTaskSequenceSync::ms_bFailedToProcessSequence = false;

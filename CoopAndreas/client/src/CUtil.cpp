@@ -99,8 +99,15 @@ bool CUtil::IsMeleeWeapon(unsigned char id)
 
 void CUtil::GiveWeaponByPacket(CNetworkPlayer* player, unsigned char weapon, unsigned short ammo, bool select)
 {
+    // private build: weapons only for a ped with a clump and intelligence, checked again after a synchronous model load
+    CPlayerPed* pPed = player->GetReadyPed();
+    if (pPed == nullptr)
+    {
+        return;
+    }
+
     // update weapon, ammo
-    auto& activeWeapon = player->m_pPed->m_aWeapons[player->m_pPed->m_nActiveWeaponSlot];
+    auto& activeWeapon = pPed->m_aWeapons[pPed->m_nActiveWeaponSlot];
     bool isWeaponTypeDifferent = (activeWeapon.m_eWeaponType != weapon);
     bool isAmmoDifferent = (activeWeapon.m_nAmmoInClip != ammo);
 
@@ -125,6 +132,11 @@ void CUtil::GiveWeaponByPacket(CNetworkPlayer* player, unsigned char weapon, uns
                 {
                     CStreaming::LoadAllRequestedModels(count < 3);
                 }
+
+                if (player->GetReadyPed() != pPed) // private build
+                {
+                    return;
+                }
             }
 
             // give weapon
@@ -132,7 +144,7 @@ void CUtil::GiveWeaponByPacket(CNetworkPlayer* player, unsigned char weapon, uns
 
             if (activeWeapon.m_nTotalAmmo <= 0 || isWeaponTypeDifferent)
             {
-                player->m_pPed->GiveWeapon((eWeaponType)weapon, isMeleeWeapon ? 1 : 9999, false);
+                pPed->GiveWeapon((eWeaponType)weapon, isMeleeWeapon ? 1 : 9999, false);
             }
             // set ammo in clip
             activeWeapon.m_nAmmoInClip = ammo;
@@ -140,7 +152,7 @@ void CUtil::GiveWeaponByPacket(CNetworkPlayer* player, unsigned char weapon, uns
 
         if (isWeaponTypeDifferent && select)
         {
-            player->m_pPed->SetCurrentWeapon((eWeaponType)weapon);
+            pPed->SetCurrentWeapon((eWeaponType)weapon);
         }
 
         //CStatsSync::ApplyLocalContext();
@@ -243,6 +255,13 @@ bool CUtil::IsPedHasJetpack(CPed* ped)
 
 void CUtil::SetPlayerJetpack(CNetworkPlayer* player, bool set)
 {
+    // private build: the jetpack task needs a ped with a clump and intelligence
+    CPlayerPed* pPed = player->GetReadyPed();
+    if (pPed == nullptr)
+    {
+        return;
+    }
+
     if (set)
     {
         int playerNum = player->GetInternalId();
@@ -257,12 +276,12 @@ void CUtil::SetPlayerJetpack(CNetworkPlayer* player, bool set)
     else
     {
         // CPedIntelligence::GetTaskJetPack
-        CTaskSimpleJetPack* task = plugin::CallMethodAndReturn<CTaskSimpleJetPack*, 0x601110, CPedIntelligence*>(player->m_pPed->m_pIntelligence);
+        CTaskSimpleJetPack* task = plugin::CallMethodAndReturn<CTaskSimpleJetPack*, 0x601110, CPedIntelligence*>(pPed->m_pIntelligence);
 
         if (task)
         {
             task->m_bIsFinished = true; // dont create a jetpack pickup, TODO when syncing pickups
-            plugin::CallMethod<0x67B660, CTaskSimpleJetPack*>(task, player->m_pPed); // CTaskSimpleJetPack::DropJetPack
+            plugin::CallMethod<0x67B660, CTaskSimpleJetPack*>(task, pPed); // CTaskSimpleJetPack::DropJetPack
         }
     }
 }

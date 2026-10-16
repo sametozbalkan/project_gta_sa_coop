@@ -548,11 +548,9 @@ void COpCodeSync::HandlePacket(const uint8_t* buffer, int bufferSize)
                             {
                                 /*if (header.opcode == 0x0605)
                                     CChat::AddMessage("Network instance found...");*/
-                                if (auto ped = networkPlayer->m_pPed)
+                                // private build: a destroyed or clumpless ped gets no replayed command
+                                if (auto ped = networkPlayer->GetReadyPed())
                                 {
-                                    if (!ped->IsVTableValid())
-                                        return;
-
                                     scriptParamsBuffer[i].value = CPools::GetPedRef(ped);
                                     /*if (header.opcode == 0x0605)
                                         CChat::AddMessage("Parsed player id as ped %d...", networkPlayer->m_iPlayerId);*/

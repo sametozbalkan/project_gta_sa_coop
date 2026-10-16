@@ -26,6 +26,9 @@ static void __fastcall CPlayerPed__ProcessControl_Hook(CPlayerPed* This)
         return;
     }
 
+    // private build: a ped kept from a destroyed vehicle drops its in-car tasks before they run again
+    player->FinishKeptPed(true);
+
     int playerNum = player->GetInternalId();
 
     if (playerNum == -1)
@@ -174,9 +177,33 @@ static void __fastcall CPedIK__PointGunInDirection_Hook(
 
 static void __fastcall CPlayerPed__dctor_Hook(CPlayerPed* This, SKIP_EDX)
 {
+    // private build: the game can delete a network player's ped on its own (CNetworkPlayer.cpp); this call (0x60A9A3,
+    // the only call of ~CPlayerPed 0x6093B0) sees every CPlayerPed, so its network player forgets it here
+    CNetworkPlayerManager::OnPlayerPedDestroyed(This);
+
     This->m_pPlayerData->m_nMeleeWeaponAnimReferencedExtra = 0;
 
     plugin::CallMethod<0x6093B0, CPlayerPed*>(This);
+}
+
+// private build (remote player ped recovery): CPlayerPed's FlagToDestroyWhenNextProcessed, vtable slot 21 (0x86D1BC in
+// the CPlayerPed vtable 0x86D168, read from gta_sa.exe: holds CPed's 0x5E7B70, which nothing calls directly). The
+// original marks the ped for deletion by the next CWorld::Process (0x568631); a vehicle's destructor calls it for its
+// driver and passengers (0x6E2BC6, 0x6E2BF0). A network player's ped is kept instead (CNetworkPlayer::KeepFlaggedPed),
+// so the host's mission deleting a car the friend sits in keeps the friend's ped and its handle. Every other ped,
+// the local player included, gets the original.
+static constexpr uintptr_t CPLAYERPED_VTBL_FLAGTODESTROY = 0x86D1BC;
+static constexpr uintptr_t CPED_FLAGTODESTROY = 0x5E7B70;
+
+static void __fastcall CPlayerPed__FlagToDestroyWhenNextProcessed_Hook(CPlayerPed* This, SKIP_EDX)
+{
+    if (CNetworkPlayer* pNetworkPlayer = CNetworkPlayerManager::GetPlayer(This))
+    {
+        pNetworkPlayer->KeepFlaggedPed(This);
+        return;
+    }
+
+    plugin::CallMethod<CPED_FLAGTODESTROY, CPed*>(This);
 }
 
 void CReferences__RemoveReferencesToPlayer_Hook()
@@ -324,7 +351,7 @@ void __fastcall CRunningScript__DoDeatharrestCheck_Hook(CRunningScript* This, SK
     {
         for (auto networkPlayer : CNetworkPlayerManager::m_pPlayers)
         {
-            if (auto ped = networkPlayer->m_pPed)
+            if (auto ped = networkPlayer->GetLivePed()) // private build: not a destroyed ped's old memory
             {
                 if (ped->m_ePedState == PEDSTATE_ARRESTED || ped->m_ePedState == PEDSTATE_DEAD ||
                     (ped->m_ePedState == PEDSTATE_DIE && ped->m_nPedFlags.bIsDyingStuck))
@@ -416,6 +443,17 @@ void PlayerHooks::InjectHooks()
 
     // fix CPlayerPed dctor crash
     patch::RedirectCall(0x60A9A3, CPlayerPed__dctor_Hook);
+
+    // private build (remote player ped recovery): checked before it is replaced
+    if (*reinterpret_cast<const uintptr_t*>(CPLAYERPED_VTBL_FLAGTODESTROY) == CPED_FLAGTODESTROY)
+    {
+        patch::SetPointer(CPLAYERPED_VTBL_FLAGTODESTROY, CPlayerPed__FlagToDestroyWhenNextProcessed_Hook);
+    }
+    else
+    {
+        logger::warn("[PlayerHooks] unexpected CPlayerPed::FlagToDestroyWhenNextProcessed at 0x%X, network player peds "
+            "are not kept from destroyed vehicles", CPLAYERPED_VTBL_FLAGTODESTROY);
+    }
 
     // called when the player respawns after being busted or wasted
     patch::RedirectCall(0x443082, CReferences__RemoveReferencesToPlayer_Hook);

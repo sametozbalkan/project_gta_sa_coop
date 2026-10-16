@@ -5,8 +5,10 @@
 // private build: upstream 0.3.0 + patch 100 and up, bumped with every protocol change so that mixed builds get
 // "Version mismatch" instead of misreading packets (100 = radio sync, VEHICLE_RADIO_STATION; 101 = wanted level opcodes
 // from the host's missions and city unlock sync, UPDATE_CITY_UNLOCKED; 102 = NPC render/lifetime sync fix,
-// unchanged wire format, new binary version so both players install the fix)
-#define COOPANDREAS_VERSION "0.3.102-alpha"
+// unchanged wire format, new binary version so both players install the fix;
+// 103 = remote player ped recovery (pool-checked network player peds, recreated when the game destroyed them,
+// players taken out of a vehicle before it is deleted for the network), unchanged wire format)
+#define COOPANDREAS_VERSION "0.3.103-alpha"
 struct Config
 {
     static constexpr uint16_t DEFAULT_PORT = 6767;

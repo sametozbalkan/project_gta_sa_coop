@@ -103,16 +103,17 @@ void ApplyPacketInterpolated(CNetworkPlayer* pNetworkPlayer, const Packets::Play
         interp.orientation.m_angle = -LerpAngle(t, -packetA.orientation.m_angle, -packetB.orientation.m_angle);
     }
 
-    CPed* pPed = pNetworkPlayer->m_pPed;
+    // private build: no rotations or gun task lookups on a destroyed or clumpless ped (CNetworkPlayer::GetReadyPed)
+    CPed* pPed = pNetworkPlayer->GetReadyPed();
     // TODO find a better way to smooth currentRotation, also it is not so accurate
     // if aiming, calculate the player's heading depending on the camera vectors
-    if (Is1stPersonMode(interp.cameraMode))
+    if (pPed && Is1stPersonMode(interp.cameraMode))
     {
         // 0x511B1B
         float CamDirection = atan2f(-interp.front.x, interp.front.y);
-        pNetworkPlayer->m_pPed->m_fAimingRotation = pNetworkPlayer->m_pPed->m_fCurrentRotation = CamDirection;
+        pPed->m_fAimingRotation = pPed->m_fCurrentRotation = CamDirection;
     }
-    else if (interp.cameraMode == MODE_AIMWEAPON)
+    else if (pPed && interp.cameraMode == MODE_AIMWEAPON)
     {
         // 0x522C37
         eWeaponType weaponType = WEAPON_UNARMED;
@@ -145,8 +146,7 @@ void ApplyPacketInterpolated(CNetworkPlayer* pNetworkPlayer, const Packets::Play
             float CamDirection = atan2f(-interp.front.x, interp.front.y) - fAimAngleBeta;
             if (CamDirection > -100.0f)
             {
-                pNetworkPlayer->m_pPed->m_fAimingRotation = pNetworkPlayer->m_pPed->m_fCurrentRotation =
-                    CamDirection - 0.05f;
+                pPed->m_fAimingRotation = pPed->m_fCurrentRotation = CamDirection - 0.05f;
             }
         }
     }

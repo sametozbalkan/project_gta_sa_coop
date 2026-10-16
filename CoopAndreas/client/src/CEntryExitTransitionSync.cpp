@@ -10,6 +10,7 @@ struct RemoteTransition
 {
     CPlayerPed* m_pPed = nullptr;
     CTask* m_pTask = nullptr;
+    int m_nPedRef = -1; // private build: the pool handle (with its generation), a recreated ped can reuse the address
 };
 
 std::unordered_map<int, RemoteTransition> g_remoteTransitions;
@@ -30,7 +31,18 @@ void SetRemotePrimaryTask(CPlayerPed* pPlayerPed, CTask* pTask)
 
 void ApplyRemoteSnapshot(CNetworkPlayer* pNetworkPlayer, const Packets::Players::EnExTransition& packet)
 {
-    CPlayerPed* pPlayerPed = pNetworkPlayer->m_pPed;
+    // private build: the position and area also seed a recreated ped; the ped itself only while it is ready
+    pNetworkPlayer->SetLastKnownState(packet.position, packet.playerAreaId);
+    pNetworkPlayer->m_onFootSnapshotInterpolated.vecPos = packet.position;
+    pNetworkPlayer->m_onFootSnapshotInterpolated.vecMoveSpeed = CVector();
+    pNetworkPlayer->m_onFootSnapshotInterpolated.currentRotation = packet.currentRotation;
+    pNetworkPlayer->m_onFootSnapshotInterpolated.aimingRotation = packet.aimingRotation;
+
+    CPlayerPed* pPlayerPed = pNetworkPlayer->GetReadyPed();
+    if (pPlayerPed == nullptr)
+    {
+        return;
+    }
 
     if (packet.bFinished)
     {
@@ -47,11 +59,6 @@ void ApplyRemoteSnapshot(CNetworkPlayer* pNetworkPlayer, const Packets::Players:
     pPlayerPed->UpdateRwMatrix();
     pPlayerPed->m_pEnex = nullptr;
     pPlayerPed->m_vecMoveSpeed = CVector{};
-
-    pNetworkPlayer->m_onFootSnapshotInterpolated.vecPos = packet.position;
-    pNetworkPlayer->m_onFootSnapshotInterpolated.vecMoveSpeed = CVector();
-    pNetworkPlayer->m_onFootSnapshotInterpolated.currentRotation = packet.currentRotation;
-    pNetworkPlayer->m_onFootSnapshotInterpolated.aimingRotation = packet.aimingRotation;
 }
 
 void ClearRemoteTransition(CNetworkPlayer* pNetworkPlayer)
@@ -63,7 +70,9 @@ void ClearRemoteTransition(CNetworkPlayer* pNetworkPlayer)
     }
 
     RemoteTransition& transition = it->second;
-    if (pNetworkPlayer->m_pPed == transition.m_pPed)
+    // private build: the stored ped may have been destroyed; only a ready one still has its task manager
+    if (transition.m_pPed && pNetworkPlayer->GetReadyPed() == transition.m_pPed &&
+        CPools::GetPedRef(transition.m_pPed) == transition.m_nPedRef)
     {
         CTaskManager& taskManager = transition.m_pPed->m_pIntelligence->m_TaskMgr;
         if (taskManager.m_aPrimaryTasks[TASK_PRIMARY_PRIMARY] == transition.m_pTask)
@@ -77,7 +86,17 @@ void ClearRemoteTransition(CNetworkPlayer* pNetworkPlayer)
 
 void StartRemoteTransition(CNetworkPlayer* pNetworkPlayer, CEntryExit* pEntryExit, bool bUsesDoor)
 {
-    CPlayerPed* pPlayerPed = pNetworkPlayer->m_pPed;
+    // private build: CTaskManager::SetTask (0x681AF0) creates the first subtask at once, and
+    // CTaskComplexGotoDoorAndOpen::CreateFirstSubTask (0x66BD40) reads the ped's clump (call at 0x66BFD7 to
+    // RpAnimBlendClumpGetAssociation 0x4D68B0): with a destroyed ped's NULL clump that was the 0x4D68BA crash at the
+    // Ganton Binco door. The task is built only for a ped with a clump and intelligence.
+    CPlayerPed* pPlayerPed = pNetworkPlayer->GetReadyPed();
+    if (pPlayerPed == nullptr)
+    {
+        pNetworkPlayer->LogPedDiagnostic("deferred", "enex-transition");
+        return;
+    }
+
     CTask* pTask = nullptr;
 
     if (bUsesDoor)
@@ -103,7 +122,7 @@ void StartRemoteTransition(CNetworkPlayer* pNetworkPlayer, CEntryExit* pEntryExi
     }
 
     SetRemotePrimaryTask(pPlayerPed, pTask);
-    g_remoteTransitions[pNetworkPlayer->m_iPlayerId] = {pPlayerPed, pTask};
+    g_remoteTransitions[pNetworkPlayer->m_iPlayerId] = {pPlayerPed, pTask, CPools::GetPedRef(pPlayerPed)};
 }
 
 CEntryExit* FindEntryExit(int16_t rectLeft, int16_t rectBottom, uint8_t areaId)
@@ -169,12 +188,20 @@ void CEntryExitTransitionSync::OnTransitionFinished(CEntryExit* pEntryExit, CPed
 void CEntryExitTransitionSync::Receive(const Packets::Players::EnExTransition& packet)
 {
     CNetworkPlayer* pNetworkPlayer = CNetworkPlayerManager::GetPlayer(packet.playerid);
-    if (!pNetworkPlayer || !pNetworkPlayer->m_pPed)
+    if (!pNetworkPlayer)
     {
         return;
     }
 
-    CPlayerPed* pPlayerPed = pNetworkPlayer->m_pPed;
+    // private build: without a ready ped (destroyed, being recreated, no clump) only the snapshot is kept
+    CPlayerPed* pPlayerPed = pNetworkPlayer->GetReadyPed();
+    if (!pPlayerPed)
+    {
+        ClearRemoteTransition(pNetworkPlayer);
+        ApplyRemoteSnapshot(pNetworkPlayer, packet);
+        return;
+    }
+
     CEntryExit* pEntryExit = nullptr;
     if (!packet.bFinished)
     {
@@ -201,13 +228,15 @@ void CEntryExitTransitionSync::Process()
         auto pCurrent = it++;
         CNetworkPlayer* pNetworkPlayer = CNetworkPlayerManager::GetPlayer(pCurrent->first);
         RemoteTransition& transition = pCurrent->second;
-        if (!pNetworkPlayer || !pNetworkPlayer->m_pPed || pNetworkPlayer->m_pPed != transition.m_pPed)
+        // private build: forgotten once its ped was destroyed, recreated or lost its clump
+        CPlayerPed* pPlayerPed = pNetworkPlayer ? pNetworkPlayer->GetReadyPed() : nullptr;
+        if (!pPlayerPed || pPlayerPed != transition.m_pPed || CPools::GetPedRef(pPlayerPed) != transition.m_nPedRef)
         {
             g_remoteTransitions.erase(pCurrent);
             continue;
         }
 
-        if (pNetworkPlayer->m_pPed->m_nPedFlags.bInVehicle)
+        if (pPlayerPed->m_nPedFlags.bInVehicle)
         {
             ClearRemoteTransition(pNetworkPlayer);
             continue;

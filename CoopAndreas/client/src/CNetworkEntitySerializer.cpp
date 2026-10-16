@@ -31,7 +31,7 @@ CEntity* CNetworkEntitySerializer::GetEntity()
 		}
 		if (auto networkPlayer = CNetworkPlayerManager::GetPlayer(entityId))
 		{
-			if (auto ped = networkPlayer->m_pPed)
+			if (auto ped = networkPlayer->GetLivePed()) // private build: not a destroyed ped's old pointer
 			{
 				return ped;
 			}

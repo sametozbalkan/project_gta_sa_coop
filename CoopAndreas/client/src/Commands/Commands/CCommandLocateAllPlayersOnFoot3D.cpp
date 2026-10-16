@@ -25,10 +25,10 @@ void CCommandLocateAllPlayersOnFoot3D::Process(CRunningScript* script)
 	{
 		for (auto networkPlayer : CNetworkPlayerManager::m_pPlayers)
 		{
-			if (networkPlayer->m_pPed)
+			if (auto ped = networkPlayer->GetLivePed()) // private build: not a destroyed ped's old pointer
 			{
 				result = Command<Commands::LOCATE_CHAR_ON_FOOT_3D>(
-					CPools::GetPedRef(networkPlayer->m_pPed), 
+					CPools::GetPedRef(ped),
 					position->x, position->y, position->z, 
 					radius->x, radius->y, radius->z, 
 					false);

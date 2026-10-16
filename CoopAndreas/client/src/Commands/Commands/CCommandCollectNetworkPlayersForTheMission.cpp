@@ -9,9 +9,9 @@ void CCommandCollectNetworkPlayersForTheMission::Process(CRunningScript* script)
 
 	for (auto networkPlayer : CNetworkPlayerManager::m_pPlayers)
 	{
-		if (auto player = networkPlayer->m_pPed)
+		if (auto player = networkPlayer->GetLivePed()) // private build: not a destroyed ped's old handle
 		{
-			ScriptParams[i] = CPools::GetPedRef(networkPlayer->m_pPed);
+			ScriptParams[i] = CPools::GetPedRef(player);
 		}
 
 		if (++i >= 3)

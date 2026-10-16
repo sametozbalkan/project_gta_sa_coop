@@ -37,12 +37,37 @@ CNetworkPlayer* CNetworkPlayerManager::GetPlayer(int playerid)
 
 CNetworkPlayer* CNetworkPlayerManager::GetPlayer(CEntity* entity)
 {
+    // private build: no match for NULL (the ped of a player whose ped is being recreated) or for the old pointer of a
+    // ped the game destroyed (GetLivePed)
+    if (entity == nullptr)
+    {
+        return nullptr;
+    }
+
     for (int i = 0; i != m_pPlayers.size(); i++)
     {
-        if (m_pPlayers[i]->m_pPed == entity)
+        if (m_pPlayers[i]->m_pPed == entity && m_pPlayers[i]->GetLivePed() == entity)
         {
             return m_pPlayers[i];
         }
     }
     return nullptr;
+}
+
+// private build: recreates a destroyed or clumpless network player ped, once per frame on the game thread
+void CNetworkPlayerManager::ProcessPeds()
+{
+    for (auto pNetworkPlayer : m_pPlayers)
+    {
+        pNetworkPlayer->ProcessPedRecovery();
+    }
+}
+
+// private build: called by the CPlayerPed destructor hook (PlayerHooks.cpp) for every CPlayerPed, local ones too
+void CNetworkPlayerManager::OnPlayerPedDestroyed(CPlayerPed* ped)
+{
+    for (auto pNetworkPlayer : m_pPlayers)
+    {
+        pNetworkPlayer->OnPedDestroyed(ped);
+    }
 }
