@@ -3,6 +3,7 @@
 #include "CMirrorPolicy.h"
 #include "CMirrorBlips.h"
 #include "CMirrorAreas.h"
+#include "CMirrorHud.h"
 #include "COpCodeSync.h"
 #include "CSessionLifecycle.h"
 #include <CTimer.h>
@@ -485,6 +486,7 @@ void CMissionMirror::OnCommandExecuted(CRunningScript* pScript, uint16_t opcode)
         return;
     }
     CMirrorBlips::OnCommandExecuted(pScript, opcode); // M2: the blips the host's mission family creates
+    CMirrorHud::OnCommandExecuted(pScript, opcode); // M4: which timers and counters the host's mission added
 
     // every game: the mission its scripts launch, and the text table the mission loaded (its handler has just loaded it;
     // the name is empty for one the GXT doesn't have). Kept while this game isn't the host for the join snapshot it may
@@ -608,6 +610,7 @@ void CMissionMirror::OnScriptsProcessed()
     UpdateMission();
     CMirrorBlips::Process(); // M2: the host sends its mission's blips, the others keep their copies in line
     CMirrorAreas::Process(ms_mission.IsMirrored()); // the host's locate spheres and markers (package M3)
+    CMirrorHud::Process(); // M4: the host's timers and counters out, the mirrored ones on the other games
 }
 
 bool CMissionMirror::OnReplayingCommand(const uint8_t* data, int size)
@@ -701,4 +704,5 @@ void CMissionMirror::WriteDiagSummary(FILE* file)
         ms_szHostTable[0] ? ms_szHostTable : "-", c.tableLoads, c.tableSkips, c.helpClears);
     CMirrorBlips::WriteDiagSummary(file); // M2
     CMirrorAreas::WriteDiagSummary(file);
+    CMirrorHud::WriteDiagSummary(file); // M4
 }
