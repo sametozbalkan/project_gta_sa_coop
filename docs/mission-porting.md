@@ -353,8 +353,9 @@ The other players' own state is kept next to the host's save, in `GTASAsf<n>.b.c
 `client/src/CPlayerStateSave.*`): their weapons and ammo, health, armour, money, clothes (with haircut and
 tattoos), fighting style, the perks `CPlayerInfo` keeps (max health and armour, infinite sprint, fast reload,
 fireproof, free health care, get out of jail free) and their own stats (fat, muscle, stamina, max health, sex
-appeal, appearance, the weapon skills, driving, flying, bike and cycling skill, lung capacity, gambling).
-Position, wanted level, respect, the story, properties and the city unlock are not part of it.
+appeal, appearance, the weapon skills, driving, flying, bike and cycling skill, lung capacity, gambling) and,
+since 0.1.0, the respect they earn (mission, kill and clothes respect; the game recomputes the total). Position,
+wanted level, the story, properties and the city unlock are not part of it.
 
 - Each other player's game sends its state to the host when it changes (checked every 2 s), once it is in
   plain free play (after a new game's intro).

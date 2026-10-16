@@ -125,8 +125,9 @@ saygısının kayıtla saklanması.
   o grubun düzeltme paketleri, 1.0.0 = hikâyenin tamamı co-op; "-alpha" hikâyenin büyük kısmı bitene kadar kalır.
 - **Buy Me a Coffee:** hesap açılınca README'nin başına rozet ve `.github/FUNDING.yml` (GitHub'ın Sponsor düğmesi).
   Bağış gönüllü kalır; parayla açılan özellik ya da erken erişim yok, GTA/Rockstar logosu yok.
-- **Saygı (respect) saklama:** arkadaşın saygısı şimdilik kayıtla saklanmıyor (oyun onu bileşenlerden hesaplıyor);
-  gerekirse sonra.
+- **Saygı (respect) saklama:** yapıldı (P1, 2604706; 0.1.0): arkadaşın görev, öldürme ve kıyafet saygısı durumuyla
+  birlikte saklanıyor (oyun toplamı bunlardan hesaplıyor). #26'da SWEET7 host'un saygısını 200'e çekiyor (`0629`), bu
+  yansımıyor; o görev uyarlanırken karar verilecek.
 - Alt+Tab'a küçük ek: pencere arka plana geçerken "tuşlar bırakıldı" bilgisi gönderilsin (diğer ekranda basılı kalan
   tuşla yürümeye devam etmesin).
 - Upstream PR #106 **alınmadı**: sonradan katılan oyuncu diğerinin parasını sıfırlıyor, aynı anda kazanılan para
