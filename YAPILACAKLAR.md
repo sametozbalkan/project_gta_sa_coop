@@ -76,14 +76,15 @@ M1 + WS-1, sonra M2–M4 + WS-3 + WS-4, sonra #1–#10 dönüşümü (C1) ve New
 Kullanıcı kararları (2026-10-16): görev geçiş ödülü (para ve saygı) ikinize, bahis ve harcamalar yalnızca host'ta; çete
 savaşını host'un oyunu başlatır, arkadaşın öldürdükleri de sayılır; host sabitleme. Uygulama test beklenmeden başladı:
 0.3.103 testi bitene kadar oyuna yeni sürüm kurulmuyor, 0.3.103 düzeltmeleri `v0.3.103-alpha` etiketinden çıkar.
+İlerleme: L0 birleştirildi (eca37e3: oturum olayları, host sabitleme, host düşünce arkadaşın kontrolü geri alması);
+2. dalga (M1 yansıtma çekirdeği, yazılar ve ödüller; WS-1 dünya durumu çekirdeği) çalışıyor.
 
 ## Sonraki işler (öncelik sırasıyla)
 - **Sağlamlık:** geçersiz oyuncu tutamacı verilen co-op komutları host'u çökertiyor (ör. arkadaş görev ortasında
   düşerse); 0.3.103'te host tarafındaki yazı ve işaret komutlarına boş oyuncu denetimi eklendi, kalan yerler ayrıca
   taranacak. Görevi kimin başlatabileceğini denetleyen host kontrolü (`CanPlayerStartMission`) upstream'de yorum satırı.
-- **Host sabitleme:** sunucu host'u hep ilk bağlanan oyuncuya veriyor; host'un oyunu çöküp geri bağlanırsa host'luk
-  arkadaşta kalıyor ve istemci host'luğun elinden alınmasını karşılamıyor. Sunucu ayarıyla hikâye host'unu sabitlemek
-  Plan: ortak temel paket L0'da `story-host` sunucu ayarı (`docs/design/README.md`).
+- **Host sabitleme:** yapıldı (L0, eca37e3; 0.1.0 paketiyle gelecek). Sunucunun `story-host` ayarındaki oyuncu hep
+  host, o yokken kimse host olmaz. Çöken host, sunucu eski bağlantısını düşürdükten sonra (30–60 sn) yeniden bağlanabilir.
 - **Nesne senkronu** (#60'tan önce): görevlerin açtığı, taşıdığı ya da sildiği kapılar, geçitler ve kulübeler arkadaşta
   `INITIAL`'ın bıraktığı gibi kalıyor (CoopAndreas nesne senkronlamıyor); ayrı tasarım gerekiyor.
 - Sunucunun özel karakter modeli izin listesi ters çalışıyor (her özel model kabul ediliyor); küçük düzeltme.
