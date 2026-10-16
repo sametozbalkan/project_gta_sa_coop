@@ -87,13 +87,38 @@ struct SPlayerState
 
     // Personal float stats (eStats ids below 0x52, CStats::GetStatValue 0x558E40): fat, stamina, muscle, max health,
     // sex appeal, the 11 weapon skills (69-79), appearance (follows the clothes worn, CShopping::IncrementStat) and
-    // gambling skill. Respect is left out: it comes from the host's missions and territories.
+    // gambling skill. The respect stats are separate (below).
     static constexpr uint16_t FLOAT_STAT_IDS[] = {
         21, 22, 23, 24, 25, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81};
     // Personal int stats: driving, flying, lung capacity, bike and cycling skill
     static constexpr uint16_t INT_STAT_IDS[] = {160, 223, 225, 229, 230};
     static constexpr int NUM_FLOAT_STATS = static_cast<int>(sizeof(FLOAT_STAT_IDS) / sizeof(FLOAT_STAT_IDS[0]));
     static constexpr int NUM_INT_STATS = static_cast<int>(sizeof(INT_STAT_IDS) / sizeof(INT_STAT_IDS[0]));
+
+    // Respect. The game computes the total (float stat 64) from components in every frame it isn't paused:
+    // CStats::UpdateRespectStat (0x55BC50, the first call of CGameLogic::Update 0x442AD0) adds
+    //   mission respect (224) * 1000 / max(mission respect total (228), 1) * 0.36, respect (68) * 0.4,
+    //   girlfriend respect (65), clothes respect (66) and muscle (23) * 0.03 each, min(money * 1e-7, 1) * 50,
+    //   max(CGangWars::TerritoryUnderControlPercentage - 0.2, 0) * 62.5 and CTagManager::GetPercentageTagged() * 0.5,
+    // at least 0 and 1000 under the max respect cheat, and stores the total whenever its whole part changes.
+    // Kept here, as the player earns them in their own game: mission respect (award_player_mission_respect 0998, with
+    // the host's mission-pass rewards the mission mirror replays), respect (+1.5 per cop or dealer and +0.75 per enemy
+    // gang member killed, -5 per Grove member, -2 per recruit someone else kills: CDarkel 0x43DCD0 / 0x43D210; gang war
+    // results: CGangWars 0x446400 / 0x446610) and clothes respect (follows the clothes bought, CShopping::Buy 0x49BF70,
+    // like appearance). Muscle and money are kept above. Not kept: the girlfriends' respect (GFAGNT keeps it in step
+    // with MAIN's girlfriend globals, which no player state carries), territories and tags (the host's world), the
+    // mission respect total (the constant 1339 MAIN sets in every game, 0997) and the cheat. The total follows.
+    static constexpr uint16_t STAT_ID_CLOTHES_RESPECT = 66;   // float, capped at 1000 (CStats::IsStatCapped 0x559630)
+    static constexpr uint16_t STAT_ID_RESPECT = 68;           // float, not capped
+    static constexpr uint16_t STAT_ID_MISSION_RESPECT = 224;  // int, not capped; the whole story awards 1339
+    static constexpr float MAX_RESPECT = 100000.0f;           // sanity limits for the uncapped two
+    static constexpr int32_t MAX_MISSION_RESPECT = 100000;
+
+    // Serialize layouts: LAYOUT_V1 is the state as CAPS v1 files hold it (without respect, read only), LAYOUT_V2 the
+    // packets' and CAPS v2 files' layout
+    static constexpr int LAYOUT_V1 = 1;
+    static constexpr int LAYOUT_V2 = 2;
+    static constexpr int LAYOUT_CURRENT = LAYOUT_V2;
 
     struct SWeapon
     {
@@ -122,6 +147,12 @@ struct SPlayerState
     // CPedClothesDesc keys (clothes, haircut, tattoos); fat and muscle come from the stats when the player is rebuilt
     uint32_t clothesModelKeys[NUM_CLOTHES_MODELS]{};
     uint32_t clothesTextureKeys[NUM_CLOTHES_TEXTURES]{};
+    // false only for a state read from a CAPS v1 file (the respect values are 0 then): a restore of it leaves the
+    // player's respect as it is
+    bool hasRespect = true;
+    float respect = 0.0f;         // STAT_ID_RESPECT
+    float clothesRespect = 0.0f;  // STAT_ID_CLOTHES_RESPECT
+    int32_t missionRespect = 0;   // STAT_ID_MISSION_RESPECT
 
     // 19-21 (rocket, heat-seeking rocket, freefall bomb) are projectiles, never in a ped's weapon slots
     static bool IsGivableWeaponType(int type)
@@ -183,6 +214,19 @@ struct SPlayerState
                 return false;
             }
         }
+        if (hasRespect)
+        {
+            if (!IsFiniteInRange(respect, 0.0f, MAX_RESPECT) ||
+                !IsFiniteInRange(clothesRespect, 0.0f, MAX_STAT_VALUE) || missionRespect < 0 ||
+                missionRespect > MAX_MISSION_RESPECT)
+            {
+                return false;
+            }
+        }
+        else if (respect != 0.0f || clothesRespect != 0.0f || missionRespect != 0)
+        {
+            return false;  // one form for "not known"
+        }
         return true;
     }
 
@@ -201,7 +245,8 @@ struct SPlayerState
             allowedAttackMoves != other.allowedAttackMoves || maxHealth != other.maxHealth ||
             maxArmour != other.maxArmour || neverGetsTired != other.neverGetsTired || fastReload != other.fastReload ||
             fireProof != other.fireProof || getOutOfJailFree != other.getOutOfJailFree ||
-            freeHealthCare != other.freeHealthCare)
+            freeHealthCare != other.freeHealthCare || hasRespect != other.hasRespect || respect != other.respect ||
+            clothesRespect != other.clothesRespect || missionRespect != other.missionRespect)
         {
             return false;
         }
@@ -218,6 +263,17 @@ struct SPlayerState
     template <typename Stream>
     bool Serialize(Stream& stream)
     {
+        return SerializeLayout(stream, LAYOUT_CURRENT);
+    }
+
+    // An older layout is only read (from an older sidecar file): its missing fields read as "not known"
+    template <typename Stream>
+    bool SerializeLayout(Stream& stream, int layout)
+    {
+        if (layout < LAYOUT_V1 || layout > LAYOUT_CURRENT || (Stream::IsWriting && layout != LAYOUT_CURRENT))
+        {
+            return false;
+        }
         if (Stream::IsWriting && !IsValid())
         {
             return false;
@@ -285,6 +341,31 @@ struct SPlayerState
             {
                 return false;
             }
+        }
+
+        // LAYOUT_V2: the respect block
+        if (layout >= LAYOUT_V2)
+        {
+            serialize_bool(stream, hasRespect);
+        }
+        else if (Stream::IsReading)
+        {
+            hasRespect = false;
+        }
+        if (hasRespect)
+        {
+            serialize_float(stream, respect);
+            serialize_float(stream, clothesRespect);
+            if (!SerializeRanged(stream, missionRespect, 0, MAX_MISSION_RESPECT))
+            {
+                return false;
+            }
+        }
+        else if (Stream::IsReading)
+        {
+            respect = 0.0f;
+            clothesRespect = 0.0f;
+            missionRespect = 0;
         }
 
         if (Stream::IsReading && !IsValid())

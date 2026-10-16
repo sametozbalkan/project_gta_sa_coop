@@ -28,7 +28,10 @@
 // - CWeaponInfo: m_nModelId1 +0xC, m_nModelId2 +0x10 (Extract), m_nSlot +0x14 (CPed::GiveWeapon 0x5E6080), m_nAmmoClip
 //   +0x20 (CWeapon::Reload 0x73AEB0).
 // - stats: float ids below 0x52 at 0xB79380 + id * 4, int ids at 0xB78E20 + id * 4 (CStats::GetStatValue 0x558E40) =
-//   CStats::StatTypesFloat / CStats::StatTypesInt[id - 120].
+//   CStats::StatTypesFloat / CStats::StatTypesInt[id - 120]. The respect components kept (SPlayerState) are the
+//   operands CStats::UpdateRespectStat (0x55BC50) reads: respect 68 at 0xB79490 (0x55BC73), clothes respect 66 at
+//   0xB79488 (0x55BD39), mission respect 224 at 0xB791A0 (0x55BC7F). It writes the total (64, 0xB79480 at 0x55BDDA)
+//   and runs at the start of CGameLogic::Update (call at 0x442ADA) in every frame the game isn't paused.
 // The free-play rule (menu, fade, cutscene, controls, missions of this game) is CSessionLifecycle::IsInFreePlay.
 static_assert(offsetof(CPlayerInfo, m_nMoney) == 0xB8, "CPlayerInfo::m_nMoney");
 static_assert(offsetof(CPlayerInfo, m_nDisplayMoney) == 0xBC, "CPlayerInfo::m_nDisplayMoney");
@@ -235,6 +238,15 @@ bool CaptureState(CPlayerPed* pPed, SPlayerState& state)
             static_cast<int>(SPlayerState::MAX_STAT_VALUE));
     }
 
+    // the respect components this player earns; the game computes the total from them
+    state.hasRespect = true;
+    state.respect =
+        ClampFinite(CStats::StatTypesFloat[SPlayerState::STAT_ID_RESPECT], 0.0f, SPlayerState::MAX_RESPECT, 0.0f);
+    state.clothesRespect = ClampFinite(
+        CStats::StatTypesFloat[SPlayerState::STAT_ID_CLOTHES_RESPECT], 0.0f, SPlayerState::MAX_STAT_VALUE, 0.0f);
+    state.missionRespect = std::clamp(CStats::StatTypesInt[SPlayerState::STAT_ID_MISSION_RESPECT - FIRST_INT_STAT], 0,
+        SPlayerState::MAX_MISSION_RESPECT);
+
     const CPedClothesDesc* pClothes = pPed->m_pPlayerData->m_pPedClothesDesc;
     memcpy(state.clothesModelKeys, pClothes->m_anModelKeys, sizeof(state.clothesModelKeys));
     memcpy(state.clothesTextureKeys, pClothes->m_anTextureKeys, sizeof(state.clothesTextureKeys));
@@ -345,6 +357,14 @@ void ApplyState(const SPlayerState& state)
     {
         CStats::StatTypesInt[SPlayerState::INT_STAT_IDS[i] - FIRST_INT_STAT] = state.intStats[i];
     }
+    // The total respect (stat 64) follows in the next frame: CGameLogic::Update recomputes it from these, the money and
+    // the muscle. A state from a CAPS v1 file has no respect: this player's stays as it is.
+    if (state.hasRespect)
+    {
+        CStats::StatTypesFloat[SPlayerState::STAT_ID_RESPECT] = state.respect;
+        CStats::StatTypesFloat[SPlayerState::STAT_ID_CLOTHES_RESPECT] = state.clothesRespect;
+        CStats::StatTypesInt[SPlayerState::STAT_ID_MISSION_RESPECT - FIRST_INT_STAT] = state.missionRespect;
+    }
 
     CPlayerInfo& info = CWorld::Players[0];
     info.m_nMoney = state.money;
@@ -429,9 +449,20 @@ void ProcessOtherPlayer()
     {
         if (bSettled && IsOnFoot(pPed))
         {
-            ApplyState(ms_client.GetPendingRestore());
+            const SPlayerState& restore = ms_client.GetPendingRestore();
+            ApplyState(restore);
+            // the respect values let the players check the restore: a new game has none
+            if (restore.hasRespect)
+            {
+                CChat::AddMessage(
+                    "{cecedb}[Co-op] Your saved player state is back (mission respect %d, respect %.1f, clothes %.0f).",
+                    restore.missionRespect, restore.respect, restore.clothesRespect);
+            }
+            else
+            {
+                CChat::AddMessage("{cecedb}[Co-op] Your saved player state is back (no respect in this older save).");
+            }
             ms_client.OnRestoreDone();
-            CChat::AddMessage("{cecedb}[Co-op] Your saved player state is back.");
         }
         return;
     }
@@ -666,8 +697,9 @@ void CPlayerStateSave::OnGameLoaded(const char* saveFileName)
     }
 
     ms_store.OnSaveLoaded(file.entries);
-    logger::info("CPlayerStateSave: %u player state(s) read from %s", static_cast<unsigned>(file.entries.size()),
-        sidecarName.c_str());
+    logger::info("CPlayerStateSave: %u player state(s) read from %s (format v%u%s)",
+        static_cast<unsigned>(file.entries.size()), sidecarName.c_str(), static_cast<unsigned>(file.version),
+        PlayerStateSidecar::GetStateLayout(file.version) < SPlayerState::LAYOUT_V2 ? ", without respect" : "");
     AddChatLineLater("{cecedb}[Co-op] This save keeps the state of %u other player(s).",
         static_cast<unsigned>(file.entries.size()));
 }

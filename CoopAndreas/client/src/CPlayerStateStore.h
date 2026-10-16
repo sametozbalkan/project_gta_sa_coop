@@ -15,19 +15,27 @@ namespace PlayerStateSidecar
 {
 // "<save file>.coop" next to the host's GTASAsf<n>.b, little-endian:
 //    0  char[4]  "CAPS"
-//    4  uint16   format version (1)
+//    4  uint16   format version (2; version 1 files, from before respect was kept, are still read)
 //    6  uint16   number of entries
 //    8  uint32   size of the save file it was written with
 //   12  uint64   FNV-1a 64 of that save file
 //   20  uint32   body size in bytes
-//   24  body     per entry: nickname (serialize_string), SPlayerState::Serialize; bit-packed like the packets
+//   24  body     per entry: nickname (serialize_string), the SPlayerState in the layout of the version (GetStateLayout:
+//                v1 SPlayerState::LAYOUT_V1, without respect; v2 LAYOUT_V2); bit-packed like the packets
 //  end  uint32   FNV-1a 32 of everything before it
 constexpr char MAGIC[4] = {'C', 'A', 'P', 'S'};
-constexpr uint16_t VERSION = 1;
+constexpr uint16_t VERSION = 2;
 constexpr size_t HEADER_SIZE = 24;
 constexpr size_t CHECKSUM_SIZE = 4;
 constexpr size_t MAX_ENTRIES = 64;
 constexpr size_t MAX_FILE_SIZE = 64 * 1024;
+
+// the SPlayerState layout of a format version, 0 for a version this build can't read
+constexpr int GetStateLayout(uint32_t version)
+{
+    return version == 1 ? SPlayerState::LAYOUT_V1 : version == 2 ? SPlayerState::LAYOUT_V2 : 0;
+}
+static_assert(GetStateLayout(VERSION) == SPlayerState::LAYOUT_CURRENT, "files are written in the packets' layout");
 
 struct SEntry
 {
@@ -37,6 +45,7 @@ struct SEntry
 
 struct SFile
 {
+    uint16_t version = VERSION;  // the version Read found; Write always writes VERSION
     uint32_t saveSize = 0;
     uint64_t saveHash = 0;
     std::vector<SEntry> entries;
@@ -93,11 +102,10 @@ inline uint64_t Get(const uint8_t* data, int bytes)
 }
 
 template <typename Stream>
-bool SerializeEntry(Stream& stream, char (&name)[Config::MAX_NICKNAME_LENGTH + 1], SPlayerState& state)
+bool SerializeEntry(Stream& stream, char (&name)[Config::MAX_NICKNAME_LENGTH + 1], SPlayerState& state, int layout)
 {
     serialize_string(stream, name, static_cast<int>(sizeof(name)));
-    serialize_object(stream, state);
-    return true;
+    return state.SerializeLayout(stream, layout);
 }
 }  // namespace Detail
 
@@ -129,7 +137,7 @@ inline bool Write(const SFile& file, std::vector<uint8_t>& out)
         char name[Config::MAX_NICKNAME_LENGTH + 1]{};
         memcpy(name, entry.name.c_str(), entry.name.size());
         SPlayerState state = entry.state;
-        if (!Detail::SerializeEntry(measure, name, state))
+        if (!Detail::SerializeEntry(measure, name, state, SPlayerState::LAYOUT_CURRENT))
         {
             return false;
         }
@@ -142,7 +150,7 @@ inline bool Write(const SFile& file, std::vector<uint8_t>& out)
         char name[Config::MAX_NICKNAME_LENGTH + 1]{};
         memcpy(name, entry.name.c_str(), entry.name.size());
         SPlayerState state = entry.state;
-        if (!Detail::SerializeEntry(stream, name, state))
+        if (!Detail::SerializeEntry(stream, name, state, SPlayerState::LAYOUT_CURRENT))
         {
             return false;
         }
@@ -172,7 +180,9 @@ inline eReadResult Read(const std::vector<uint8_t>& data, SFile& out)
     {
         return eReadResult::BadMagic;
     }
-    if (Detail::Get(&data[4], 2) != VERSION)
+    const uint16_t version = static_cast<uint16_t>(Detail::Get(&data[4], 2));
+    const int layout = GetStateLayout(version);
+    if (layout == 0)
     {
         return eReadResult::UnknownVersion;
     }
@@ -198,13 +208,14 @@ inline eReadResult Read(const std::vector<uint8_t>& data, SFile& out)
     serialize::ReadStream stream(body.data(), static_cast<int>(bodySize));
 
     SFile file;
+    file.version = version;
     file.saveSize = static_cast<uint32_t>(Detail::Get(&data[8], 4));
     file.saveHash = Detail::Get(&data[12], 8);
     for (size_t i = 0; i < count; i++)
     {
         char name[Config::MAX_NICKNAME_LENGTH + 1]{};
         SEntry entry;
-        if (!Detail::SerializeEntry(stream, name, entry.state) || !IsValidPlayerName(name))
+        if (!Detail::SerializeEntry(stream, name, entry.state, layout) || !IsValidPlayerName(name))
         {
             return eReadResult::Corrupt;
         }
@@ -284,7 +295,9 @@ public:
         return eSnapshotResult::Accepted;
     }
 
-    // the host's game loaded a save whose sidecar holds these entries; players not in it keep their record
+    // the host's game loaded a save whose sidecar holds these entries; players not in it keep their record. An entry
+    // from a v1 file has no respect (hasRespect false): its restore leaves the player's respect as it is, and their
+    // next snapshot brings it into the record.
     void OnSaveLoaded(const std::vector<PlayerStateSidecar::SEntry>& entries)
     {
         for (const PlayerStateSidecar::SEntry& entry : entries)

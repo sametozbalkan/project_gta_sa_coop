@@ -1,11 +1,13 @@
 // Private build: policy test for the co-op save player state (client/src/CPlayerStateSave.h) without GTA: the state
-// format and its checks, the sidecar file, the host's store (merge, carry-over, restores) and the other players' send
-// rules. Build and run: see CLAUDE.md (Fork changes, player state for co-op saves).
+// format and its checks (with the respect block), the sidecar file (v2, and v1 files from before respect was kept), the
+// host's store (merge, carry-over, restores) and the other players' send rules. Build and run: see CLAUDE.md (Fork
+// changes, player state for co-op saves).
 #include "../client/src/CPlayerStateStore.h"
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <iterator>
 #include <limits>
 #include <string>
 #include <vector>
@@ -50,6 +52,20 @@ SPlayerState MakeState(int seed)
     {
         state.clothesTextureKeys[i] = 0x85EBCA6Bu * static_cast<uint32_t>(i + 3 + seed);
     }
+    state.hasRespect = true;
+    state.respect = 1234.5f + static_cast<float>(seed);  // stat 68 isn't capped at 1000
+    state.clothesRespect = 260.0f + static_cast<float>(seed);
+    state.missionRespect = 1339 + seed;
+    return state;
+}
+
+// what a CAPS v1 file holds of a state
+SPlayerState WithoutRespect(SPlayerState state)
+{
+    state.hasRespect = false;
+    state.respect = 0.0f;
+    state.clothesRespect = 0.0f;
+    state.missionRespect = 0;
     return state;
 }
 
@@ -123,6 +139,13 @@ bool WriteUnchecked(Stream& stream, SPlayerState& s)
     {
         serialize_bits(stream, key, 32);
     }
+    serialize_bool(stream, s.hasRespect);
+    if (s.hasRespect)
+    {
+        serialize_float(stream, s.respect);
+        serialize_float(stream, s.clothesRespect);
+        serialize_int(stream, s.missionRespect, 0, SPlayerState::MAX_MISSION_RESPECT);
+    }
     return true;
 }
 
@@ -161,6 +184,19 @@ void StateRoundTripAndChecks()
     // the unchecked writer produces the same bits for a valid state
     CHECK(ReadsBack(state));
 
+    // each respect field is part of the state (a change of it alone is sent and stored)
+    SPlayerState differing = state;
+    differing.respect += 0.75f;
+    CHECK(differing != state);
+    differing = state;
+    differing.clothesRespect += 10.0f;
+    CHECK(differing != state);
+    differing = state;
+    differing.missionRespect += 3;
+    CHECK(differing != state);
+    CHECK(WithoutRespect(state) != state);
+    CHECK(WithoutRespect(SPlayerState{}) != SPlayerState{});  // "no respect yet" isn't "respect not known"
+
     // every check
     auto invalid = [&](void (*change)(SPlayerState&)) {
         SPlayerState changed = state;
@@ -193,6 +229,17 @@ void StateRoundTripAndChecks()
     CHECK(invalid([](SPlayerState& s) { s.floatStats[17] = std::numeric_limits<float>::quiet_NaN(); }));
     CHECK(invalid([](SPlayerState& s) { s.intStats[0] = -1; }));
     CHECK(invalid([](SPlayerState& s) { s.intStats[4] = 1001; }));
+    CHECK(invalid([](SPlayerState& s) { s.respect = -0.5f; }));
+    CHECK(invalid([](SPlayerState& s) { s.respect = SPlayerState::MAX_RESPECT + 1.0f; }));
+    CHECK(invalid([](SPlayerState& s) { s.respect = std::numeric_limits<float>::quiet_NaN(); }));
+    CHECK(invalid([](SPlayerState& s) { s.respect = std::numeric_limits<float>::infinity(); }));
+    CHECK(invalid([](SPlayerState& s) { s.clothesRespect = -1.0f; }));
+    CHECK(invalid([](SPlayerState& s) { s.clothesRespect = 1000.5f; }));  // a capped stat
+    CHECK(invalid([](SPlayerState& s) { s.missionRespect = -1; }));
+    CHECK(invalid([](SPlayerState& s) { s.missionRespect = SPlayerState::MAX_MISSION_RESPECT + 1; }));
+    CHECK(invalid([](SPlayerState& s) { s.hasRespect = false; }));  // "not known" has no values
+    CHECK(invalid([](SPlayerState& s) { s = WithoutRespect(s); s.missionRespect = 1; }));
+    CHECK(invalid([](SPlayerState& s) { s = WithoutRespect(s); s.respect = std::numeric_limits<float>::quiet_NaN(); }));
 
     // edges that are fine
     SPlayerState edges = state;
@@ -202,10 +249,16 @@ void StateRoundTripAndChecks()
     edges.weapons[5] = {31, 0, 0};  // a gun without ammo stays in its slot
     edges.floatStats[0] = 1000.0f;
     edges.intStats[0] = 1000;
+    edges.respect = SPlayerState::MAX_RESPECT;
+    edges.clothesRespect = 1000.0f;
+    edges.missionRespect = SPlayerState::MAX_MISSION_RESPECT;
     CHECK(edges.IsValid());
     const std::vector<uint8_t> edgeBytes = WriteState(edges, &ok);
     CHECK(ok && ReadState(edgeBytes, edgeBytes.size(), read) && read == edges);
     edges.money = -SPlayerState::MAX_MONEY;
+    edges.respect = 0.0f;
+    edges.clothesRespect = 0.0f;
+    edges.missionRespect = 0;
     CHECK(edges.IsValid());
 
     // the reader refuses what passes the bit ranges but not the checks
@@ -221,6 +274,11 @@ void StateRoundTripAndChecks()
     CHECK(refused([](SPlayerState& s) { s.money = 2000000000; }));
     CHECK(refused([](SPlayerState& s) { s.maxHealth = 0; }));
     CHECK(refused([](SPlayerState& s) { s.floatStats[2] = -std::numeric_limits<float>::infinity(); }));
+    CHECK(refused([](SPlayerState& s) { s.respect = std::numeric_limits<float>::quiet_NaN(); }));
+    CHECK(refused([](SPlayerState& s) { s.respect = SPlayerState::MAX_RESPECT + 0.5f; }));
+    CHECK(refused([](SPlayerState& s) { s.respect = -std::numeric_limits<float>::infinity(); }));
+    CHECK(refused([](SPlayerState& s) { s.clothesRespect = 1000.5f; }));
+    CHECK(refused([](SPlayerState& s) { s.clothesRespect = -0.25f; }));
 
     // stat ids: float ones below 0x52, int ones from 120 on, never the city unlock stat (181)
     for (uint16_t id : SPlayerState::FLOAT_STAT_IDS)
@@ -231,6 +289,63 @@ void StateRoundTripAndChecks()
     {
         CHECK(id >= 120 && id != 181);
     }
+    // respect: the components the player earns (respect 68, clothes respect 66, mission respect 224), each once; never
+    // the total (64, the game computes it), the girlfriends' (65), the unused fitness respect (67) or the mission total
+    // (228, MAIN's constant)
+    CHECK(SPlayerState::STAT_ID_RESPECT == 68 && SPlayerState::STAT_ID_CLOTHES_RESPECT == 66);
+    CHECK(SPlayerState::STAT_ID_MISSION_RESPECT == 224);
+    for (uint16_t id : SPlayerState::FLOAT_STAT_IDS)
+    {
+        CHECK(id < 64 || id > 68);
+    }
+    for (uint16_t id : SPlayerState::INT_STAT_IDS)
+    {
+        CHECK(id != 224 && id != 228);
+    }
+}
+
+// The layouts: the packets and v2 files carry the respect block, v1 files don't.
+void Layouts()
+{
+    const SPlayerState state = MakeState(4);
+    const SPlayerState unknown = WithoutRespect(state);
+    CHECK(unknown.IsValid());
+
+    // an older layout or one this build doesn't know is never written
+    std::vector<uint8_t> buffer(1024, 0);
+    serialize::WriteStream writer(buffer.data(), static_cast<int>(buffer.size()));
+    SPlayerState copy = state;
+    CHECK(!copy.SerializeLayout(writer, SPlayerState::LAYOUT_V1));
+    CHECK(!copy.SerializeLayout(writer, 0));
+    CHECK(!copy.SerializeLayout(writer, SPlayerState::LAYOUT_CURRENT + 1));
+    serialize::MeasureStream measure;
+    CHECK(!copy.SerializeLayout(measure, SPlayerState::LAYOUT_V1));
+    CHECK(copy == state);
+
+    // a state without respect goes over the wire as it is (a restore of a v1 entry)
+    bool ok = false;
+    const std::vector<uint8_t> withRespect = WriteState(state, &ok);
+    CHECK(ok);
+    const std::vector<uint8_t> without = WriteState(unknown, &ok);
+    CHECK(ok && without.size() < withRespect.size());
+    SPlayerState read;
+    CHECK(ReadState(without, without.size(), read) && read == unknown && !read.hasRespect);
+    CHECK(ReadState(withRespect, withRespect.size(), read) && read == state && read.hasRespect);
+
+    // the v1 layout is the current one up to the respect block: read as v1, any state comes out without respect
+    for (const std::vector<uint8_t>* bytes : {&withRespect, &without})
+    {
+        std::vector<uint8_t> padded = *bytes;
+        padded.resize(((padded.size() + 3) & ~size_t(3)) + 4, 0);
+        serialize::ReadStream reader(padded.data(), static_cast<int>(bytes->size()));
+        SPlayerState v1;
+        v1.respect = 5.0f;  // whatever was there before
+        CHECK(v1.SerializeLayout(reader, SPlayerState::LAYOUT_V1) && v1 == unknown);
+    }
+    std::vector<uint8_t> current = withRespect;
+    current.resize(((current.size() + 3) & ~size_t(3)) + 4, 0);
+    serialize::ReadStream unknownLayout(current.data(), static_cast<int>(withRespect.size()));
+    CHECK(!read.SerializeLayout(unknownLayout, SPlayerState::LAYOUT_CURRENT + 1));
 }
 
 void Names()
@@ -274,6 +389,117 @@ void FixChecksum(std::vector<uint8_t>& data)
     }
 }
 
+// A CAPS v1 file as the builds before respect wrote it (0.3.103-alpha up to 4b67cc7; PlayerStateSidecar::Write of
+// 4b67cc7): save size 202752, save hash 0x0123456789ABCDEF, "FriendOne" = MakeState(1) and "FriendTwo" = MakeState(2)
+// without respect.
+const uint8_t V1_FILE[] = {
+    0x43, 0x41, 0x50, 0x53, 0x01, 0x00, 0x02, 0x00, 0x00, 0x18, 0x03, 0x00, 0xEF, 0xCD, 0xAB, 0x89,
+    0x67, 0x45, 0x23, 0x01, 0xE8, 0x01, 0x00, 0x00, 0x09, 0x46, 0x72, 0x69, 0x65, 0x6E, 0x64, 0x4F,
+    0x6E, 0x65, 0x41, 0x00, 0x00, 0x00, 0x00, 0x00, 0x66, 0x04, 0xE0, 0x00, 0x00, 0x00, 0x7C, 0x9F,
+    0x86, 0x65, 0x00, 0x00, 0x00, 0x00, 0x00, 0x6E, 0x00, 0x80, 0x00, 0x00, 0x40, 0x01, 0x00, 0xBC,
+    0x0C, 0x01, 0x00, 0x58, 0x0C, 0xB5, 0xEC, 0xFF, 0xFF, 0xCB, 0x03, 0xAC, 0xE5, 0x05, 0x00, 0x00,
+    0xFD, 0x01, 0x00, 0xC8, 0x10, 0x02, 0x00, 0xB4, 0x14, 0x02, 0x00, 0x04, 0x17, 0x02, 0x00, 0xAA,
+    0x18, 0x02, 0x00, 0xD2, 0x19, 0x02, 0x00, 0xFA, 0x1A, 0x02, 0x00, 0x11, 0x1C, 0x02, 0x00, 0xA5,
+    0x1C, 0x02, 0x00, 0x39, 0x1D, 0x02, 0x00, 0xCD, 0x1D, 0x02, 0x00, 0x61, 0x1E, 0x02, 0x00, 0xF5,
+    0x1E, 0x02, 0x00, 0x89, 0x1F, 0x02, 0x80, 0x0E, 0x20, 0x02, 0x80, 0x58, 0x20, 0x02, 0x80, 0xA2,
+    0x20, 0x02, 0x80, 0xEC, 0x20, 0x0A, 0x20, 0x99, 0xC8, 0xB2, 0x0C, 0x59, 0x6E, 0xDE, 0x8D, 0x67,
+    0xA5, 0xCD, 0x54, 0x9B, 0xDC, 0xBC, 0x1B, 0xAF, 0x13, 0xAC, 0xE2, 0xC2, 0x4A, 0x9B, 0xA9, 0xF6,
+    0x81, 0x8A, 0x70, 0x0A, 0xB9, 0x79, 0x37, 0x3E, 0xF0, 0x68, 0xFE, 0x51, 0x27, 0x58, 0xC5, 0x65,
+    0x5E, 0x47, 0x8C, 0x99, 0x35, 0xE5, 0xF5, 0xE2, 0x82, 0x5E, 0xB3, 0x53, 0xD0, 0xD7, 0x70, 0xA4,
+    0x1D, 0x51, 0x2E, 0x15, 0x6B, 0xCA, 0xEB, 0x65, 0xB8, 0x43, 0xA9, 0xD6, 0x05, 0xBD, 0x66, 0x27,
+    0x53, 0x36, 0x24, 0x98, 0xA0, 0xAF, 0xE1, 0xE8, 0xED, 0x28, 0x9F, 0x59, 0x3B, 0xA2, 0x5C, 0xAA,
+    0x88, 0x1B, 0x1A, 0x1B, 0xD6, 0x94, 0xD7, 0x6B, 0x23, 0x0E, 0x95, 0xDC, 0x70, 0x87, 0x52, 0x2D,
+    0xBE, 0x00, 0x10, 0x9E, 0x0B, 0x7A, 0xCD, 0xEE, 0x58, 0xF3, 0x8A, 0x3F, 0x01, 0x46, 0x72, 0x69,
+    0x65, 0x6E, 0x64, 0x54, 0x77, 0x6F, 0x41, 0x00, 0x00, 0x00, 0x00, 0x00, 0x66, 0x04, 0xE0, 0x00,
+    0x00, 0x00, 0x7C, 0x9F, 0x86, 0x65, 0x00, 0x00, 0x00, 0x00, 0x00, 0x6E, 0x00, 0x80, 0x00, 0x00,
+    0x40, 0x01, 0x00, 0xB8, 0x0C, 0x01, 0x00, 0x58, 0x0C, 0xB1, 0xEC, 0xFF, 0xFF, 0xCB, 0x03, 0xAC,
+    0x65, 0x05, 0x00, 0x80, 0x00, 0x02, 0x00, 0xE8, 0x10, 0x02, 0x00, 0xC4, 0x14, 0x02, 0x00, 0x14,
+    0x17, 0x02, 0x00, 0xB2, 0x18, 0x02, 0x00, 0xDA, 0x19, 0x02, 0x00, 0x02, 0x1B, 0x02, 0x00, 0x15,
+    0x1C, 0x02, 0x00, 0xA9, 0x1C, 0x02, 0x00, 0x3D, 0x1D, 0x02, 0x00, 0xD1, 0x1D, 0x02, 0x00, 0x65,
+    0x1E, 0x02, 0x00, 0xF9, 0x1E, 0x02, 0x00, 0x8D, 0x1F, 0x02, 0x80, 0x10, 0x20, 0x02, 0x80, 0x5A,
+    0x20, 0x02, 0x80, 0xA4, 0x20, 0x02, 0x80, 0xEE, 0x20, 0x12, 0x40, 0x19, 0xC9, 0xB4, 0x14, 0x79,
+    0xA5, 0xCD, 0x54, 0x9B, 0xDC, 0xBC, 0x1B, 0xAF, 0x13, 0xAC, 0xE2, 0xC2, 0x4A, 0x9B, 0xA9, 0xF6,
+    0x81, 0x8A, 0x70, 0x0A, 0xB9, 0x79, 0x37, 0x3E, 0xF0, 0x68, 0xFE, 0x51, 0x27, 0x58, 0xC5, 0x65,
+    0x5E, 0x47, 0x8C, 0x99, 0x95, 0x36, 0x53, 0xED, 0x82, 0x5E, 0xB3, 0x53, 0xD0, 0xD7, 0x70, 0xA4,
+    0x1D, 0x51, 0x2E, 0x15, 0x6B, 0xCA, 0xEB, 0x65, 0xB8, 0x43, 0xA9, 0xD6, 0x05, 0xBD, 0x66, 0x27,
+    0x53, 0x36, 0x24, 0x98, 0xA0, 0xAF, 0xE1, 0xE8, 0xED, 0x28, 0x9F, 0x59, 0x3B, 0xA2, 0x5C, 0xAA,
+    0x88, 0x1B, 0x1A, 0x1B, 0xD6, 0x94, 0xD7, 0x6B, 0x23, 0x0E, 0x95, 0xDC, 0x70, 0x87, 0x52, 0x2D,
+    0xBE, 0x00, 0x10, 0x9E, 0x0B, 0x7A, 0xCD, 0xEE, 0x58, 0xF3, 0x8A, 0x5F, 0xA6, 0x6C, 0x48, 0x10,
+    0x2F, 0x62, 0x69, 0x60,
+};
+
+std::vector<uint8_t> V1File()
+{
+    return std::vector<uint8_t>(std::begin(V1_FILE), std::end(V1_FILE));
+}
+
+// every single bit of a good file flipped, with the checksum fixed so the body checks get it: the reader never accepts
+// an invalid state, and a flip either leaves a valid file (a clothes key, a stat bit) or is refused
+void CheckEveryBitFlip(const std::vector<uint8_t>& good)
+{
+    using namespace PlayerStateSidecar;
+    SFile read;
+    size_t refusedFlips = 0;
+    for (size_t i = 0; i + CHECKSUM_SIZE < good.size(); i++)
+    {
+        for (int bit = 0; bit < 8; bit++)
+        {
+            std::vector<uint8_t> flipped = good;
+            flipped[i] ^= static_cast<uint8_t>(1 << bit);
+            CHECK(Read(flipped, read) == (i < 4 ? eReadResult::BadMagic : i < 6 ? eReadResult::UnknownVersion
+                                                                                  : eReadResult::BadChecksum));
+            FixChecksum(flipped);
+            const eReadResult result = Read(flipped, read);
+            if (result == eReadResult::Ok)
+            {
+                for (const SEntry& entry : read.entries)
+                {
+                    CHECK(entry.state.IsValid() && IsValidPlayerName(entry.name.c_str()));
+                }
+            }
+            else
+            {
+                refusedFlips++;
+            }
+        }
+    }
+    CHECK(refusedFlips > 0);
+}
+
+// garbage bodies behind a good file's header, with the checksum fixed: refused or valid, never anything else
+void CheckGarbageBodies(const std::vector<uint8_t>& good, uint32_t random)
+{
+    using namespace PlayerStateSidecar;
+    SFile read;
+    for (int round = 0; round < 3000; round++)
+    {
+        std::vector<uint8_t> garbage(good.begin(), good.begin() + HEADER_SIZE);
+        const size_t bodySize = static_cast<size_t>(round % 700);
+        for (size_t i = 0; i < bodySize; i++)
+        {
+            random = random * 1664525u + 1013904223u;
+            garbage.push_back(static_cast<uint8_t>(random >> 24));
+        }
+        garbage[6] = static_cast<uint8_t>(round % 4);  // entry count
+        garbage[7] = 0;
+        for (int i = 0; i < 4; i++)
+        {
+            garbage[20 + i] = static_cast<uint8_t>(bodySize >> (8 * i));
+        }
+        garbage.resize(garbage.size() + CHECKSUM_SIZE, 0);
+        FixChecksum(garbage);
+        const eReadResult result = Read(garbage, read);
+        CHECK(result == eReadResult::Ok || result == eReadResult::Corrupt);
+        if (result == eReadResult::Ok)
+        {
+            for (const SEntry& entry : read.entries)
+            {
+                CHECK(entry.state.IsValid() && IsValidPlayerName(entry.name.c_str()));
+            }
+        }
+    }
+}
+
 void Sidecar()
 {
     using namespace PlayerStateSidecar;
@@ -287,9 +513,11 @@ void Sidecar()
     CHECK(Write(file, data));
     CHECK(data.size() < 1024);
     CHECK(memcmp(data.data(), "CAPS", 4) == 0);
+    CHECK(data[4] == 2 && data[5] == 0);  // format version 2
 
     SFile read;
     CHECK(Read(data, read) == eReadResult::Ok);
+    CHECK(read.version == 2);
     CHECK(read.saveSize == file.saveSize && read.saveHash == file.saveHash);
     CHECK(read.entries.size() == 2);
     CHECK(read.entries[0].name == "FriendOne" && read.entries[0].state == MakeState(1));
@@ -336,7 +564,12 @@ void Sidecar()
     CHECK(Read(data, read) == eReadResult::BadMagic);
 
     data = good;
-    data[4] = 2;  // a newer format
+    data[4] = 3;  // a newer format
+    CHECK(Read(data, read) == eReadResult::UnknownVersion);
+    data[4] = 0;
+    CHECK(Read(data, read) == eReadResult::UnknownVersion);
+    data[4] = 2;
+    data[5] = 1;  // 258
     CHECK(Read(data, read) == eReadResult::UnknownVersion);
 
     data = good;
@@ -381,65 +614,55 @@ void Sidecar()
     FixChecksum(data);
     CHECK(Read(data, read) == eReadResult::Corrupt);
 
-    // every single bit flipped, with the checksum fixed so the body checks get it: the reader never accepts an
-    // invalid state, and a flip either leaves a valid file (a clothes key, a stat bit) or is refused
-    size_t refusedFlips = 0;
-    for (size_t i = 0; i + CHECKSUM_SIZE < good.size(); i++)
-    {
-        for (int bit = 0; bit < 8; bit++)
-        {
-            std::vector<uint8_t> flipped = good;
-            flipped[i] ^= static_cast<uint8_t>(1 << bit);
-            CHECK(Read(flipped, read) == (i < 4 ? eReadResult::BadMagic : i < 6 ? eReadResult::UnknownVersion
-                                                                                  : eReadResult::BadChecksum));
-            FixChecksum(flipped);
-            const eReadResult result = Read(flipped, read);
-            if (result == eReadResult::Ok)
-            {
-                for (const SEntry& entry : read.entries)
-                {
-                    CHECK(entry.state.IsValid() && IsValidPlayerName(entry.name.c_str()));
-                }
-            }
-            else
-            {
-                refusedFlips++;
-            }
-        }
-    }
-    CHECK(refusedFlips > 0);
-
-    // garbage with a valid header and checksum: refused or valid, never anything else
-    uint32_t random = 12345;
-    for (int round = 0; round < 3000; round++)
-    {
-        std::vector<uint8_t> garbage(good.begin(), good.begin() + HEADER_SIZE);
-        const size_t bodySize = static_cast<size_t>(round % 700);
-        for (size_t i = 0; i < bodySize; i++)
-        {
-            random = random * 1664525u + 1013904223u;
-            garbage.push_back(static_cast<uint8_t>(random >> 24));
-        }
-        garbage[6] = static_cast<uint8_t>(round % 4);  // entry count
-        garbage[7] = 0;
-        for (int i = 0; i < 4; i++)
-        {
-            garbage[20 + i] = static_cast<uint8_t>(bodySize >> (8 * i));
-        }
-        garbage.resize(garbage.size() + CHECKSUM_SIZE, 0);
-        FixChecksum(garbage);
-        const eReadResult result = Read(garbage, read);
-        CHECK(result == eReadResult::Ok || result == eReadResult::Corrupt);
-        if (result == eReadResult::Ok)
-        {
-            for (const SEntry& entry : read.entries)
-            {
-                CHECK(entry.state.IsValid() && IsValidPlayerName(entry.name.c_str()));
-            }
-        }
-    }
+    CheckEveryBitFlip(good);
+    CheckGarbageBodies(good, 12345);
 
     CHECK(std::string(ToString(eReadResult::UnknownVersion)) == "unknown version");
+}
+
+// CAPS v1 files, from the builds before respect was kept, are still read: their states come without respect
+void OlderFiles()
+{
+    using namespace PlayerStateSidecar;
+    CHECK(GetStateLayout(1) == SPlayerState::LAYOUT_V1 && GetStateLayout(2) == SPlayerState::LAYOUT_V2);
+    CHECK(GetStateLayout(0) == 0 && GetStateLayout(3) == 0 && GetStateLayout(VERSION) == SPlayerState::LAYOUT_CURRENT);
+
+    const std::vector<uint8_t> v1 = V1File();
+    SFile read;
+    CHECK(Read(v1, read) == eReadResult::Ok);
+    CHECK(read.version == 1 && read.saveSize == 202752 && read.saveHash == 0x0123456789ABCDEFull);
+    CHECK(read.entries.size() == 2);
+    CHECK(read.entries[0].name == "FriendOne" && read.entries[0].state == WithoutRespect(MakeState(1)));
+    CHECK(read.entries[1].name == "FriendTwo" && read.entries[1].state == WithoutRespect(MakeState(2)));
+
+    // written again it becomes a v2 file, its states still without respect
+    std::vector<uint8_t> data;
+    CHECK(Write(read, data) && data[4] == 2 && data[5] == 0 && data.size() >= v1.size());  // a bit more per entry
+    SFile again;
+    CHECK(Read(data, again) == eReadResult::Ok && again.version == 2 && again.entries.size() == 2);
+    CHECK(again.entries[0].state == read.entries[0].state && again.entries[1].state == read.entries[1].state);
+    CHECK(!again.entries[0].state.hasRespect && !again.entries[1].state.hasRespect);
+
+    // a v2 file holds both kinds
+    SFile mixed;
+    mixed.entries.push_back({"Known", MakeState(7)});
+    mixed.entries.push_back({"Unknown", WithoutRespect(MakeState(8))});
+    CHECK(Write(mixed, data) && Read(data, again) == eReadResult::Ok && again.entries.size() == 2);
+    CHECK(again.entries[0].state == MakeState(7) && again.entries[1].state == WithoutRespect(MakeState(8)));
+
+    // the body checks hold for v1 files too
+    std::vector<uint8_t> bad = v1;
+    bad[6] = 3;  // more entries than the body holds
+    FixChecksum(bad);
+    CHECK(Read(bad, read) == eReadResult::Corrupt);
+    bad[6] = 1;  // fewer
+    FixChecksum(bad);
+    CHECK(Read(bad, read) == eReadResult::Corrupt);
+    bad = v1;
+    bad.pop_back();
+    CHECK(Read(bad, read) == eReadResult::BadChecksum);
+    CheckEveryBitFlip(v1);
+    CheckGarbageBodies(v1, 54321);
 }
 
 void StoreSnapshotsAndReconnects()
@@ -554,6 +777,48 @@ void StoreLoadsAndSaves()
     CHECK(next.OnSnapshot("Away", 1, 0, SPlayerState{}, restore) == eSnapshotResult::SendRestore && restore.state == old2);
 }
 
+// The host loads a save whose sidecar a build before respect wrote, then saves with this build.
+void StoreWithOlderFile()
+{
+    using namespace PlayerStateSidecar;
+    CPlayerStateStore::SRestore restore;
+    SFile v1;
+    CHECK(Read(V1File(), v1) == eReadResult::Ok);
+
+    CPlayerStateStore store(1);
+    store.OnSaveLoaded(v1.entries);
+    // FriendOne connects with a new game: the restore has no respect, so their game keeps its own
+    CHECK(store.OnSnapshot("FriendOne", 3, 0, SPlayerState{}, restore) == eSnapshotResult::SendRestore);
+    CHECK(restore.state == WithoutRespect(MakeState(1)) && !restore.state.hasRespect);
+    // applied (CPlayerStateSave::ApplyState leaves the respect stats alone), their next snapshot carries the respect
+    // their game has; the record keeps it from now on
+    SPlayerState applied = MakeState(1);
+    applied.respect = 42.75f;
+    applied.clothesRespect = 30.0f;
+    applied.missionRespect = 3;
+    CHECK(store.OnSnapshot("FriendOne", 3, restore.restoreId, applied, restore) == eSnapshotResult::Accepted);
+    CHECK(*store.Find("FriendOne") == applied && store.Find("FriendOne")->hasRespect);
+
+    // the next save is a v2 file: FriendOne with respect, FriendTwo (not seen since the load) still without
+    SFile saved;
+    saved.entries = store.GetEntries();
+    std::vector<uint8_t> data;
+    CHECK(Write(saved, data));
+    SFile back;
+    CHECK(Read(data, back) == eReadResult::Ok && back.version == 2 && back.entries.size() == 2);
+    for (const SEntry& entry : back.entries)
+    {
+        CHECK((entry.name == "FriendOne" && entry.state == applied) ||
+              (entry.name == "FriendTwo" && entry.state == WithoutRespect(MakeState(2))));
+    }
+
+    // and it gives FriendOne's respect back in the next session
+    CPlayerStateStore later(9);
+    later.OnSaveLoaded(back.entries);
+    CHECK(later.OnSnapshot("FriendOne", 1, 0, SPlayerState{}, restore) == eSnapshotResult::SendRestore);
+    CHECK(restore.state == applied && restore.state.hasRespect && restore.state.missionRespect == 3);
+}
+
 void OtherPlayerSide()
 {
     CPlayerStateClient client;
@@ -572,7 +837,11 @@ void OtherPlayerSide()
     CHECK(!client.OnCaptured(3000, a));
     CHECK(!client.IsCaptureDue(4999));
     CHECK(client.IsCaptureDue(5000));
-    CHECK(client.OnCaptured(5000, b));
+    SPlayerState respected = a;
+    respected.missionRespect += 3;  // a mirrored mission reward: respect only
+    CHECK(client.OnCaptured(5000, respected));
+    CHECK(client.IsCaptureDue(7000));
+    CHECK(client.OnCaptured(7000, b));
     // tick count wrap
     CHECK(!client.OnCaptured(0xFFFFFF00u, b));
     CHECK(!client.IsCaptureDue(0x00000100u));
@@ -623,13 +892,26 @@ void Session()
     };
     auto applyRestore = [&] {
         CHECK(friendGame.HasPendingRestore());
-        friendState = friendGame.GetPendingRestore();
+        const SPlayerState& restored = friendGame.GetPendingRestore();
+        // as CPlayerStateSave::ApplyState: without respect in it, the game keeps its own
+        SPlayerState next = restored;
+        if (!restored.hasRespect)
+        {
+            next.hasRespect = true;
+            next.respect = friendState.respect;
+            next.clothesRespect = friendState.clothesRespect;
+            next.missionRespect = friendState.missionRespect;
+        }
+        friendState = next;
         friendGame.OnRestoreDone();
     };
 
     friendGame.Reset(1);
     CHECK(sendSnapshot(0) == eSnapshotResult::Accepted);
+    // the host passes a mission: the mirrored reward (money, award_player_mission_respect) lands in the friend's game
     friendState.money += 5000;
+    friendState.missionRespect += 3;
+    friendState.respect += 0.75f;  // and an enemy gang member the friend shot on the way
     CHECK(sendSnapshot(2000) == eSnapshotResult::Accepted);
     const SPlayerState saved = friendState;
 
@@ -640,19 +922,37 @@ void Session()
     CHECK(sendSnapshot(10000) == eSnapshotResult::SendRestore);
     CHECK(sendSnapshot(12000) == eSnapshotResult::Dropped);  // waits for the restore
     applyRestore();
-    CHECK(friendState == saved);
+    CHECK(friendState == saved && friendState.missionRespect == MakeState(5).missionRespect + 3);
     CHECK(sendSnapshot(12001) == eSnapshotResult::Accepted);
     CHECK(*host.Find("Friend") == saved);
+
+    // the next evening the host loads a save from before respect was kept (CAPS v1, no respect for "Friend"): the
+    // friend's new game keeps its own respect, everything else comes from the save
+    PlayerStateSidecar::SFile older;
+    older.entries.push_back({"Friend", WithoutRespect(MakeState(6))});
+    host.OnSaveLoaded(older.entries);
+    friendState = SPlayerState{};
+    friendState.missionRespect = 7;  // what the friend's new game has by then (a mirrored mission reward)
+    friendGame = CPlayerStateClient{};
+    friendGame.Reset(3);
+    CHECK(sendSnapshot(20000) == eSnapshotResult::SendRestore);
+    applyRestore();
+    CHECK(friendState.money == MakeState(6).money && friendState.missionRespect == 7 && friendState.hasRespect);
+    CHECK(sendSnapshot(20001) == eSnapshotResult::Accepted);
+    CHECK(host.Find("Friend")->hasRespect && host.Find("Friend")->missionRespect == 7);
 }
 
 int main()
 {
     StateRoundTripAndChecks();
+    Layouts();
     Names();
     Fingerprints();
     Sidecar();
+    OlderFiles();
     StoreSnapshotsAndReconnects();
     StoreLoadsAndSaves();
+    StoreWithOlderFile();
     OtherPlayerSide();
     Session();
     std::puts("player_state_test: all checks passed");
