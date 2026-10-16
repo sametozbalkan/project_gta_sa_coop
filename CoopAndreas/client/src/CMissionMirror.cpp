@@ -2,6 +2,7 @@
 #include "CMissionMirror.h"
 #include "CMirrorPolicy.h"
 #include "CMirrorBlips.h"
+#include "CMirrorAreas.h"
 #include "COpCodeSync.h"
 #include "CSessionLifecycle.h"
 #include <CTimer.h>
@@ -606,6 +607,7 @@ void CMissionMirror::OnScriptsProcessed()
 
     UpdateMission();
     CMirrorBlips::Process(); // M2: the host sends its mission's blips, the others keep their copies in line
+    CMirrorAreas::Process(ms_mission.IsMirrored()); // the host's locate spheres and markers (package M3)
 }
 
 bool CMissionMirror::OnReplayingCommand(const uint8_t* data, int size)
@@ -698,4 +700,5 @@ void CMissionMirror::WriteDiagSummary(FILE* file)
         c.passFrames, c.snapshots, c.sentOpcodeSync, c.sentAddMessage, c.sentMissionFlag, c.replays,
         ms_szHostTable[0] ? ms_szHostTable : "-", c.tableLoads, c.tableSkips, c.helpClears);
     CMirrorBlips::WriteDiagSummary(file); // M2
+    CMirrorAreas::WriteDiagSummary(file);
 }

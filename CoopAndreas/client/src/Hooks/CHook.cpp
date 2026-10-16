@@ -16,6 +16,7 @@
 #include "ShadowHooks.h"
 #include "CNetworkKeepAlive.h"
 #include "CRadioSync.h"
+#include "MirrorAreaHooks.h"
 
 void CHook::Init()
 {
@@ -37,4 +38,5 @@ void CHook::Init()
     DamageHooks::InjectHooks();
     ShadowHooks::InjectHooks();
     CNetworkKeepAlive::InjectHooks();  // private build
+    MirrorAreaHooks::InjectHooks();  // private build: mission mirror layer, areas
 }
