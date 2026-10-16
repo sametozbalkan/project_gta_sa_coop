@@ -34,6 +34,7 @@
 #include <CNetworkEntityBlip.h>
 #include <CRadioSync.h>
 #include <CCityUnlockSync.h>
+#include <CPlayerStateSave.h>
 
 unsigned int lastOnFootSyncTickRate = 0;
 unsigned int lastDriverSyncTickRate = 0;
@@ -92,6 +93,7 @@ public:
             CDebugVehicleSpawner::Process();
             CRadioSync::Process();
             CCityUnlockSync::Process();
+            CPlayerStateSave::Process(); // private build: player state for co-op saves
 
             if (/*CNetwork::m_bConnected*/ CNetwork::m_bAuthenticated)
             {

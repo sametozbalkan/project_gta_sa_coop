@@ -347,16 +347,38 @@ for every mission and every player; that is why rule 2 still sends it to the arc
   ped, and network players are of that type, which broke loading).
 - Everything else is the single-player save: globals, MAIN threads, world state.
 
+The other players' own state is kept next to the host's save, in `GTASAsf<n>.b.coop` (fork, 0.3.103;
+`client/src/CPlayerStateSave.*`): their weapons and ammo, health, armour, money, clothes (with haircut and
+tattoos), fighting style, the perks `CPlayerInfo` keeps (max health and armour, infinite sprint, fast reload,
+fireproof, free health care, get out of jail free) and their own stats (fat, muscle, stamina, max health, sex
+appeal, appearance, the weapon skills, driving, flying, bike and cycling skill, lung capacity, gambling).
+Position, wanted level, respect, the story, properties and the city unlock are not part of it.
+
+- Each other player's game sends its state to the host when it changes (checked every 2 s), once it is in
+  plain free play (after a new game's intro).
+- After a save succeeds, the host writes every state it knows: this session's latest, and the loaded save's
+  entries for players not seen since. The file names the `.b` file it belongs to by size and hash, so it
+  never pairs with another save; it is written to a temporary file and renamed, and removed when there is
+  nothing to keep. A save made by a player who isn't the host gets no `.coop` file.
+- After a load, the host reads the file (a missing, unreadable or foreign file is ignored). A player gets
+  their stored state back when they connect (a new session, a reconnect after a crash, a restart of their
+  game) and when the host loads a save that stores them: loading an older save rolls them back. The state is
+  applied when they are standing on foot in free play; a chat line says so on both sides.
+- The `.b` file, MAIN, the globals and the ped pool are unchanged, so saves stay loadable both ways; a save
+  without a `.coop` file loads as before. A player is known by the nickname in `coopandreas.ini`: after
+  changing it their state isn't found. Moving a save to another computer means moving its `.coop` file too.
+
 Who should save: **the host**, at a save point, outside a mission. The story (counters, flags, strand
 threads) only advances in the host's game, so a save the other player makes holds their stale story state
 and must not be loaded as the host's game.
 
-When the host loads a save, only the host's game loads it; the other client keeps its own game. What the
-other player sees then is unverified: their player and the host's synced vehicles and peds should follow
-the network sync, and whether they need to reconnect is not known. Also unverified: after a load, MAIN
-threads that registered with `Coop.EnableSyncingThisScript()` at their start (`INT`) are not registered
-again in that session, because the registration is a runtime list in the client. Old single-player saves
-don't load with the co-op `main.scm` (CLAUDE.md, known limitations).
+When the host loads a save, only the host's game loads it; the other client keeps its own game and gets
+the state the save keeps for them (above). What else the other player sees then is unverified: their player
+and the host's synced vehicles and peds should follow the network sync, and whether they need to reconnect
+is not known. Also unverified: after a load, MAIN threads that registered with
+`Coop.EnableSyncingThisScript()` at their start (`INT`) are not registered again in that session, because
+the registration is a runtime list in the client. Old single-player saves don't load with the co-op
+`main.scm` (CLAUDE.md, known limitations).
 
 ## Compile
 
