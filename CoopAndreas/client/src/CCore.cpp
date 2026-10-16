@@ -3,6 +3,7 @@
 #include "Commands/CCustomCommandRegistrar.h"
 #include "CDiscordRPC.h"
 #include <COpCodeSync.h>
+#include <CMissionMirror.h>
 #include <CCustomMenuManager.h>
 #include <winuser.h>
 #include <CLaunchManager.h>
@@ -81,6 +82,7 @@ void CCore::Init()
     CDXFont::Init();
     CDiscordRPC::Init();
     COpCodeSync::Init();
+    CMissionMirror::Init(); // private build: mission mirror layer
     Events::initGameEvent.after += []
     {
         CPatch::TemporaryPatches();

@@ -74,5 +74,11 @@ public:
 	static void Init();
 	static void HandlePacket(const uint8_t* buffer, int bufferSize);
 	static std::vector<uint8_t> COpCodeSync::SerializeOpcode(int idx, int& outSize);
-	static bool COpCodeSync::IsOpcodeSyncable(int opcode, int* opcodeIdx = nullptr, bool ignoreOpCodeSync = false);
+	static bool COpCodeSync::IsOpcodeSyncable(int opcode, int* opcodeIdx = nullptr, bool ignoreOpCodeSync = false, bool* pbMirrorOnly = nullptr);
+
+	// private build: the script whose command CRunningScript::Process runs (the 0x469FF3 redirect sets it around the
+	// command handler and the post-command processing), nullptr otherwise; commands run with
+	// CRunningScript::ProcessOneCommand (plugin-sdk's Command<>) and network replays don't set it. For hooks inside
+	// command handlers (the mission mirror layer's locate spheres).
+	static CRunningScript* GetScriptRunningCommand();
 };

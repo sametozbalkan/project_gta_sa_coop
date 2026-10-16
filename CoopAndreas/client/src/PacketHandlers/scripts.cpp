@@ -7,6 +7,7 @@
 #include <COpCodeSync.h>
 #include <CTaskSequenceSync.h>
 #include <CSessionLifecycle.h>
+#include <CMissionMirror.h>
 
 PACKET_HANDLER(ePacketType::ON_MISSION_FLAG_SYNC, Packets::Scripts::OnMissionFlagSync* pOnMissionFlagSync)
 {
@@ -56,6 +57,8 @@ PACKET_HANDLER(ePacketType::ADD_MESSAGE_GXT, Packets::Scripts::AddMessageGXT* pA
 	char gxt[8];
 	strncpy_s(gxt, pAddMessageGXT->gxt, 8);
 	gxt[7] = '\0';
+
+	CMissionMirror::PrepareTextKey(gxt); // private build: the host's mission text table (mission mirror layer)
 
 	if (pAddMessageGXT->type == Packets::Scripts::AddMessageGXT::eGXTMsgType::sync_COMMAND_PRINT)
 	{

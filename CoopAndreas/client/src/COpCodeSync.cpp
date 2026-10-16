@@ -38,6 +38,7 @@
 #include "CEntryExitMarkerSync.h"
 #include <CTaskSequenceSync.h>
 #include <CNetworkAnimQueue.h>
+#include <CMissionMirror.h>
 
 // Keep sorted!
 const SSyncedOpCode syncedOpcodes[] =
@@ -51,6 +52,32 @@ const SSyncedOpCode syncedOpcodes[] =
     {0x054C}, // load_mission_text {tableName} [string]
     {0x0998}, // award_player_mission_respect {value} [int]
     
+    // Private build: the other texts of the mission mirror layer (CMissionMirror, docs/design/mirror-layer.md 2.1). It
+    // sends them for the host's mission family; registered scripts send them too. A receiver drops a replayed opcode with
+    // parameters that isn't in this table.
+    {0x00BB}, // print {key} [gxt_key] {time} [int] {flag} [int]
+    {0x00BC}, // print_now {key} [gxt_key] {time} [int] {flag} [int]
+    {0x01E4}, // print_with_number {key} [gxt_key] {num} [int] {duration} [int] {flag} [int]
+    {0x01E5}, // print_with_number_now {key} [gxt_key] {num} [int] {duration} [int] {flag} [int]
+    {0x0217}, // print_big_q {key} [gxt_key] {duration} [int] {style} [TextStyle]
+    {0x02FD}, // print_with_2_numbers_now {key} [gxt_key] {num1} [int] {num2} [int] {duration} [int] {style} [TextStyle]
+    {0x02FF}, // print_with_3_numbers {key} [gxt_key] {num1..num3} [int] {duration} [int] {style} [TextStyle]
+    {0x0302}, // print_with_4_numbers {key} [gxt_key] {num1..num4} [int] {duration} [int] {style} [TextStyle]
+    {0x0303}, // print_with_4_numbers_now {key} [gxt_key] {num1..num4} [int] {duration} [int] {style} [TextStyle]
+    {0x0308}, // print_with_6_numbers {key} [gxt_key] {num1..num6} [int] {duration} [int] {style} [TextStyle]
+    {0x036D}, // print_with_2_numbers_big {key} [gxt_key] {num1} [int] {num2} [int] {duration} [int] {style} [TextStyle]
+    {0x0384}, // print_string_in_string_now {templateKey} [gxt_key] {replacementKey} [gxt_key] {duration} [int] {style} [TextStyle]
+    {0x0394}, // play_mission_passed_tune {soundId} [int]
+    {0x03D5}, // clear_this_print {key} [gxt_key]
+    {0x03D6}, // clear_this_big_print {key} [gxt_key]
+    {0x03E6}, // clear_help
+    {0x03E7}, // flash_hud_object {object} [HudObject]
+    {0x03EB}, // clear_small_prints
+    {0x0512}, // print_help_forever {key} [gxt_key]
+    {0x0513}, // print_help_forever_with_number {gxt} [gxt_key] {number} [int]
+    {0x09C1}, // add_next_message_to_previous_briefs {state} [bool]
+    {0x0A0E}, // clear_this_print_big_now {textStyle} [TextStyle]
+
     // Population management
     {0x01EB}, // set_car_density_multiplier {multiplier} [float]
     {0x0395}, // clear_area {x} [float] {y} [float] {z} [float] {radius} [float] {clearParticles} [bool]
@@ -154,6 +181,9 @@ const SSyncedOpCode syncedOpcodes[] =
     
     // Controls
     {0x01B4, true, {eSyncedParamType::PLAYER}}, // set_player_control[Player] {state}[bool]
+    // private build: add_score and award_player_mission_respect (0998 above) reach the other games only as the rewards of
+    // a passed host mission (CMissionMirror, M-D3); IsOpcodeSyncable keeps them out of the general replay, so bets and
+    // in-mission costs stay with the host
     {COMMAND_ADD_SCORE, true, {eSyncedParamType::PLAYER}},
 
     // Wanted level (private build): the host's mission sets, raises, clears and caps the stars of every player; crimes
@@ -180,6 +210,13 @@ static uint16_t textParamCount = 0;
 
 static uint32_t lastOpCodeProcessed;
 static CRunningScript* lastProcessedScript;
+// private build: set by FinishedOpcodeProcessing_Hook around a command's handler and BuildAndSendOpcode
+static CRunningScript* scriptRunningCommand;
+
+CRunningScript* COpCodeSync::GetScriptRunningCommand()
+{
+    return scriptRunningCommand;
+}
 
 static uint8_t currentStringIdx = 0;
 
@@ -202,7 +239,8 @@ void __fastcall CRunningScript__ReadTextLabelFromScript_Hook_SwitchParametersCon
 }
 
 /// <param name="opcodeIdx">syncedOpcodes index</param>
-bool COpCodeSync::IsOpcodeSyncable(int opcode, int* opcodeIdx, bool ignoreOpCodeSync)
+/// <param name="pbMirrorOnly">private build: set when only the mission mirror layer wants the opcode</param>
+bool COpCodeSync::IsOpcodeSyncable(int opcode, int* opcodeIdx, bool ignoreOpCodeSync, bool* pbMirrorOnly)
 {
     bool bScriptSynced = false;
 
@@ -218,9 +256,22 @@ bool COpCodeSync::IsOpcodeSyncable(int opcode, int* opcodeIdx, bool ignoreOpCode
         }
     }
 
-    if (((CLocalPlayer::m_bIsHost && ms_bSyncingEnabled) && bScriptSynced)
+    // private build: money and respect leave the general replay (M-D3), and the mission mirror layer adds the texts of the
+    // host's mission family, the mission titles and the rewards of a passed mission (CMissionMirror)
+    if (bScriptSynced && CMissionMirror::IsRewardCommand(static_cast<uint16_t>(opcode)))
+    {
+        bScriptSynced = false;
+    }
+    const bool bGeneral = ((CLocalPlayer::m_bIsHost && ms_bSyncingEnabled) && bScriptSynced)
         || ignoreOpCodeSync
-        || CTaskSequenceSync::IsOpCodeTaskSynced((eScriptCommands)opcode))
+        || CTaskSequenceSync::IsOpCodeTaskSynced((eScriptCommands)opcode);
+    const bool bMirror = !bGeneral && CMissionMirror::WantsCommand(lastProcessedScript, static_cast<uint16_t>(opcode));
+    if (pbMirrorOnly)
+    {
+        *pbMirrorOnly = bMirror;
+    }
+
+    if (bGeneral || bMirror)
     {
         for (int i = 0; i < ARRAY_SIZE(syncedOpcodes); ++i)
         {
@@ -377,6 +428,9 @@ std::vector<uint8_t> COpCodeSync::SerializeOpcode(int idx, int& outSize)
 
 void BuildAndSendOpcode()
 {
+    // private build: the mission mirror layer's post-command call, after every command of every script
+    CMissionMirror::OnCommandExecuted(lastProcessedScript, static_cast<uint16_t>(lastOpCodeProcessed));
+
     if (!CTaskSequenceSync::OnOpCodeExecuted((eScriptCommands)lastOpCodeProcessed))
     {
         memset(textParamBuffer, 0, sizeof textParamBuffer);
@@ -400,11 +454,24 @@ void BuildAndSendOpcode()
     }
 
     int idx = 0;
-    if (!COpCodeSync::IsOpcodeSyncable(lastOpCodeProcessed, &idx))
+    bool bMirrorOnly = false; // private build: mission mirror layer
+    if (!COpCodeSync::IsOpcodeSyncable(lastOpCodeProcessed, &idx, false, &bMirrorOnly))
         return;
 
     int dataSize = 0;
     std::vector<uint8_t> buffer = COpCodeSync::SerializeOpcode(idx, dataSize);
+
+    // private build: the mission mirror layer keeps back what doesn't go out now (a print_big that isn't a mission title,
+    // a reward until its mission passes in this script frame) and notes the texts a joiner gets
+    if (!CMissionMirror::OnCommandSerialized(
+            lastProcessedScript, static_cast<uint16_t>(lastOpCodeProcessed), bMirrorOnly, buffer.data(), dataSize))
+    {
+        memset(textParamBuffer, 0, sizeof textParamBuffer);
+        memset(textLengthBuffer, 0, sizeof textLengthBuffer);
+        scriptParamCount = 0;
+        textParamCount = 0;
+        return;
+    }
 
     // TODO(v0.3.1-alpha): serialize directly into the packet structure avoiding std::vector creation
     static Packets::Scripts::OpCodeSync packet{};
@@ -733,6 +800,13 @@ void COpCodeSync::HandlePacket(const uint8_t* buffer, int bufferSize)
     }
     }
 
+    // private build: the mission mirror layer's receiver side: the host's text table for the keys of a replayed print;
+    // load_mission_text only names that table (CMissionMirror::OnReplayingCommand)
+    if (!CMissionMirror::OnReplayingCommand(buffer, bufferSize))
+    {
+        return;
+    }
+
 	argCount = 0;
 
     bProcessingNetworkOpcode = true;
@@ -760,12 +834,14 @@ void __declspec(naked) FinishedOpcodeProcessing_Hook()
     {
         mov lastOpCodeProcessed, ecx
         mov lastProcessedScript, esi
+        mov scriptRunningCommand, esi // private build: COpCodeSync::GetScriptRunningCommand
 
         mov ecx, esi
         call edx
 
         push eax
         call BuildAndSendOpcode
+        mov scriptRunningCommand, 0 // private build
         pop eax
 
         test al, al
@@ -859,6 +935,7 @@ static uintptr_t FinishedProcessingScripts_ptr = 0x0;
 static void FinishedProcessingScripts()
 {
     plugin::CallDyn(FinishedProcessingScripts_ptr);
+    CMissionMirror::OnScriptsProcessed(); // private build: the script frame's rewards, the end of the host's mission
     
     if (CLocalPlayer::m_bIsHost)
     {
