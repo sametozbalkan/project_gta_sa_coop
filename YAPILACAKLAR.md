@@ -35,7 +35,9 @@ yanındaki `.zip.sha256` arşiv özetini verir; eski paketler ve doğrulama gün
 - **0.3.101-alpha** (Codex, 2026-10-15): grup 1 görev dosyaları birlikte derlendi (kayıt ve boyut denetimleri geçti),
   test listesi `docs/test-grup-1.md` (pakette `TEST-LISTESI.md`), doğrulanabilir paket.
 - **0.3.102-alpha** (Codex): Ryder sahnesindeki NPC çökmesi; açılış penceresinde geniş ekran çözünürlükleri.
-- **0.3.103-alpha** (2026-10-16): host'un kaybolması ve Binco çökmesi düzeltmesi, arkadaşın durumunun kayıtla
+- **0.1.0-alpha** (2026-10-16): görev yansıtma katmanı, dünya durumu kaydı, host sabitleme, arkadaşın saygısının
+  saklanması, #2–#10 yeni kalıpta; 0.3.103'ün düzeltmeleri de içinde. Test listesi `docs/test-0.1.0.md`.
+- **0.3.103-alpha** (2026-10-16, testi atlandı): host'un kaybolması ve Binco çökmesi düzeltmesi, arkadaşın durumunun kayıtla
   saklanması, kurulumda `CoopAndreas (tani)` kısayolu. **Eski sürüm düzeninin son paketi.** İki tarafta da kurulmalı.
 
 ## Görev grupları (plan)
@@ -84,7 +86,9 @@ geçiş ödülleri arkadaşa; 102 hikâye betiğinde her geçiş ödülü kurala
 (bahsin iki katı) ikinize; #103'teki 250.000$ geçişten kareler önce verildiği için o görev uyarlanırken karar verilecek).
 3. dalga birleştirildi (2f8cf8e'ye kadar): M2 görev işaretleri, M3 sarı küreler (18 kanca), M4 sayaçlar ve
 zamanlayıcılar (5 kanca), WS-3 garajlar ve dükkân kapıları, WS-4 görev sonu ayarları, P1 arkadaşın saygısının kayıtla
-saklanması. Kanca denetimi 411 nokta; on politika testi geçiyor. Sırada: #1–#10 dönüşümü (C1) ve uyarlama rehberi.
+saklanması. Kanca denetimi 411 nokta; on politika testi geçiyor. C1 (#2–#10 dönüşümü, 9.181 bayt kazanç) ve uyarlama
+rehberi birleştirildi. **0.1.0-alpha paketlendi** (etiket `v0.1.0-alpha`, test listesi `docs/test-0.1.0.md`); host'un
+oyununa kuruldu, iki oyunculu test bekliyor.
 
 ## Sonraki işler (öncelik sırasıyla)
 - **Sağlamlık:** geçersiz oyuncu tutamacı verilen co-op komutları host'u çökertiyor (ör. arkadaş görev ortasında
