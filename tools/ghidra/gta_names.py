@@ -8,7 +8,9 @@ or disagreement in the summary):
   gta-reversed  RH_Scoped*Install macros (function names), the vtable address of RH_ScopedVirtualClass,
                 and StaticRef<T>(0xADDR) / StaticRef<T, 0xADDR>() globals (data labels)
   plugin-sdk    plugin_sa/game_sa: META ids, addrof/ctor_addr/dtor_addr = ADDRESS_BY_VERSION(1.0 US, ...)
-                and "// Converted from ... Class::Name(...) 0xADDR" comments
+                and "// Converted from ... Class::Name(...) 0xADDR" comments; after those, the old-style
+                "#define FUNC_<Class>__<Method> 0xADDR" lines as Class::Method (split at the last "__":
+                FUNC_CText__TKey__Read is CText__TKey::Read, plugin-sdk's class CText__TKey)
 Installs that gta-reversed comments out still carry a valid name and address; they are kept and
 flagged "commented". With gta_sa.exe given, function addresses outside the executable sections and
 data addresses outside the image are dropped. Output columns:
@@ -250,6 +252,8 @@ PSDK_ADDROF_RE = re.compile(
     r"\b(addrof|addrof_o|ctor_addr|ctor_addr_o|dtor_addr|del_dtor_addr)\(([^,)]+)[^)]*\)\s*=\s*"
     r"ADDRESS_BY_VERSION\(\s*(0x[0-9A-Fa-f]+)")
 PSDK_CONVERTED_RE = re.compile(r"//\s*Converted from\b(.*?)\b(0x[0-9A-Fa-f]{5,8})\s*$", re.M)
+# the greedy class group makes the method the part after the last "__"
+PSDK_FUNC_DEFINE_RE = re.compile(r"^[ \t]*#[ \t]*define[ \t]+FUNC_(\w+)__(\w+)[ \t]+(0x[0-9A-Fa-f]+)\b", re.M)
 
 
 def psdk_name(form, q):
@@ -265,11 +269,13 @@ def psdk_name(form, q):
 
 def parse_plugin_sdk(root, entries):
     base = root / "plugin_sa" / "game_sa"
+    files = []
     for path in sorted(base.rglob("*")):
         if path.suffix not in (".cpp", ".h"):
             continue
         text = path.read_text(encoding="utf-8", errors="replace")
         rel = path.relative_to(root).as_posix()
+        files.append((rel, text))
         for m in PSDK_META_RE.finditer(text):
             entries.append((int(m.group(3), 16), "func", psdk_name(m.group(1), m.group(2)), "plugin-sdk",
                             f"{rel}:{line_of(text, m.start())}", "meta"))
@@ -286,6 +292,17 @@ def parse_plugin_sdk(root, entries):
                 continue
             entries.append((int(m.group(2), 16), "func", clean_name(nm.group(1)), "plugin-sdk",
                             f"{rel}:{line_of(text, m.start())}", "converted"))
+    # The old-style FUNC_ defines (CMessages.cpp, CMissionCleanup.h, CText.cpp, CTheZones.cpp, CZone.cpp) come
+    # last, so they only name addresses that nothing above names.
+    for rel, text in files:
+        if "FUNC_" not in text:
+            continue
+        mask = comment_mask(text)
+        for m in PSDK_FUNC_DEFINE_RE.finditer(text):
+            if mask[m.start(1)]:
+                continue
+            entries.append((int(m.group(3), 16), "func", f"{m.group(1)}::{m.group(2)}", "plugin-sdk",
+                            f"{rel}:{line_of(text, m.start(1))}", "define"))
 
 
 def pe_sections(exe):
@@ -381,6 +398,7 @@ def main():
             if n:
                 print(f"  {kind:6} from {source:12} {n}")
     print(f"  of which commented-out gta-reversed installs: {count(lambda r: 'commented' in r[5])}")
+    print(f"  of which plugin-sdk FUNC_ defines: {count(lambda r: r[5] == 'define')}")
     print(f"same address, same name from another entry: {agree}; different name (first kept): {disagree}")
 
 

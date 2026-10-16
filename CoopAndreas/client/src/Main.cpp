@@ -48,6 +48,35 @@ bool bBeenConnected;
 bool lastOnMissionFlag;
 uint32_t startTime;
 
+// private build: the local player's on-foot update, sent from the frame loop below and, with every key released, by
+// CNetworkKeepAlive when the game goes to the background
+void SendLocalOnFootUpdate(CPlayerPed* localPlayer)
+{
+    Packets::Players::OnFootUpdate onFootUpdate{};
+    onFootUpdate.vecPos = localPlayer->GetPosition();
+    onFootUpdate.vecMoveSpeed = localPlayer->m_vecMoveSpeed;
+    onFootUpdate.currentRotation = localPlayer->m_fCurrentRotation;
+    onFootUpdate.aimingRotation = localPlayer->m_fAimingRotation;
+
+    onFootUpdate.healthSnapshot.iHealth =
+        static_cast<uint8_t>(std::clamp(localPlayer->m_fHealth, 0.0f, 255.0f));
+    onFootUpdate.healthSnapshot.iArmour =
+        static_cast<uint8_t>(std::clamp(localPlayer->m_fArmour, 0.0f, 255.0f));
+
+    CWeapon& weapon = localPlayer->m_aWeapons[localPlayer->m_nActiveWeaponSlot];
+    onFootUpdate.weaponSnapshot.iWeaponType = weapon.m_eWeaponType;
+    onFootUpdate.weaponSnapshot.iWeaponState = weapon.m_nState;
+    onFootUpdate.weaponSnapshot.nAmmo = weapon.m_nAmmoInClip;
+
+    onFootUpdate.bDucking = CUtil::IsDucked(localPlayer);
+    onFootUpdate.bHasJetpack = CUtil::IsPedHasJetpack(localPlayer);
+
+    onFootUpdate.iFightingStyle = localPlayer->m_nFightingStyle;
+    CKeySync::CollectState(onFootUpdate.keySnapshot);
+
+    GetPacketFactory().Send(onFootUpdate);
+}
+
 class CoopAndreas
 {
 public:
@@ -167,29 +196,7 @@ public:
                     }
                     else
                     {
-                        Packets::Players::OnFootUpdate onFootUpdate{};
-                        onFootUpdate.vecPos = localPlayer->GetPosition();
-                        onFootUpdate.vecMoveSpeed = localPlayer->m_vecMoveSpeed;
-                        onFootUpdate.currentRotation = localPlayer->m_fCurrentRotation;
-                        onFootUpdate.aimingRotation = localPlayer->m_fAimingRotation;
-
-                        onFootUpdate.healthSnapshot.iHealth =
-                            static_cast<uint8_t>(std::clamp(localPlayer->m_fHealth, 0.0f, 255.0f));
-                        onFootUpdate.healthSnapshot.iArmour =
-                            static_cast<uint8_t>(std::clamp(localPlayer->m_fArmour, 0.0f, 255.0f));
-
-                        CWeapon& weapon = localPlayer->m_aWeapons[localPlayer->m_nActiveWeaponSlot];
-                        onFootUpdate.weaponSnapshot.iWeaponType = weapon.m_eWeaponType;
-                        onFootUpdate.weaponSnapshot.iWeaponState = weapon.m_nState;
-                        onFootUpdate.weaponSnapshot.nAmmo = weapon.m_nAmmoInClip;
-
-                        onFootUpdate.bDucking = CUtil::IsDucked(localPlayer);
-                        onFootUpdate.bHasJetpack = CUtil::IsPedHasJetpack(localPlayer);
-
-                        onFootUpdate.iFightingStyle = localPlayer->m_nFightingStyle;
-                        CKeySync::CollectState(onFootUpdate.keySnapshot);
-
-                        GetPacketFactory().Send(onFootUpdate);
+                        SendLocalOnFootUpdate(localPlayer);
 
                         lastOnFootSyncTickRate = tickCount;
                     }

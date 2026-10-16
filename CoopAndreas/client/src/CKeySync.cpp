@@ -60,6 +60,14 @@ void CKeySync::CollectState(Packets::Players::SKeySnapshot& keySnapshot)
 {
     assert(CWorld::PlayerInFocus == 0);
 
+    // private build: every key released (CReleasedKeysScope), the same snapshot as with the controls disabled below
+    if (ms_nReleasedKeysScopes > 0)
+    {
+        memset(&keySnapshot.oldControllerState, 0, sizeof(CControllerStateCompressed));
+        memset(&keySnapshot.newControllerState, 0, sizeof(CControllerStateCompressed));
+        return;
+    }
+
     CPad* pPad = CPad::GetPad(0);
 
     keySnapshot.oldControllerState = pPad->OldState;

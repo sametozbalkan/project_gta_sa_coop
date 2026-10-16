@@ -1,31 +1,23 @@
 #include "network/packets/peds.h"
 #include "network/packet_types.h"
 #include "stdafx.h"
+#include "CSpecialActorPolicy.h"
 
 PACKET_HANDLER(ePacketType::PED_SPAWN, Packets::Peds::PedSpawn* pPedSpawn, CNetworkPlayer* pNetworkPlayer)
 {
-    static char allowedSpecialActors[52][8] = {"ANDRE", "BBTHIN", "BB", "CAT", "CESAR", "COPGRL1", "COPGRL2", "COPGRL3",
-        "CLAUDE", "CROGRL1", "CROGRL2", "CROGRL3", "DWAYNE", "EMMET", "FORELLI", "GANGRL1", "GANGRL2", "GANGRL3",
-        "GUNGRL1", "GUNGRL2", "GUNGRL3", "HERN", "JANITOR", "JETHRO", "JIZZY", "KENDL", "MACCER", "MADDOGG", "MECGRL1",
-        "MECGRL2", "MECGRL3", "NURGRL1", "NURGRL2", "NURGRL3", "OGLOC", "PAUL", "PULASKI", "ROSE", "RYDER1", "RYDER2",
-        "RYDER3", "SINDACO", "SMOKE", "SMOKEV", "SUZIE", "SWEET", "TBONE", "TENPEN", "TORINO", "TRUTH", "WUZIMU",
-        "ZERO"};
-
     if (pPedSpawn->modelId >= MODEL_SPECIAL01 && pPedSpawn->modelId <= MODEL_SPECIAL10)
     {
-        bool isSpecialModelValid = false;
-
-        for (int i = 0; i < ARRAY_SIZE(allowedSpecialActors); i++)
+        // private build: the whole name must be a special character the scripts load (CSpecialActorPolicy.h).
+        // specialModelName arrives terminated (serialize_string and Packets::Peds::PedSpawn::Serialize); the check
+        // stays inside its 8 bytes anyway
+        if (!SpecialActorPolicy::IsAllowed(pPedSpawn->specialModelName))
         {
-            if (strncasecmp(pPedSpawn->specialModelName, allowedSpecialActors[i], strlen(allowedSpecialActors[i])))
-            {
-                isSpecialModelValid = true;
-                break;
-            }
-        }
-
-        if (!isSpecialModelValid)
+            logger::warn("%s tried to spawn a ped with special model \"%s\" (model %d), which isn't allowed",
+                pNetworkPlayer->GetName().c_str(),
+                SpecialActorPolicy::ForLog(pPedSpawn->specialModelName, sizeof(pPedSpawn->specialModelName)).c_str(),
+                static_cast<int>(pPedSpawn->modelId));
             return;
+        }
     }
 
     pPedSpawn->pedid = CNetworkPedManager::GetFreeId();

@@ -7,7 +7,8 @@
 // ENet and the server dropped the client after ~30 s. The hook turns that sleep into a wait on the ENet socket on the
 // main thread: acks and pings keep flowing, reliable packets are kept in arrival order and handed to the normal receive
 // path in the first frame after the game is back, unreliable sync snapshots are dropped. The game itself stays paused
-// and no packet handler runs while it is.
+// and no packet handler runs while it is. On the way into the background the player's update goes out once more with
+// every key released, so the other games don't replay a held key for the whole time.
 class CNetworkKeepAlive
 {
 public:
@@ -24,6 +25,7 @@ public:
 
 private:
     static void __stdcall BackgroundSleep(DWORD dwMilliseconds);
+    static void SendKeysReleased();
     static bool IsServiceable();
     static bool ShouldKeep(const ENetEvent& event);
     static void OnBackgroundEvent(ENetEvent& event);

@@ -1,6 +1,10 @@
 #include "stdafx.h"
 #include "CNetworkKeepAlive.h"
 #include "CServerTime.h"
+#include "CKeySync.h"
+
+// Main.cpp: the frame loop's on-foot update of the local player
+void SendLocalOnFootUpdate(CPlayerPed* localPlayer);
 
 // 1.0 US WinMain (0x748710) main loop, read from gta_sa.exe 1.0 US (MD5 170b3a9108687b26da2d8901c6948a18) with dumpbin
 // /disasm and tools/pe_peek.py; same structure as gta-reversed source/app/platform/win/WinMain.cpp (ProcessGameLogic):
@@ -60,6 +64,7 @@ void __stdcall CNetworkKeepAlive::BackgroundSleep(DWORD dwMilliseconds)
         ms_nBackgroundSince = GetTickCount();
         ms_nDroppedPackets = 0;
         logger::info("[KeepAlive] the game is in the background, keeping the connection alive");
+        SendKeysReleased();
     }
 
     const enet_uint32 start = enet_time_get();
@@ -95,6 +100,54 @@ void __stdcall CNetworkKeepAlive::BackgroundSleep(DWORD dwMilliseconds)
     {
         (*ms_ppfnSleep)(dwMilliseconds - elapsed);
     }
+}
+
+// The other games replay a player's last keys in every frame until the next update arrives (CPlayerPed__ProcessControl_Hook
+// in Hooks/PlayerHooks.cpp, CVehicle__ProcessControl_Hook in Hooks/VehicleHooks.cpp), and none arrives while this game
+// is in the background: a key held at that moment (walking, accelerating, aiming, firing) went on for the whole time.
+// So the player's update goes out once more in the form of its current state, built by the frame loop's own senders,
+// with every key released (old and new state, so the others see no press or release edge either). It runs on the main
+// thread like those senders (WinMain's loop calls BackgroundSleep between frames), only queues packets on the peer
+// (enet_peer_send) that the enet_host_service below sends, and touches nothing of the packets kept for the next frame.
+// It carries the last frame's server time, so the others handle it after that frame's updates. Snapshots are
+// unreliable, so the key event's packet (Hooks/GameHooks.cpp) goes with it as a second carrier of the released keys.
+// The first update after the game is back carries the keys again.
+void CNetworkKeepAlive::SendKeysReleased()
+{
+    // the frame loop's senders wait for the same (Main.cpp)
+    if (!CNetwork::m_bAuthenticated)
+    {
+        return;
+    }
+
+    CPlayerPed* pPlayerPed = FindPlayerPed(0);
+    if (pPlayerPed == nullptr)
+    {
+        return;
+    }
+
+    CKeySync::CReleasedKeysScope releasedKeys;
+
+    // the frame loop's choice between the driver, passenger and on-foot updates (Main.cpp)
+    CVehicle* pVehicle = pPlayerPed->m_nPedFlags.bInVehicle ? pPlayerPed->m_pVehicle : nullptr;
+    if (pVehicle != nullptr && pVehicle->m_pDriver == pPlayerPed)
+    {
+        CNetworkVehicleManager::UpdateDriver(pVehicle);
+    }
+    else if (pVehicle != nullptr)
+    {
+        CNetworkVehicleManager::UpdatePassenger(pVehicle, pPlayerPed);
+    }
+    else
+    {
+        SendLocalOnFootUpdate(pPlayerPed);
+    }
+
+    Packets::Players::KeyPressed keyPressed{};
+    CKeySync::CollectState(keyPressed.keySnapshot);
+    keyPressed.currentRotation = pPlayerPed->m_fCurrentRotation;
+    keyPressed.aimingRotation = pPlayerPed->m_fAimingRotation;
+    GetPacketFactory().Send(keyPressed);
 }
 
 // Whether a packet that arrives in the background is kept for the first frame after the game is back.
