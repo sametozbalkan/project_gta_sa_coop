@@ -68,10 +68,17 @@ bitince öneri olarak sunulacak, kullanıcı onaylarsa grup 2 yeni kalıpla baş
    oyuna katıldığında otomatik gönderilir. Şehir kilidi bu kalıpla yapıldı; farkları tek tek kovalamak yerine genel yapı.
    Köprü bariyerleri işi bunun içinde yapılır.
 
+Tasarımlar hazır (2026-10-16; uygulama grup 1 test onayından sonra): `docs/design/mirror-layer.md` (paketler
+M1–M5, #1–#10 dönüşümü C1) ve `docs/design/world-state.md` (paketler WS-1–WS-7). Sırada: mimar incelemesi, iki
+tasarımın uyumlandırılması ve kararların (her belgede D1–D11) kullanıcıya sunulması.
+
 ## Sonraki işler (öncelik sırasıyla)
 - **Sağlamlık:** geçersiz oyuncu tutamacı verilen co-op komutları host'u çökertiyor (ör. arkadaş görev ortasında
   düşerse); 0.3.103'te host tarafındaki yazı ve işaret komutlarına boş oyuncu denetimi eklendi, kalan yerler ayrıca
   taranacak. Görevi kimin başlatabileceğini denetleyen host kontrolü (`CanPlayerStartMission`) upstream'de yorum satırı.
+- **Host sabitleme:** sunucu host'u hep ilk bağlanan oyuncuya veriyor; host'un oyunu çöküp geri bağlanırsa host'luk
+  arkadaşta kalıyor ve istemci host'luğun elinden alınmasını karşılamıyor. Sunucu ayarıyla hikâye host'unu sabitlemek
+  (küçük ayrı iş; dünya durumu tasarımındaki hikâye koruması bunun yerine geçmez).
 - **Araç senkron protokolü** (ayrı gtasa-coder-high işi): `ASSIGN_VEHICLE` aracı kimin senkronladığını belirleyen
   bayrağı ayarlamak yerine tersine çeviriyor (iki taraf anlaşamayabilir); onaylanmadan silinen geçici araç eski bir
   işaretçi bırakıyor; host'un görevi arkadaşın sürdüğü (arkadaşın senkronladığı) aracı silerse silme arkadaşa gitmiyor
