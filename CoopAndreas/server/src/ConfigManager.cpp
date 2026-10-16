@@ -31,6 +31,7 @@ void CConfigManager::CreateConfig()
 		file << key << " = " << value << "\n";
 	}
 	file << "bind = " << ms_sDefaultBindAddress << "\n"; // private build: listen address
+	file << "story-host =\n"; // private build: story host pinning, empty = the first player is the host
 }
 
 uint16_t CConfigManager::GetConfigPort()
@@ -47,4 +48,10 @@ uint16_t CConfigManager::GetConfigMaxPlayers()
 std::string CConfigManager::GetConfigBindAddress()
 {
 	return ms_pReader->GetString("", "bind", ms_sDefaultBindAddress);
+}
+
+// private build: a missing or empty "story-host" keeps upstream's host rule
+std::string CConfigManager::GetConfigStoryHost()
+{
+	return ms_pReader->GetString("", "story-host", "");
 }

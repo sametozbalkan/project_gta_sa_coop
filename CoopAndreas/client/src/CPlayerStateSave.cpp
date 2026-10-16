@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "CPlayerStateSave.h"
 #include "CPlayerStateStore.h"
+#include "CSessionLifecycle.h"
 #include <CGenericGameStorage.h>
 #include <CTimer.h>
 #include <CWeaponInfo.h>
@@ -28,8 +29,7 @@
 //   +0x20 (CWeapon::Reload 0x73AEB0).
 // - stats: float ids below 0x52 at 0xB79380 + id * 4, int ids at 0xB78E20 + id * 4 (CStats::GetStatValue 0x558E40) =
 //   CStats::StatTypesFloat / CStats::StatTypesInt[id - 120].
-// - CRunningScript::m_bIsMission +0xDC (LOAD_AND_LAUNCH_MISSION_INTERNAL 0417 sets it at 0x489A05),
-//   CTheScripts::pActiveScripts 0xA8B42C (CTheScripts::Process walks it at 0x46A1D1), m_pNext +0.
+// The free-play rule (menu, fade, cutscene, controls, missions of this game) is CSessionLifecycle::IsInFreePlay.
 static_assert(offsetof(CPlayerInfo, m_nMoney) == 0xB8, "CPlayerInfo::m_nMoney");
 static_assert(offsetof(CPlayerInfo, m_nDisplayMoney) == 0xBC, "CPlayerInfo::m_nDisplayMoney");
 static_assert(offsetof(CPlayerInfo, m_bDoesNotGetTired) == 0x14C, "CPlayerInfo::m_bDoesNotGetTired");
@@ -51,7 +51,6 @@ static_assert(offsetof(CWeaponInfo, m_nModelId1) == 0xC, "CWeaponInfo::m_nModelI
 static_assert(offsetof(CWeaponInfo, m_nModelId2) == 0x10, "CWeaponInfo::m_nModelId2");
 static_assert(offsetof(CWeaponInfo, m_nSlot) == 0x14, "CWeaponInfo::m_nSlot");
 static_assert(offsetof(CWeaponInfo, m_nAmmoClip) == 0x20, "CWeaponInfo::m_nAmmoClip");
-static_assert(offsetof(CRunningScript, m_bIsMission) == 0xDC, "CRunningScript::m_bIsMission");
 static_assert(sizeof(CPedClothesDesc::m_anModelKeys) == sizeof(SPlayerState::clothesModelKeys), "clothes models");
 static_assert(sizeof(CPedClothesDesc::m_anTextureKeys) == sizeof(SPlayerState::clothesTextureKeys), "clothes textures");
 
@@ -128,47 +127,10 @@ int GetHostId()
     return -1;
 }
 
-// This game is in plain free play: alive, no menu, no fade (the new-game start keeps the screen black until INTRO
-// has given the default clothes, $350 and removed the weapons), no cutscene, controls on, and no mission of its own
-// running (on this side only the new-game missions INITIAL, INITIL2, INTRO and the like can run).
-bool IsSettledNow(CPlayerPed* pPed)
-{
-    if (pPed == nullptr || pPed->m_pRwClump == nullptr || pPed->m_pPlayerData == nullptr ||
-        pPed->m_pPlayerData->m_pPedClothesDesc == nullptr)
-    {
-        return false;
-    }
-    if (CWorld::Players[0].m_nPlayerState != PLAYERSTATE_PLAYING || !(pPed->m_fHealth > 0.0f))
-    {
-        return false;
-    }
-    switch (pPed->m_ePedState)
-    {
-        case PEDSTATE_DIE:
-        case PEDSTATE_DEAD:
-        case PEDSTATE_DIE_BY_STEALTH:
-        case PEDSTATE_ARRESTED:
-            return false;
-        default:
-            break;
-    }
-    // CDraw::FadeValue (0xC3EFAB) is the fade drawn over the screen: CCamera::ProcessFade (0x50B5D0) writes it at
-    // 0x50B6C3, the render path reads it at 0x53E6A2. Not the camera's own alpha: the end-of-mission cleanup on this
-    // side (PacketHandlers/scripts.cpp) clears only FadeValue.
-    if (FrontEndMenuManager.m_bMenuActive || CCutsceneMgr::ms_running || CDraw::FadeValue != 0 ||
-        CPad::GetPad(0)->DisablePlayerControls != 0)
-    {
-        return false;
-    }
-    for (CRunningScript* pScript = CTheScripts::pActiveScripts; pScript != nullptr; pScript = pScript->m_pNext)
-    {
-        if (pScript->m_bIsMission)
-        {
-            return false;
-        }
-    }
-    return true;
-}
+// This game is in plain free play: alive, no menu, no fade, no cutscene, controls on, and no mission of its own running
+// (on this side only the new-game missions INITIAL, INITIL2, INTRO and the like can run). The rule lives in
+// CSessionLifecycle::IsInFreePlay, which the other modules share.
+bool IsSettledNow(CPlayerPed* pPed) { return CSessionLifecycle::IsInFreePlay(pPed); }
 
 bool UpdateSettled(CPlayerPed* pPed)
 {

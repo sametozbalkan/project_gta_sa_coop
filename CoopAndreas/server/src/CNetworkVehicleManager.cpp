@@ -50,6 +50,12 @@ void CNetworkVehicleManager::RemoveAllHostedAndNotify(CNetworkPlayer* player)
             packet.vehicleid = (*it)->m_nVehicleId;
             GetPacketFactory().SendToAll(packet, player);
 
+            // private build: the players still seated in it don't keep its id (a new vehicle can get the same id)
+            for (int8_t seat = 0; seat < 8; seat++)
+            {
+                (*it)->SetOccupant(seat, nullptr);
+            }
+
             delete *it;
             it = CNetworkVehicleManager::m_pVehicles.erase(it);
         }

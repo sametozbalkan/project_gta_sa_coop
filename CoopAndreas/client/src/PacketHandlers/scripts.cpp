@@ -6,6 +6,7 @@
 #include <CEntryExitMarkerSync.h>
 #include <COpCodeSync.h>
 #include <CTaskSequenceSync.h>
+#include <CSessionLifecycle.h>
 
 PACKET_HANDLER(ePacketType::ON_MISSION_FLAG_SYNC, Packets::Scripts::OnMissionFlagSync* pOnMissionFlagSync)
 {
@@ -35,6 +36,8 @@ PACKET_HANDLER(ePacketType::ON_MISSION_FLAG_SYNC, Packets::Scripts::OnMissionFla
 			CDraw::FadeValue = 0;
 		}
 	}
+
+	CSessionLifecycle::OnHostMissionFlag(pOnMissionFlagSync->bOnMission); // private build: session lifecycle
 }
 
 PACKET_HANDLER(ePacketType::ENEX_SYNC, Packets::Scripts::EnExSync* pEnExSync)

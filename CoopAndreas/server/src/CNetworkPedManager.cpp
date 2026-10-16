@@ -51,6 +51,18 @@ void CNetworkPedManager::RemoveAllHostedAndNotify(CNetworkPlayer* player)
         {
             packet.pedid = (*it)->m_nPedId;
             GetPacketFactory().SendToAll(packet, player);
+
+            // private build: no claim keeps pointing at the deleted ped (claims are matched by pointer, and a new ped
+            // can get the same address)
+            for (auto* pPlayer : CNetworkPlayerManager::m_pPlayers)
+            {
+                auto claim = std::find(pPlayer->m_vPedClaims.begin(), pPlayer->m_vPedClaims.end(), *it);
+                if (claim != pPlayer->m_vPedClaims.end())
+                {
+                    pPlayer->m_vPedClaims.erase(claim);
+                }
+            }
+
             delete *it;
             it = CNetworkPedManager::m_pPeds.erase(it);
         }

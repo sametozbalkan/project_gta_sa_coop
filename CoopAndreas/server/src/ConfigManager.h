@@ -24,4 +24,7 @@ public:
     static uint16_t GetConfigPort();
     static uint16_t GetConfigMaxPlayers();
     static std::string GetConfigBindAddress();
+    // private build: the nickname of the player who is always the host ("story-host", CHostPolicy.h), empty = the
+    // first player as upstream
+    static std::string GetConfigStoryHost();
 };

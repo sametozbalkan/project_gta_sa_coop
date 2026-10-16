@@ -35,6 +35,7 @@
 #include <CRadioSync.h>
 #include <CCityUnlockSync.h>
 #include <CPlayerStateSave.h>
+#include <CSessionLifecycle.h>
 
 unsigned int lastOnFootSyncTickRate = 0;
 unsigned int lastDriverSyncTickRate = 0;
@@ -92,6 +93,7 @@ public:
             CDiscordRPCMgr::Update();
             CDebugVehicleSpawner::Process();
             CRadioSync::Process();
+            CSessionLifecycle::Process(); // private build: session lifecycle, before the modules that ask it
             CCityUnlockSync::Process();
             CPlayerStateSave::Process(); // private build: player state for co-op saves
 
@@ -129,6 +131,7 @@ public:
                     Packets::Scripts::OnMissionFlagSync packet{};
                     packet.bOnMission = CTheScripts::ScriptSpace[CTheScripts::OnAMissionFlag];
                     GetPacketFactory().Send(packet);
+                    CSessionLifecycle::OnLocalHostMissionFlag(packet.bOnMission); // private build: session lifecycle
                 }
 
                 unsigned int tickCount = GetTickCount();

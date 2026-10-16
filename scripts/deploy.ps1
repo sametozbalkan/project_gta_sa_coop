@@ -95,6 +95,64 @@ Copy-One (Join-Path $repo 'scm\script.img')     (Join-Path $GameDir 'CoopAndreas
 New-Shortcut (Join-Path $GameDir 'CoopAndreas.lnk') $exe '--coop' $GameDir
 New-Shortcut (Join-Path $GameDir 'CoopAndreas Server.lnk') (Join-Path $serverDir 'server.exe') '' $serverDir
 
+# Story host pinning: "story-host" in server-config.ini names the player who is always the host. When the key is
+# missing, the nickname from this PC's coopandreas.ini (the game reads it from its user files folder) goes in, in the
+# form the server compares: PLAYER_CONNECTED keeps at most 24 bytes and turns every byte other than a-z, A-Z, 0-9, '_',
+# '[' and ']' into '_'. An existing story-host line stays as it is, an empty one too (the first player is the host).
+function Get-IniNickname([string]$Path) {
+    if (-not (Test-Path -LiteralPath $Path)) { return $null }
+    # one character per byte, as GetPrivateProfileString hands the client the ANSI bytes the server then checks
+    $text = [Text.Encoding]::GetEncoding(28591).GetString([IO.File]::ReadAllBytes($Path))
+    if ($text.StartsWith([string][char]0xEF + [char]0xBB + [char]0xBF)) { $text = $text.Substring(3) }
+    $section = ''
+    foreach ($line in ($text -split "`r?`n")) {
+        $trimmed = $line.Trim()
+        if ($trimmed -match '^\[(.*)\]$') { $section = $Matches[1].Trim(); continue }
+        if ($section -eq 'config' -and $trimmed -match '^nickname\s*=(.*)$') {
+            $value = $Matches[1].Trim()
+            if ($value.Length -ge 2 -and ($value[0] -eq '"' -or $value[0] -eq "'") -and $value[-1] -eq $value[0]) {
+                $value = $value.Substring(1, $value.Length - 2)
+            }
+            return $value
+        }
+    }
+    return $null
+}
+
+$serverConfig = Join-Path $serverDir 'server-config.ini'
+$userIni = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'GTA San Andreas User Files\coopandreas.ini'
+$configLines = @()
+if (Test-Path -LiteralPath $serverConfig) { $configLines = @(Get-Content -LiteralPath $serverConfig) }
+$storyHostLine = $configLines | Where-Object { $_ -match '^\s*story-host\s*[=:]' } | Select-Object -First 1
+if ($storyHostLine) {
+    $current = ($storyHostLine -replace '^\s*story-host\s*[=:]', '').Trim()
+    if ($current) { "story-host is already set in ${serverConfig}: $current" }
+    else { "story-host is empty in ${serverConfig}: the first player to connect is the host" }
+}
+elseif ($configLines | Where-Object { $_ -match '^\s*\[' }) {
+    Write-Warning "$serverConfig has [sections]; add 'story-host = <nickname>' above them by hand"
+}
+else {
+    $nick = Get-IniNickname $userIni
+    if (-not $nick) {
+        Write-Warning "No nickname in $userIni; story-host not added to $serverConfig"
+    }
+    else {
+        if ($nick.Length -gt 24) { $nick = $nick.Substring(0, 24) }
+        $nick = $nick -replace '[^A-Za-z0-9_\[\]]', '_'
+        if ($PSCmdlet.ShouldProcess($serverConfig, "Add story-host = $nick")) {
+            New-Item -ItemType Directory -Force -Path $serverDir | Out-Null
+            $prefix = ''
+            if (Test-Path -LiteralPath $serverConfig) {
+                $existing = [IO.File]::ReadAllText($serverConfig)
+                if ($existing.Length -gt 0 -and -not $existing.EndsWith("`n")) { $prefix = "`r`n" }
+            }
+            [IO.File]::AppendAllText($serverConfig, "${prefix}story-host = $nick`r`n", [Text.Encoding]::ASCII)
+            "Added story-host = $nick to $serverConfig (restart server.exe if it is running)"
+        }
+    }
+}
+
 # Older builds' Discord Rich Presence registered this URL handler; the client no longer does (COOP_NO_DISCORD_RPC)
 $discordKey = 'HKCU:\Software\Classes\discord-1324128258672951317'
 if (Test-Path -LiteralPath $discordKey) {

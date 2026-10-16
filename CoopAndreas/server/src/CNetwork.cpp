@@ -1,4 +1,5 @@
 #include "CNetworkPlayerManager.h"
+#include "CHostManager.h"
 #include "CRTTBroadcastManager.h"
 #include "CPacketFactory.h"
 #include "logger.h"
@@ -119,6 +120,20 @@ void CNetwork::HandlePlayerDisconnected(ENetEvent& event)
         vehicle->m_pPlayers[pNetworkPlayer->m_nSeatId] = nullptr;
     }
 
+    // private build: no other vehicle keeps the player in a seat either (one it never left properly). Such a seat could
+    // make it a vehicle's syncer again (VEHICLE_PASSENGER_UPDATE), and its ENet peer may belong to a new connection by
+    // then, typically the same player reconnecting (story host pinning makes the host wait for exactly that).
+    for (auto* pVehicle : CNetworkVehicleManager::m_pVehicles)
+    {
+        for (auto& pOccupant : pVehicle->m_pPlayers)
+        {
+            if (pOccupant == pNetworkPlayer)
+            {
+                pOccupant = nullptr;
+            }
+        }
+    }
+
     if (Packets::Scripts::g_pLastEnExPlayerOwner == pNetworkPlayer)
     {
         Packets::Scripts::g_pLastEnExPlayerOwner = nullptr;
@@ -136,7 +151,7 @@ void CNetwork::HandlePlayerDisconnected(ENetEvent& event)
 
     printf("[Game] : %i Disconnected.\n", pNetworkPlayer->m_iPlayerId);
 
-    CNetworkPlayerManager::AssignHostToFirstPlayer();
+    CHostManager::Update(nullptr, pNetworkPlayer); // private build: story host pinning (was AssignHostToFirstPlayer)
 }
 
 void CNetwork::HandlePlayerConnected(ENetPeer* pENetPeer, Packets::System::PlayerConnected& playerConnected)
@@ -283,7 +298,7 @@ void CNetwork::HandlePlayerConnected(ENetPeer* pENetPeer, Packets::System::Playe
          }
     }
 
-    CNetworkPlayerManager::AssignHostToFirstPlayer();
+    CHostManager::Update(pNewNetworkPlayer, nullptr); // private build: story host pinning (was AssignHostToFirstPlayer)
 }
 
 void CNetwork::SendPacketNoAuth_ENet(ENetPeer* pENetPeer, const uint8_t* data, int dataSize,

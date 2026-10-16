@@ -7,6 +7,18 @@
 #include <CMoonSync.h>
 #include <game_sa/CTagManager.h>
 #include <CCityUnlockSync.h>
+#include <CSessionLifecycle.h>
+
+// private build: the host's join snapshot, also sent when this game becomes the host while players are in already (the
+// server pins the story host, who can connect after the others; CSessionLifecycle)
+static void SendHostJoinSnapshot()
+{
+    CNetworkStaticBlip::ms_bNeedToSendAfterThisFrame = true;
+    CEntryExitMarkerSync::ms_bUpdateAfterProcessingThisFrame = true;
+    CTagSync::SyncCurrentState();
+    CMoonSync::SyncCurrentState();
+    CCityUnlockSync::SyncCurrentState(); // private build: city unlock sync
+}
 
 PACKET_HANDLER(ePacketType::PLAYER_CONNECTED, Packets::System::PlayerConnected* pPlayerConnected)
 {
@@ -25,12 +37,11 @@ PACKET_HANDLER(ePacketType::PLAYER_CONNECTED, Packets::System::PlayerConnected* 
     // TODO REFACTOR
     if (CLocalPlayer::m_bIsHost)
     {
-        CNetworkStaticBlip::ms_bNeedToSendAfterThisFrame = true;
-        CEntryExitMarkerSync::ms_bUpdateAfterProcessingThisFrame = true;
-        CTagSync::SyncCurrentState();
-        CMoonSync::SyncCurrentState();
-        CCityUnlockSync::SyncCurrentState(); // private build: city unlock sync
+        SendHostJoinSnapshot();
     }
+
+    // private build: session lifecycle (PLAYER_JOINED on the host)
+    CSessionLifecycle::OnPlayerConnected(pNetworkPlayer->m_iPlayerId, pNetworkPlayer->m_bHasBeenConnectedBeforeMe);
 }
 
 PACKET_HANDLER(ePacketType::PLAYER_DISCONNECTED, Packets::System::PlayerDisconnected* pPlayerDisconnected)
@@ -54,6 +65,9 @@ PACKET_HANDLER(ePacketType::PLAYER_DISCONNECTED, Packets::System::PlayerDisconne
         return;
     }
 
+    // private build: session lifecycle (PLAYER_LEFT, and the host's loss), while the player is still there
+    CSessionLifecycle::OnPlayerDisconnected(pPlayerDisconnected->payload.playerid);
+
     CNetworkPlayer* player = CNetworkPlayerManager::GetPlayer(pPlayerDisconnected->payload.playerid);
     if (player != nullptr)
     {
@@ -69,6 +83,7 @@ PACKET_HANDLER(ePacketType::PLAYER_HANDSHAKE, Packets::System::PlayerHandshake* 
     CNetwork::m_bAuthenticated = true;
     CPatch::RevertTemporaryPatches();
     logger::info("Authenticated, playerid %d", pPlayerHandshake->yourid);
+    CSessionLifecycle::OnAuthenticated(); // private build: session lifecycle
 }
 
 PACKET_HANDLER(ePacketType::RTT_BROADCAST, Packets::System::RTTBroadcast* pRTTBroadcast)
@@ -101,6 +116,12 @@ PACKET_HANDLER(ePacketType::PLAYER_ASSIGN_HOST, Packets::System::PlayerAssignHos
         CWeatherSync::SyncCurrentState();
         CTagSync::SyncCurrentState();
         CChat::AddMessage("[Player] You are the host now");
+
+        // private build: session lifecycle; the players who are in already haven't had this game's join snapshot
+        if (CSessionLifecycle::OnHostAssigned(pPlayerAssignHost->playerid) && !CNetworkPlayerManager::m_pPlayers.empty())
+        {
+            SendHostJoinSnapshot();
+        }
         return;
     }
     
@@ -118,6 +139,8 @@ PACKET_HANDLER(ePacketType::PLAYER_ASSIGN_HOST, Packets::System::PlayerAssignHos
     }
 
     CLocalPlayer::m_bIsHost = false;
+
+    CSessionLifecycle::OnHostAssigned(pPlayerAssignHost->playerid); // private build: session lifecycle
 }
 
 PACKET_HANDLER(ePacketType::PLAYER_CHAT_MESSAGE, Packets::System::ChatMessage* pChatMessage)

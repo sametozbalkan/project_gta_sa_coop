@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include "CHostManager.h"
 
 #if defined(_WIN32)
 #pragma comment(lib, "ws2_32.lib")
@@ -60,6 +61,7 @@ int main(int argc, char* argv[])
 #endif
 
     CConfigManager::Init();
+    CHostManager::Init(); // private build: story host pinning
     CServerTime::Init();
 
     CNetwork::Init(CConfigManager::GetConfigPort());

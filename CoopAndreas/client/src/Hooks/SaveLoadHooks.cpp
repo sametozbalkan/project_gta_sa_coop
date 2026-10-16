@@ -2,6 +2,7 @@
 #include "SaveLoadHooks.h"
 #include "CGenericGameStorage.h"
 #include "../CPlayerStateSave.h"
+#include "../CSessionLifecycle.h"
 
 
 char* __fastcall CSimpleVariablesSaveStructure__Construct_CText__Get_Hook(CText* This, SKIP_EDX, char* key)
@@ -56,6 +57,7 @@ static bool __cdecl CGenericGameStorage__GenericLoad_Hook(bool* pbVariablesLoade
     if (bLoaded)
     {
         CPlayerStateSave::OnGameLoaded(CGenericGameStorage::ms_LoadFileName);
+        CSessionLifecycle::OnGameLoaded(CGenericGameStorage::ms_LoadFileName); // private build: SAVE_LOADED next frame
     }
     return bLoaded;
 }
