@@ -14,6 +14,12 @@ New Game gerekmez. Hiçbir madde henüz oyunda denenmedi.
   - Host'un görevi arkadaşın sürdüğü bir arabayı silerse araba iki ekrandan birden kalkar, arkadaş yaya kalır.
   - Oyunlardan birinin kendi başına sildiği bir araba, onu yöneten oyuncunun sonraki güncellemesiyle geri gelir.
   - Sunucu yolcu koltuklarını doğru sayar. Oyundan çıkan oyuncunun sürdüğü host görev arabası host'a geçer.
+  - Arabadan her iniş öbür ekrana gider: tuşla iniş, görevin indirmesi, arabadan çekilip atılma.
+- **Oturumda yeniden başlama:** biriniz bağlıyken kayıt yüklerse ya da New Game seçerse, öbürünün NPC'leri ve onların
+  sürdüğü arabalar geri gelir; host görevdeyse görev karakterleri (Sweet, Smoke, Ryder) işaretleriyle döner.
+  Önceden bunlar kayboluyor ya da sürücüsüz donmuş arabalar olarak kalıyordu.
+- **Bağlantı saati:** oyunların ortak saati artık geriye kaymıyor; bu, araç ve NPC paketlerinin doğru sırada
+  işlenmesi için gerekli.
 - **Görev ortasında ayrılan oyuncu:** arkadaş görev sırasında oyundan çıkarsa, oyunu çökerse ya da bağlantısı koparsa
   host'un oyunu çökmez, görev host'la sürer. Arkadaş geri bağlanınca görevin yazılarını, işaretlerini ve sayaçlarını
   görür; o görevin mantığı onu yeniden saymaz, bir sonraki görevde sayar.
@@ -35,7 +41,7 @@ New Game gerekmez. Hiçbir madde henüz oyunda denenmedi.
    dosyalarını silin. Sorunda iki taraftan şu dosyaları ve saati gönderin: `CoopAndreas_diag.log`,
    `CoopAndreas_session.log`, `CoopAndreas_mirror.log`, `CoopAndreas_world_state.log`, `CoopAndreas_ped_sync.log`,
    `CoopAndreas_vehicle_sync.log`, varsa `CoopAndreas_crashes\*.log`, bir de host'un sunucu penceresindeki son satırlar.
-5. B bölümü belirli görevleri ister: #3, #4, #6 ve #9. Bu görevlerden önce ayrı yuvalara alınmış co-op kayıtları
+5. A3 ve B bölümü belirli görevleri ister: #3, #4, #6 ve #9. Bu görevlerden önce ayrı yuvalara alınmış co-op kayıtları
    varsa onlardan devam edin; yoksa New Game'den o göreve kadar oynayın. Co-op kaydını yalnız host, görev dışında
    güvenli evde alır.
 
@@ -54,6 +60,17 @@ Oturum kaydı: tarih `____` · host `____` · arkadaş `____` · paket SHA-256 `
 - [ ] **Trafik:** yan yana ve sonra ayrı yerlerde 5–10 dakika dolaşın. Çift, donmuş ya da zıplayan trafik arabası
   olmamalı. Bir arabayı patlatıp uzaklaşın: enkaz iki ekrandan birlikte kaybolmalı. İki tarafın
   `CoopAndreas_vehicle_sync.log` dosyasında `destructor-hooks hooked=5/5` satırı olmalı.
+- [ ] **Sürücü iner, yolcu devralır:** host sürücü, arkadaş yolcu olsun. Host F ile insin ve yaklaşık 150 m
+  uzaklaşsın; arkadaş bir süre bekleyip sürücü koltuğuna geçsin ve sürsün. Rolleri değiştirip tekrarlayın. Araba
+  inerken donmamalı ya da kendi kendine ilerlememeli, iki ekranda aynı yerde olmalı.
+- [ ] **Arabadan çekme:** arkadaş sürerken host sürücü kapısından onu arabadan çeksin; sonra rolleri değiştirin. İki
+  ekranda da çekilen sürüklenerek iner, çeken oturur; araba ileri geri zıplamaz.
+- [ ] **Yarım kalan biniş:** arkadaş kilitli bir arabaya binmeye çalışıp vazgeçsin. 10 saniye sonra sunucu
+  penceresinde `has been on foot for 10 s … is free again` satırı görünmeli.
+- [ ] **Yoğun trafikte katılma:** host yoğun trafikte sürerken arkadaş bağlansın ve host'un yanına gitsin: arkadaşın
+  ekranında donmuş araba olmamalı.
+- [ ] **Ters araba:** birinizin arabasını açık bir garajın içinde ters çevirin ve 30 saniye bekleyin. Araba durmadan
+  kaybolup belirmemeli (30 saniyede en fazla 3 kez), oyun çökmemeli.
 
 ### A2. Alt+Tab'da tuşlar
 
@@ -68,7 +85,22 @@ Alt+Tab yapan "A", izleyen "B" olsun; ikiniz de bir kez A olun.
   yapsın. B'nin ekranında ateş hemen kesilmeli, karakter silahı indirmeli. Aynısını yalnız nişan alırken de deneyin.
 - [ ] (İsteğe bağlı) Yolcuyken drive-by ateşi sırasında Alt+Tab: B'de ateş kesilmeli.
 
-### A3. Hikâye işaretleri ve yan aktiviteler
+### A3. Oturumda yeniden başlama
+
+- [ ] **Host kayıt yüklüyor:** Ganton'da trafiğin yoğun olduğu bir caddede yan yana bir dakika bekleyin. Host ESC →
+  Load Game ile bir co-op kaydı yüklesin. Host'un ekranında arkadaşın NPC'lerinin sürdüğü arabalar sürücüleriyle
+  hareket etmeli, sürücüsüz donmuş araba olmamalı. Sunucu penceresinde `started over: N peds sent again` satırı
+  çıkmalı.
+- [ ] **Arkadaş New Game:** aynısını arkadaş ESC → New Game ile yapsın. Arkadaşın ekranında host'un trafiği ve
+  yayaları geri gelmeli.
+- [ ] **Host görevdeyken:** arkadaş önceden Grove Street'teki evde kendi kaydını alsın. Host #4 Tagging Up Turf'ü
+  başlatsın; Sweet ekrandayken arkadaş o kaydı yüklesin (ya da New Game seçsin). Arkadaşın ekranında Sweet host'taki
+  yerinde ve hareket ederek, radar işaretiyle görünmeli.
+- [ ] (İsteğe bağlı) #6 kovalamacasında arkadaş Greenwood'u sürerken New Game seçsin: sunucuda `… of the host's
+  mission goes back to … started over` satırı çıkmalı; Greenwood host'ta kalmalı, kovalamaca sürmeli. Arkadaşın
+  oyunu açılınca Greenwood bıraktığı yerde tek kopya olarak görünmeli.
+
+### A4. Hikâye işaretleri ve yan aktiviteler
 
 - [ ] **Hikâye işareti:** host uzaktayken arkadaş tek başına bir hikâye işaretine girsin (ör. Sweet'in evi, Ryder ya
   da Smoke). Görev başlamamalı. Host girince başlamalı.
@@ -87,7 +119,13 @@ Hazırlık: host'un `CoopAndreas_ped_sync.log` dosyasında, arkadaş görev orta
 - [ ] Beklenen: host'ta çökme yok, berber yerinde kalır, saç kesimi biter. Sunucu penceresinde
   `ped … goes to …, who claimed it` satırı görünür.
 
-### B2. #4 Tagging Up Turf — menüden çıkış
+### B2. #3 ve #4 — görevin arabadan indirmesi
+
+- [ ] #3 Ryder'da pizzacıya varınca ve #4 Tagging Up Turf'te ilk grafiti noktasında, görev sizi arabadan indirirken
+  iki ekranda da iki oyuncu normal iniş animasyonuyla inmeli; iniş iki kez oynamamalı, araba kendi kendine
+  gitmemeli. Loglarda `exit-notice` satırları görünür.
+
+### B3. #4 Tagging Up Turf — menüden çıkış
 
 - [ ] Görevi başlatın; ikiniz de Sweet'in arabasına binin, host sürsün.
 - [ ] Idlewood yolunda arkadaş menüden **Quit Game** ile çıksın.
@@ -95,7 +133,7 @@ Hazırlık: host'un `CoopAndreas_ped_sync.log` dosyasında, arkadaş görev orta
   geçilebilir.
 - [ ] Arkadaş yeniden bağlansın: host'un görev yazılarını, işaretlerini ve kürelerini görmeli; görev onu beklememeli.
 
-### B3. #6 Drive-Thru — görev sonunda arkadaşın arabası
+### B4. #6 Drive-Thru — görev sonunda arkadaşın arabası
 
 İlk geçişte (görevi normal bitirin):
 
@@ -104,7 +142,7 @@ Hazırlık: host'un `CoopAndreas_ped_sync.log` dosyasında, arkadaş görev orta
   donmuş bir hayalet araba kalmamalı.
 - [ ] (İsteğe bağlı) Aynısını #2 Big Smoke'taki BMX ile deneyin.
 
-### B4. #6 Drive-Thru — kovalamacada arkadaşın oyunu kapanırsa
+### B5. #6 Drive-Thru — kovalamacada arkadaşın oyunu kapanırsa
 
 İkinci geçişte (#6'dan önceki kayıttan):
 
@@ -115,7 +153,7 @@ Hazırlık: host'un `CoopAndreas_ped_sync.log` dosyasında, arkadaş görev orta
   `[Vehicle] : vehicle … of the host's mission goes back to …` satırı görünür.
 - [ ] Arkadaş yeniden bağlanıp görevin yazılarını ve işaretlerini görmeli.
 
-### B5. #9 Sweet's Girl — görevin arkadaşın arabasını silmesi
+### B6. #9 Sweet's Girl — görevin arkadaşın arabasını silmesi
 
 Bu sahne zorlanmış bir test: görev normalde yalnız kendi arabalarını siler.
 
@@ -130,6 +168,9 @@ Bu sahne zorlanmış bir test: görev normalde yalnız kendi arabalarını siler
 - [ ] Arkadaşın ekranında hikâye karakterleri görünür (Sweet, Smoke, Ryder, Emmet …). Sunucu penceresinde
   `tried to spawn a ped with special model` ile başlayan sarı uyarı çıkmaz; çıkarsa satırdaki ismi bildirin.
 - [ ] Çift, donmuş, havada asılı ya da kendiliğinden kaybolan araba yok.
+- [ ] **Uzun oturum:** oturum sonunda iki tarafın `CoopAndreas_vehicle_sync.log` dosyası 2 MB'ın altında olmalı ve
+  oturumun sonuna kadar yazmış olmalı; satırların çoğu dakikalık `routine` özeti olmalı. `CoopAndreas_diag.log`
+  dosyasındaki `clock:` satırında `ignored` sayısı küçük kalmalı.
 
 ## Bilinen sınırlar
 
@@ -137,7 +178,9 @@ Bu sahne zorlanmış bir test: görev normalde yalnız kendi arabalarını siler
   görevde normal katılır.
 - Host'un kendi bağlantısı görev ortasında koparsa bazı görevler (#2–#5, #7) araç beklerken takılabilir; sonraki
   düzeltme paketinde.
-- Arkadaş bir arabaya binmeye başlayıp vazgeçerse sunucu onu bir süre o koltukta sayabilir.
+- Arkadaş bir arabaya binmeye başlayıp vazgeçerse sunucu onu 10 saniye o koltukta sayar.
+- Tren ve görev nesneleri (kasa, kapı, varil) bu pakette de arkadaşa gitmez; tasarımları hazır
+  (`docs/design/trains.md`, `docs/design/mission-objects.md`), grup 2'den önce gelecek.
 
 ## Sonuç
 
@@ -145,10 +188,12 @@ Bu sahne zorlanmış bir test: görev normalde yalnız kendi arabalarını siler
 |---|---|---|
 | A1 Birlikte araba | | |
 | A2 Alt+Tab | | |
-| A3 Hikâye işaretleri, yan aktiviteler | | |
+| A3 Oturumda yeniden başlama | | |
+| A4 Hikâye işaretleri, yan aktiviteler | | |
 | B1 #3 berber | | |
-| B2 #4 menüden çıkış | | |
-| B3 #6 görev sonu araba | | |
-| B4 #6 kovalamacada kapanma | | |
-| B5 #9 araba silme | | |
+| B2 #3, #4 görevin indirmesi | | |
+| B3 #4 menüden çıkış | | |
+| B4 #6 görev sonu araba | | |
+| B5 #6 kovalamacada kapanma | | |
+| B6 #9 araba silme | | |
 | C Genel | | |

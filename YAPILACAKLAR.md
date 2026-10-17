@@ -98,19 +98,34 @@ gelecek, test listesi `docs/test-0.1.1.md`):
   çalışanının devri.
 - **Diğerleri:** hikâye görevleri yalnız host'ta başlıyor; Alt+Tab'da tuşlar bırakılıyor; sunucunun özel karakter
   listesi düzeltildi; Ghidra ad hattı `FUNC_` tanımlarını okuyor.
-- **Durum:** kanca denetimi 416 nokta, 13 politika testi geçiyor. Araç paketini ayrı bir ajan inceliyor.
+- **Durum:** araç paketi iki inceleme ve iki düzeltme turundan geçti. Bunlarla gelenler: oturumda yeniden başlayan
+  oyun NPC'leri sunucudan baştan alıyor, bağlantı saati geriye kaymıyor, her arabadan iniş öbür ekrana gidiyor.
+  Kanca denetimi 417 nokta, 14 politika testi geçiyor; 0.1.1 hâlâ paketlenmedi.
 
 ## Sonraki işler (öncelik sırasıyla)
-- **Nesne senkronu** (#60'tan önce): görevlerin açtığı, taşıdığı ya da sildiği kapılar, geçitler ve kulübeler arkadaşta
-  `INITIAL`'ın bıraktığı gibi kalıyor (CoopAndreas nesne senkronlamıyor); ayrı tasarım gerekiyor.
+- **Grup 2 altyapısı: trenler ve görev nesneleri** (tasarımlar 2026-10-17'de hazır: `docs/design/trains.md`,
+  `docs/design/mission-objects.md`):
+  - **Kararlar kullanıcıda:** rastgele trenler yalnız host'ta, Catalyst'te arkadaşın yeri, arkadaşın kasa taşıması ve
+    forklift, kalıcı kapı ve geçitler, görev patlamaları, kasalardan çıkan eşyalar.
+  - **İş yükü:** tam planla ~10–11 ajan işi (ardından grup 2 uyarlamaları 4–5); tasarruflu yolla ~4–5 (+3). Kullanıcının
+    limiti düşük; 0.1.0 testinden sonra karar verilecek.
+  - **Tasarımların bulduğu mevcut hatalar:**
+    - arkadaşın mermileri host'ta nesnelere işlemiyor, ağda olmayan bir yayaya isabet 0 numaralı NPC'ye gidebiliyor
+      (OB-0, küçük; nesne çekirdeğiyle ya da tek başına);
+    - her oyun kendi rastgele trenlerini senkronsuz üretiyor (#11, #13, #16'da arkadaşın treni yolda kalıyor);
+    - trene binen oyuncu öbür ekranda bindiği yerde donuk;
+    - tren tutamacı içeren tekrarlanan bir komut 0 numaralı araca gidiyor.
+  - **Kalıcı nesneler** (kapı, geçit, kulübe) ilk #23'te gerekiyor; `docs/design/README.md` W-D11 #60 diyor, karar
+    kaydedilirken düzeltilecek.
 - **Host'un kendi bağlantısı görev ortasında koparsa:** INTRO1, INTRO2, SWEET1, SWEET1B ve SWEET2'deki ağ kimliği
   bekleme döngülerinin zaman aşımı yok; görev host'ta takılabilir. SWEET3'teki 2 saniyelik zaman aşımı bunlara da
   eklenmeli (görev içi küçük değişiklik).
-- **Araç senkronunda açık kalanlar** (0.1.1 incelemesine göre güncellenecek):
-  - binmeye başlanıp tamamlanmayan koltuk sunucuda kayıtlı kalıyor;
-  - NPC'nin sürdüğü kayıp kopya ancak boşta ya da sürücü güncellemesiyle geri geliyor;
-  - aracı yöneten oyuncunun oyunu yeniden başlarsa onun yönettiği host görev arabaları host'a dönmek yerine siliniyor;
-  - `CoopAndreas_diag.log`'da araç senkronu özet satırı yok.
+- **Araç senkronunda açık kalanlar** (küçük, nadir):
+  - 255 araç numarasının hepsi doluyken sunucu araç oluşturma isteğine cevap vermiyor;
+  - yeniden oluşturulan kopyanın hasarı bir sonraki hasar güncellemesine kadar eksik;
+  - host'un eski görevinden kalıp arkadaşın yönettiği bir araba, host'un yeniden başlamasından sonra kalıyor;
+  - istemcinin geçici yaya yuvaları zaman aşımına uğramıyor;
+  - bazı modüller saat senkronunu `m_serverTimeOffset != 0` ile soruyor; `CServerTime::m_bSynced` daha doğru.
 - **Görev uyarlama denetleyicisi:** ayrılan oyuncu kurallarını (denetim ve kullanım aynı karede, `wait` arada değil)
   tarayan betik `tools/` altına alınıp `compile-scm.ps1`'e bağlanabilir.
 - **Görev boyutu sınırı:** Reuniting The Families (#27) 69.000 baytlık sınıra 561 bayt uzakta. Yansıtma katmanıyla
