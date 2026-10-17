@@ -79,6 +79,7 @@ enum class ePacketType : uint16_t
     MISSION_MIRROR_BLIPS,  // private build: mission mirror layer, the host mission's blips (CMirrorBlips)
     MISSION_MIRROR_AREAS,  // private build: mission mirror layer, the host mission's locate spheres and markers
     MISSION_MIRROR_HUD,    // private build: mission mirror layer, timers and counters
+    PLAYER_GAME_RESTARTED, // private build: vehicle sync protocol, a game started over (the server sends it the peds again)
     PACKET_ID_MAX
 };
 
@@ -101,7 +102,8 @@ extern inline const char* ePacketType_ToString(ePacketType packetType)
         "PED_CLAIM_ON_RELEASE", "PED_CANCEL_CLAIM", "PED_RESET_ALL_CLAIMS", "PED_TAKE_HOST", "PERFORM_TASK_SEQUENCE",
         "ADD_PROJECTILE", "TAG_UPDATE", "UPDATE_ALL_TAGS", "TELEPORT_PLAYER_SCRIPTED", "SERVER_TIME_REQUEST",
         "ENEX_TRANSITION", "RTT_BROADCAST", "UPDATE_MOON_SIZE", "VEHICLE_RADIO_STATION", "WORLD_STATE",
-        "PLAYER_STATE_SNAPSHOT", "PLAYER_STATE_RESTORE", "MISSION_MIRROR_BLIPS", "MISSION_MIRROR_AREAS", "MISSION_MIRROR_HUD"};
+        "PLAYER_STATE_SNAPSHOT", "PLAYER_STATE_RESTORE", "MISSION_MIRROR_BLIPS", "MISSION_MIRROR_AREAS", "MISSION_MIRROR_HUD",
+        "PLAYER_GAME_RESTARTED"};
     
     return array[(int)packetType];
 }

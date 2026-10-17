@@ -48,7 +48,7 @@ int CNetworkPedManager::GetFreeId()
     return id;
 }
 
-void CNetworkPedManager::RemoveAllHostedAndNotify(CNetworkPlayer* player)
+void CNetworkPedManager::RemoveAllHostedAndNotify(CNetworkPlayer* player, const char* reason)
 {
     Packets::Peds::PedRemove packet{};
 
@@ -71,8 +71,8 @@ void CNetworkPedManager::RemoveAllHostedAndNotify(CNetworkPlayer* player)
                 Packets::Peds::AssignPedSyncer assignPedPacket{};
                 assignPedPacket.pedid = (*it)->m_nPedId;
                 GetPacketFactory().Send(assignPedPacket, pClaimer);
-                printf("[Game] : ped %i goes to %i, who claimed it (its syncer %i left)\n", (*it)->m_nPedId,
-                    pClaimer->m_iPlayerId, player->m_iPlayerId);
+                printf("[Game] : ped %i goes to %i, who claimed it (its syncer %i %s)\n", (*it)->m_nPedId,
+                    pClaimer->m_iPlayerId, player->m_iPlayerId, reason);
                 ++it;
                 continue;
             }
@@ -99,4 +99,34 @@ void CNetworkPedManager::RemoveAllHostedAndNotify(CNetworkPlayer* player)
             ++it;
         }
     }
+}
+
+void CNetworkPedManager::SendPedTo(CNetworkPed* ped, CNetworkPlayer* player)
+{
+    // private build (vehicle sync protocol): shared by the join snapshot (CNetwork::HandlePlayerConnected) and a restart
+    Packets::Peds::PedSpawn packet{};
+    packet.pedid = ped->m_nPedId;
+    packet.modelId = ped->m_nModelId;
+    packet.pos = ped->m_vecPos;
+    packet.pedType = ped->m_nPedType;
+    packet.createdBy = ped->m_nCreatedBy;
+    snprintf(packet.specialModelName, sizeof(packet.specialModelName), "%s", ped->m_szSpecialModelName);
+    GetPacketFactory().Send(packet, player);
+}
+
+unsigned int CNetworkPedManager::SendPedsAfterRestart(CNetworkPlayer* player)
+{
+    // private build (vehicle sync protocol): CWorld::ClearForRestart deleted that game's copies of every ped, and nothing
+    // recreated them (its NPC drivers' cars came back as frozen copies without a driver); the peds it synced itself went
+    // with its PED_REMOVE before (to a claimer, or from every game)
+    unsigned int sent = 0;
+    for (CNetworkPed* ped : m_pPeds)
+    {
+        if (PedHandoverPolicy::IsSentAfterRestart(ped, player))
+        {
+            SendPedTo(ped, player);
+            sent++;
+        }
+    }
+    return sent;
 }

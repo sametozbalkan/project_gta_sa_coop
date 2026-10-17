@@ -3,6 +3,7 @@
 #include "network/entity_lifecycle.h"
 #include "stdafx.h"
 #include "CSpecialActorPolicy.h"
+#include "CPedHandoverPolicy.h"
 
 // private build (vehicle sync protocol review): a packet stamped before the ped with its id was created is about an older
 // ped that had the id (EntityLifecycle::IsFromBeforeCreation): dropped instead of acting on the new one (a late PED_REMOVE
@@ -44,6 +45,14 @@ PACKET_HANDLER(ePacketType::PED_SPAWN, Packets::Peds::PedSpawn* pPedSpawn, CNetw
 
     // private build (vehicle sync protocol review): round robin (CNetworkPedManager::GetFreeId)
     pPedSpawn->pedid = CNetworkPedManager::GetFreeId();
+    // private build (vehicle sync protocol): no record with id -1, as for vehicles (the relay and PED_CONFIRM couldn't carry
+    // it); the ped stays in its creator's game only
+    if (pPedSpawn->pedid < 0)
+    {
+        logger::warn("%s spawned a ped, but all %d ped ids are taken", pNetworkPlayer->GetName().c_str(),
+            Config::MAX_SERVER_PEDS);
+        return;
+    }
     // private build: relayed with the server's clock, as the PED_CONFIRM below (EntityLifecycle::UsesServerTime)
     GetPacketFactory().SendToAll(*pPedSpawn, pNetworkPlayer);
 
@@ -82,10 +91,11 @@ PACKET_HANDLER(ePacketType::PED_REMOVE, Packets::Peds::PedRemove* pPedRemove, CN
         return;
     }
 
-    for (auto p : CNetworkPlayerManager::m_pPlayers)
+    // private build (vehicle sync protocol): the first claimer other than the syncer (PedHandoverPolicy), as when a syncer
+    // leaves; a game that starts over releases the peds it synced this way too
+    if (auto p = PedHandoverPolicy::FindClaimer(CNetworkPlayerManager::m_pPlayers, pNetworkPlayer, pNetworkPed))
     {
-        // check if this player has claimed the ped
-        if (std::find(p->m_vPedClaims.begin(), p->m_vPedClaims.end(), pNetworkPed) != p->m_vPedClaims.end())
+        // this player has claimed the ped
         {
             // assign ped's syncer to this player
             pNetworkPed->m_pSyncer = p;
@@ -189,6 +199,9 @@ PACKET_HANDLER(
     pNetworkVehicle->m_bUsedByPed = true;
     pNetworkVehicle->m_vecPosition = pPedDriverUpdate->pos;
     pNetworkVehicle->m_vecRotation = pPedDriverUpdate->rot;
+    // private build (vehicle sync protocol): where a joiner or a game that started over gets the ped (SendPedTo), not
+    // where it last walked
+    pNetworkPed->m_vecPos = pPedDriverUpdate->pos;
 
     GetPacketFactory().SendToAll(*pPedDriverUpdate, pNetworkPlayer);
 }
@@ -211,6 +224,12 @@ PACKET_HANDLER(ePacketType::PED_PASSENGER_UPDATE, Packets::Peds::PedPassengerSyn
     {
         logger::warn("%s tries to update (passenger) someone else's ped", pNetworkPlayer->GetName().c_str());
         return;
+    }
+
+    // private build (vehicle sync protocol): the ped is where its vehicle is (SendPedTo, see PED_DRIVER_UPDATE)
+    if (CNetworkVehicle* pNetworkVehicle = CNetworkVehicleManager::GetVehicle(pPedPassengerSync->vehicleid))
+    {
+        pNetworkPed->m_vecPos = pNetworkVehicle->m_vecPosition;
     }
 
     GetPacketFactory().SendToAll(*pPedPassengerSync, pNetworkPlayer);

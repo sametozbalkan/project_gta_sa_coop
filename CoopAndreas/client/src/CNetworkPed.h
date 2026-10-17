@@ -21,6 +21,11 @@ private:
 	void LogSyncDiagnostic(const char* phase, const char* reason);
 	bool ApplyOnFootVisual(const OnFootVisualSnapshot& snapshot);
 	bool ApplyWeapon(unsigned char weapon, unsigned short ammo, bool select);
+	// private build (vehicle sync protocol review 2): what a copy is made from, again for a lost one (RecreateLostCopy)
+	int m_nModelId = 0;
+	char m_szSpecialModelName[8]{};
+	CPedCopyRecreateThrottle m_recreateThrottle;
+	bool CreateCopy(const CVector& pos);
 public:
 	int m_nPedId = -1;
 	CPed* m_pPed = nullptr;
@@ -41,6 +46,9 @@ public:
 	float m_fHealth = 100.0f;
 	int m_nBlipHandle = -1;
 	bool m_bClaimOnRelease = false;
+	// private build (vehicle sync protocol review 2): this game has no ped for this copy (it couldn't be made, or the game
+	// destroyed it); the syncer's next update brings it back (RecreateLostCopy, PedSyncPolicy::ShouldRecreateCopy)
+	bool m_bCopyLost = false;
 
 	static CNetworkPed* CreateHosted(CPed* ped);
 	void WarpIntoVehicleDriver(CVehicle* vehicle);
@@ -55,6 +63,11 @@ public:
 	void ProcessPendingOnFoot();
 	void CancelPendingOnFoot(const char* reason);
 	bool ApplyWeaponSnapshot(const Packets::Players::SWeaponSnapshot& weaponSnapshot);
+	// private build (vehicle sync protocol review 2): a lost copy made again at pos, at once and then throttled
+	// (CPedCopyRecreateThrottle); nullptr when it isn't now. Loads the model (CStreaming::LoadAllRequestedModels).
+	CPed* RecreateLostCopy(const CVector& pos);
+	// CWorld::ClearForRestart deleted the ped: the record lets go of it without touching the game (CNetworkPedManager)
+	void ForgetPedForRestart();
 
 	CNetworkPed(int pedid, int modelId, ePedType pedType, CVector pos, unsigned char createdBy, char specialModelName[]);
 	~CNetworkPed();

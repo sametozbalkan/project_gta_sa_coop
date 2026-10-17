@@ -25,6 +25,10 @@
 //   slot removes the server's vehicle on every game (nobody would sync it).
 // - While this game starts over (CWorld::ClearForRestart, VehicleHooks.cpp) the vehicles it syncs go with
 //   REMOVE_SYNCER_RESTARTED, and the server gives the cars of the host's scripts back to the host.
+// - A script of the host's mission family that deletes a vehicle removes it on every game (REMOVE_BY_HOST_MISSION),
+//   whatever this game's record says about syncing it.
+// - The local player's car exits that don't come from the exit key (a script's task, being dragged out, a warp) send
+//   VEHICLE_EXIT too (ProcessLocalExit, VehicleSyncPolicy::CLocalExitTracker).
 namespace
 {
 CPendingVehicleAssignments ms_pendingAssignments;
@@ -38,6 +42,7 @@ bool ms_bRestartHooked = false;              // the CWorld::ClearForRestart call
 bool ms_bRestartClear = false;               // CWorld::ClearForRestart runs: this game starts over
 const CVehicle* ms_pDestroyingVehicle = nullptr;  // whose ~CVehicle runs (OnVehicleDestroyed .. OnVehicleDestructorDone)
 int ms_nDestroyingVehicleId = -1;                 // and the id of the record that held it
+VehicleSyncPolicy::CLocalExitTracker ms_localExit;  // the local player's car exits (ProcessLocalExit, OnKeyExitSent)
 
 // --coopdiag: written by the game thread, read by CDiagLog's thread (plain counters, as the other modules' lines)
 struct SDiagCounters
@@ -57,23 +62,38 @@ struct SDiagCounters
     unsigned removalsApplied = 0;
     unsigned restartRemovals = 0;
     unsigned handlerVehicleGone = 0;
+    unsigned confirms = 0;           // private build (review 2): VEHICLE_CONFIRMs attached, the slow ones included
+    unsigned createdByAtConfirm = 0;  // createdBy changes found at VEHICLE_CONFIRM
+    unsigned exitsKey = 0;           // VEHICLE_EXITs of the exit key (TaskHooks.cpp) and of the other exits
+    unsigned exitsTask = 0;
+    unsigned exitsDragged = 0;
+    unsigned exitsWarped = 0;
 };
 SDiagCounters ms_diag;
 
 // --coopdiag: the routine events, one summary line a minute instead of one line each: the population's removals of this
-// game's random cars (VEHICLE_REMOVE sent) and the other games' removals of theirs (VEHICLE_REMOVE handled)
+// game's random and parked cars (VEHICLE_REMOVE sent), the other games' removals of theirs (VEHICLE_REMOVE handled) and
+// the confirmations of this game's new vehicles (VehicleSyncPolicy::IsConfirmWorthALine)
 constexpr uint32_t ROUTINE_SUMMARY_MS = 60000;
 struct SRoutineCounts
 {
     unsigned population = 0;  // CCarCtrl::PossiblyRemoveVehicle
     unsigned wreck = 0;       // its wreck clean-up
     unsigned unhooked = 0;    // not through a hooked CWorld::Remove (CCarCtrl::RemoveCarsIfThePoolGetsFull)
-    unsigned applied = 0;     // another game's REMOVE_BY_SYNCER of a random car
+    unsigned applied = 0;     // another game's REMOVE_BY_SYNCER of a random or parked car
+    unsigned confirms = 0;    // VEHICLE_CONFIRM attached quickly, nothing replaced
     uint32_t since = 0;
 };
 SRoutineCounts ms_routine;
 unsigned ms_nRestartRemovals = 0;  // during the current CWorld::ClearForRestart
 unsigned ms_nRestartCopiesLost = 0;
+
+// private build (vehicle sync protocol review 2): the population's own cars, random traffic and car generators' parked cars
+// (CREATED_BY_PARKED, which the population removes as it does random ones)
+bool IsPopulationCar(uint8_t createdBy)
+{
+    return createdBy == VehicleSync::CREATED_BY_RANDOM || createdBy == VehicleSync::CREATED_BY_PARKED;
+}
 
 // CVehicle::m_nTimeTillWeNeedThisCar (+0x4D0) of a copy. 1.0 US reads it only in CCarCtrl::PossiblyRemoveVehicle
 // 0x424F80 (0x4250CD, 0x42529B, 0x4253A7; dumpbin of .text and .HOODLUM), whose wreck clean-up (CWorld::Remove at
@@ -140,11 +160,12 @@ const char* RemoveSiteClass(uintptr_t site)
     return "other";
 }
 
-// --coopdiag: a removal of this game's random car by its own population, counted in the routine summary instead of a
-// line of its own (the population removes only vehicles CanBeDeleted 0x6D1180 allows, and its wreck clean-up any wreck)
+// --coopdiag: a removal of this game's random or parked car by its own population, counted in the routine summary instead
+// of a line of its own (the population removes only vehicles CanBeDeleted 0x6D1180 allows, and its wreck clean-up any
+// wreck)
 bool CountRoutineRemoval(uintptr_t site, uint8_t createdBy)
 {
-    if (createdBy != VehicleSync::CREATED_BY_RANDOM)
+    if (!IsPopulationCar(createdBy))
     {
         return false;
     }
@@ -177,13 +198,14 @@ void FlushRoutineSummary(uint32_t now)
     const SRoutineCounts counts = ms_routine;
     ms_routine = SRoutineCounts{};
     ms_routine.since = now;
-    if (counts.population + counts.wreck + counts.unhooked + counts.applied == 0)
+    if (counts.population + counts.wreck + counts.unhooked + counts.applied + counts.confirms == 0)
     {
         return;
     }
-    CNetworkVehicleManager::LogEvent("routine", -1, "window=%us population=%u wreck=%u pool-full=%u applied=%u",
+    CNetworkVehicleManager::LogEvent("routine", -1,
+        "window=%us population=%u wreck=%u pool-full=%u applied=%u confirms=%u",
         static_cast<unsigned>(now - counts.since) / 1000, counts.population, counts.wreck, counts.unhooked,
-        counts.applied);
+        counts.applied, counts.confirms);
 }
 
 unsigned int CountTemp()
@@ -260,7 +282,7 @@ void DeleteRecord(CNetworkVehicle* pNetworkVehicle)
 CVehicle* RecreateVehicle(CNetworkVehicle* pNetworkVehicle, const CVector& position, const CVector& right,
     const CVector& forward, uint8_t color1, uint8_t color2, const char* reason)
 {
-    const float heading = atan2f(-forward.x, forward.y);
+    const float heading = VehicleSync::HeadingFromForward(forward.x, forward.y);
     if (!pNetworkVehicle->CreateVehicle(pNetworkVehicle->m_nVehicleId, pNetworkVehicle->m_nModelId, position, heading,
             color1, color2) ||
         pNetworkVehicle->GetLiveVehicle() == nullptr)
@@ -729,8 +751,39 @@ void CNetworkVehicleManager::OnConfirmed(uint8_t tempid, int vehicleid)
     }
     pTemp->m_nVehicleId = vehicleid;
     Add(pTemp);
-    LogEvent("confirm-attach", vehicleid, "tempid=%d model=%d createdBy=%d waited=%ums replaced=%d", tempid,
-        pTemp->m_nModelId, pTemp->m_nCreatedBy, static_cast<unsigned>(GetTickCount() - pTemp->m_nTempSince), bReplaced);
+
+    // private build (vehicle sync protocol review 2): a createdBy change while VEHICLE_SPAWN was on its way
+    // (VehicleSyncPolicy::DecideCreatedByAtConfirm); the record's value is the one VEHICLE_SPAWN sent
+    const uint8_t spawnCreatedBy = pTemp->m_nCreatedBy;
+    CVehicle* pVehicle = pTemp->GetLiveVehicle();
+    const uint8_t liveCreatedBy = pVehicle != nullptr ? static_cast<uint8_t>(pVehicle->m_nCreatedBy) : spawnCreatedBy;
+    const auto createdBy = VehicleSyncPolicy::DecideCreatedByAtConfirm(CLocalPlayer::m_bIsHost, spawnCreatedBy, liveCreatedBy);
+    if (createdBy.bChanged)
+    {
+        pTemp->m_nCreatedBy = liveCreatedBy;
+        ms_diag.createdByAtConfirm++;
+    }
+    if (createdBy.bSend)
+    {
+        Packets::Vehicles::SetVehicleCreatedBy packet{};
+        packet.vehicleid = vehicleid;
+        packet.createdBy = static_cast<eVehicleCreatedBy>(liveCreatedBy);
+        GetPacketFactory().Send(packet);
+    }
+
+    // --coopdiag: the usual quick confirmation goes into the routine summary line
+    ms_diag.confirms++;
+    const uint32_t waited = GetTickCount() - pTemp->m_nTempSince;
+    if (VehicleSyncPolicy::IsConfirmWorthALine(waited, bReplaced, createdBy.bChanged))
+    {
+        LogEvent("confirm-attach", vehicleid, "tempid=%d model=%d createdBy=%d waited=%ums replaced=%d spawn-createdBy=%d "
+            "createdBy-sent=%d", tempid, pTemp->m_nModelId, pTemp->m_nCreatedBy, static_cast<unsigned>(waited), bReplaced,
+            spawnCreatedBy, createdBy.bSend);
+    }
+    else
+    {
+        ms_routine.confirms++;
+    }
 }
 
 void CNetworkVehicleManager::OnAssignment(int vehicleid, uint16_t modelid, bool bSyncing)
@@ -801,9 +854,9 @@ void CNetworkVehicleManager::RemoveForNetwork(CNetworkVehicle* pNetworkVehicle, 
     }
 
     ms_diag.removalsApplied++;
-    // --coopdiag: another game's population removing a random car of its own is routine (summary line)
+    // --coopdiag: another game's population removing a random or parked car of its own is routine (summary line)
     const bool bRoutine = packetReason == VehicleSync::REMOVE_BY_SYNCER && !pNetworkVehicle->m_bSyncing &&
-        pNetworkVehicle->m_nCreatedBy == VehicleSync::CREATED_BY_RANDOM && playersOut == 0;
+        IsPopulationCar(pNetworkVehicle->m_nCreatedBy) && playersOut == 0;
     if (bRoutine)
     {
         ms_routine.applied++;
@@ -845,12 +898,99 @@ bool CNetworkVehicleManager::StillHolds(int vehicleid, const CNetworkVehicle* pN
     return false;
 }
 
+namespace
+{
+// private build (vehicle sync protocol review 2): the tasks of a car exit in the local player's primary task slots or in
+// the subtask chain of the task there (CTaskManager::FindTaskByType 0x6817D0, plugin-sdk CTaskManager.cpp; gta-reversed
+// TaskManager.cpp, FindFirstTaskOfType). The exit key puts its exit into the primary slot (CPlayerInfo::Process,
+// SetTask(task, 3) at 0x570418 and 0x5704BD); a script command's task goes there too (CEventHandler::
+// ComputeScriptCommandResponse 0x4BA7C0, gta-reversed EventHandler.cpp), and so does whatever AddTaskPrimaryMaybeInGroup
+// gives a player (a CEventScriptCommand for TASK_PRIMARY_PRIMARY, gta-reversed PedIntelligence.cpp); an event's response
+// would sit in one of the two event response slots.
+const int exitTaskSlots[] = {TASK_PRIMARY_EVENT_RESPONSE_TEMP, TASK_PRIMARY_EVENT_RESPONSE_NONTEMP, TASK_PRIMARY_PRIMARY};
+
+// Every exit of a ped runs a CTaskComplexLeaveCar, itself or as the subtask of the task that wants the ped out
+// (TASK_LEAVE_ANY_CAR's CTaskComplexLeaveAnyCar, LEAVE_CAR_AND_FLEE/WANDER/DIE, a sequence, the AI tasks): the 56 calls
+// of its constructor 0x63B8C0 (54 in .text, 2 in .HOODLUM; an E8 scan of C:\Games\GTASA_Coop\gta_sa.exe, ReVa
+// cross-references name the callers: CPlayerInfo::Process, ProcessCommands1400To1499 and 1500To1599, the event handler,
+// the group event handler, the tasks' CreateSubTask/CreateFirstSubTask, and in .HOODLUM the copy of
+// CCarAI::TellOccupantsToLeaveCar 0x41C760, which sets it into every occupant's primary slot, gta-reversed CarAI.cpp).
+const int leaveTaskTypes[] = {TASK_COMPLEX_LEAVE_CAR};
+
+// A jacker drags the player out: its CTaskComplexEnterCar gives the victim CTaskComplexCarSlowBeDraggedOutAndStandUp (a
+// bike's rider CTaskSimpleBikeJacked) through AddTaskPrimaryMaybeInGroup (gta-reversed TaskComplexEnterCar.cpp), not a
+// leave task; the victim stays the vehicle's driver until the drag sets it out.
+const int draggedOutTaskTypes[] = {TASK_COMPLEX_CAR_SLOW_BE_DRAGGED_OUT_AND_STAND_UP, TASK_COMPLEX_CAR_SLOW_BE_DRAGGED_OUT,
+    TASK_COMPLEX_CAR_QUICK_BE_DRAGGED_OUT, TASK_SIMPLE_CAR_SLOW_BE_DRAGGED_OUT, TASK_SIMPLE_CAR_QUICK_BE_DRAGGED_OUT,
+    TASK_SIMPLE_BIKE_JACKED};
+
+template <size_t N> bool HasExitTask(CPed* pPed, const int (&taskTypes)[N])
+{
+    CTaskManager& taskManager = pPed->m_pIntelligence->m_TaskMgr;
+    for (int slot : exitTaskSlots)
+    {
+        for (int taskType : taskTypes)
+        {
+            if (taskManager.FindTaskByType(slot, taskType) != nullptr)
+            {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+const char* ExitNoticeName(VehicleSyncPolicy::eExitNotice notice)
+{
+    switch (notice)
+    {
+        case VehicleSyncPolicy::eExitNotice::LEAVE: return "leave";
+        case VehicleSyncPolicy::eExitNotice::DRAGGED_OUT: return "dragged-out";
+        case VehicleSyncPolicy::eExitNotice::WARPED: return "warped";
+        default: return "none";
+    }
+}
+}  // namespace
+
 bool CNetworkVehicleManager::IsLocalPlayerLeavingVehicle(CPed* pPed)
 {
-    // CTaskManager::FindTaskByType 0x6817D0 (plugin-sdk CTaskManager.cpp; gta-reversed TaskManager.cpp: the task in that
-    // primary slot or a subtask of it with that type). CPlayerInfo::Process sets the exit there (SetTask slot 3).
+    // private build (vehicle sync protocol review 2): every exit, the dragged-out one too (was the exit key's only)
     return pPed != nullptr && pPed == FindPlayerPed(0) && pPed->m_pIntelligence != nullptr &&
-           pPed->m_pIntelligence->m_TaskMgr.FindTaskByType(TASK_PRIMARY_PRIMARY, TASK_COMPLEX_LEAVE_CAR) != nullptr;
+           (HasExitTask(pPed, leaveTaskTypes) || HasExitTask(pPed, draggedOutTaskTypes));
+}
+
+void CNetworkVehicleManager::ProcessLocalExit(CPlayerPed* pPlayerPed)
+{
+    // private build (vehicle sync protocol review 2): the exits that don't come from the exit key (CLocalExitTracker)
+    const bool bInVehicle = pPlayerPed != nullptr && pPlayerPed->m_nPedFlags.bInVehicle && pPlayerPed->m_pVehicle != nullptr;
+    const bool bTasks = bInVehicle && pPlayerPed->m_pIntelligence != nullptr;
+    const bool bDraggedOut = bTasks && HasExitTask(pPlayerPed, draggedOutTaskTypes);
+    const bool bLeaving = bTasks && HasExitTask(pPlayerPed, leaveTaskTypes);
+    const VehicleSyncPolicy::eExitNotice notice = ms_localExit.Update(bInVehicle, bLeaving, bDraggedOut);
+    if (notice == VehicleSyncPolicy::eExitNotice::NONE)
+    {
+        return;
+    }
+
+    Packets::Vehicles::VehicleExit packet{};
+    packet.bDraggedOut = notice == VehicleSyncPolicy::eExitNotice::DRAGGED_OUT;
+    packet.bForce = notice == VehicleSyncPolicy::eExitNotice::WARPED;
+    GetPacketFactory().Send(packet);
+
+    switch (notice)
+    {
+        case VehicleSyncPolicy::eExitNotice::LEAVE: ms_diag.exitsTask++; break;
+        case VehicleSyncPolicy::eExitNotice::DRAGGED_OUT: ms_diag.exitsDragged++; break;
+        default: ms_diag.exitsWarped++; break;
+    }
+    const CNetworkVehicle* pRecord = bInVehicle ? GetVehicle(pPlayerPed->m_pVehicle) : nullptr;
+    LogEvent("exit-notice", pRecord != nullptr ? pRecord->m_nVehicleId : -1, "kind=%s", ExitNoticeName(notice));
+}
+
+void CNetworkVehicleManager::OnKeyExitSent()
+{
+    ms_localExit.OnKeyExitSent();
+    ms_diag.exitsKey++;
 }
 
 void CNetworkVehicleManager::OnWorldRemove(CVehicle* pVehicle, uintptr_t site)
@@ -859,21 +999,22 @@ void CNetworkVehicleManager::OnWorldRemove(CVehicle* pVehicle, uintptr_t site)
     ms_nLastRemoveSite = site;
 
     CNetworkVehicle* pNetworkVehicle = GetVehicle(pVehicle);
-    if (pNetworkVehicle == nullptr || pNetworkVehicle->m_bSyncing)
+    if (pNetworkVehicle == nullptr)
     {
         return;
     }
 
-    // a script of the host's mission takes a vehicle another game syncs out of the world (DELETE_CAR deletes it right
-    // after): the players in it get out first, as for a VEHICLE_REMOVE; ~CVehicle sends the removal
+    // a script of the host's mission takes a vehicle out of the world (DELETE_CAR deletes it right after): the players in
+    // it get out first, as for a VEHICLE_REMOVE; ~CVehicle sends the removal (REMOVE_BY_HOST_MISSION). Also for a vehicle
+    // this game's record still says it syncs: the server may have given it to another game a moment ago
     CRunningScript* pScript = COpCodeSync::GetScriptRunningCommand();
     const bool bFamily = pScript != nullptr && CMissionMirror::IsFamilyScript(pScript);
-    if (VehicleSyncPolicy::IsHostMissionDelete(CLocalPlayer::m_bIsHost, pNetworkVehicle->m_bSyncing, bFamily))
+    if (VehicleSyncPolicy::IsHostMissionDelete(CLocalPlayer::m_bIsHost, bFamily))
     {
         CNetworkVehicle::TakePlayersOut(pVehicle, pNetworkVehicle->m_nVehicleId);
         pNetworkVehicle->m_bHostMissionDelete = true;
-        LogEvent("host-mission-delete", pNetworkVehicle->m_nVehicleId, "site=0x%X class=%s script=%.8s",
-            static_cast<unsigned>(site), RemoveSiteClass(site), pScript->m_szName);
+        LogEvent("host-mission-delete", pNetworkVehicle->m_nVehicleId, "site=0x%X class=%s script=%.8s syncing=%d",
+            static_cast<unsigned>(site), RemoveSiteClass(site), pScript->m_szName, pNetworkVehicle->m_bSyncing);
     }
 }
 
@@ -932,8 +1073,8 @@ void CNetworkVehicleManager::OnVehicleDestroyed(CVehicle* pVehicle)
         const bool bWrecked = pVehicle->m_nStatus == STATUS_WRECKED;
         CRunningScript* pScript = COpCodeSync::GetScriptRunningCommand();
         const bool bHostMissionDelete = pNetworkVehicle->m_bHostMissionDelete ||
-            VehicleSyncPolicy::IsHostMissionDelete(CLocalPlayer::m_bIsHost, pNetworkVehicle->m_bSyncing,
-                pScript != nullptr && CMissionMirror::IsFamilyScript(pScript));
+            VehicleSyncPolicy::IsHostMissionDelete(
+                CLocalPlayer::m_bIsHost, pScript != nullptr && CMissionMirror::IsFamilyScript(pScript));
 
         switch (VehicleSyncPolicy::DecideVehicleGone(
             true, pNetworkVehicle->m_bSyncing, bHostMissionDelete, bWrecked, ms_bRestartClear))
@@ -963,8 +1104,8 @@ void CNetworkVehicleManager::OnVehicleDestroyed(CVehicle* pVehicle)
             case VehicleSyncPolicy::eVehicleGone::HOST_MISSION_REMOVE:
                 SendRemove(pNetworkVehicle->m_nVehicleId, VehicleSync::REMOVE_BY_HOST_MISSION);
                 LogEvent("removal-requested", pNetworkVehicle->m_nVehicleId,
-                    "reason=host-mission syncing=0 site=0x%X class=%s model=%d", static_cast<unsigned>(site),
-                    RemoveSiteClass(site), pNetworkVehicle->m_nModelId);
+                    "reason=host-mission syncing=%d site=0x%X class=%s model=%d", pNetworkVehicle->m_bSyncing,
+                    static_cast<unsigned>(site), RemoveSiteClass(site), pNetworkVehicle->m_nModelId);
                 DeleteRecord(pNetworkVehicle);
                 continue;
 
@@ -1171,8 +1312,10 @@ void CNetworkVehicleManager::WriteDiagSummary(FILE* file)
     fprintf(file,
         "  vehicle-sync: records=%u syncing=%u temp=%u pending=%u lost=%u destructorHooks=%d/%d restartHook=%d "
         "tempExpired=%u tempFull=%u confirmUnknown=%u createFailed=%u recreated=%u assignmentsExpired=%u "
-        "removalsSent=%u removalsApplied=%u restartRemovals=%u handlerVehicleGone=%u\n",
+        "removalsSent=%u removalsApplied=%u restartRemovals=%u handlerVehicleGone=%u confirms=%u createdByAtConfirm=%u "
+        "exits=%u/%u/%u/%u\n",
         c.records, c.syncing, c.temp, c.pending, c.lost, ms_nDestructorHooks, ms_nDestructorSites, ms_bRestartHooked,
         c.tempExpired, c.tempFull, c.confirmUnknown, c.createFailed, c.recreated, c.assignmentsExpired, c.removalsSent,
-        c.removalsApplied, c.restartRemovals, c.handlerVehicleGone);
+        c.removalsApplied, c.restartRemovals, c.handlerVehicleGone, c.confirms, c.createdByAtConfirm, c.exitsKey,
+        c.exitsTask, c.exitsDragged, c.exitsWarped);
 }

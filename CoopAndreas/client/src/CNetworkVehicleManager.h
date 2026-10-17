@@ -34,9 +34,14 @@ public:
     // CREATE_PLAYER and its clear-space, a warp, a synchronous model load): whether the record with this id is still that
     // record and still holds that live vehicle (the ~CVehicle hook may have deleted the record or let go of the vehicle)
     static bool StillHolds(int vehicleid, const CNetworkVehicle* pNetworkVehicle, const CVehicle* pVehicle);
-    // the local player is getting out of its vehicle (CTaskComplexLeaveCar in its primary task slot): no driver or
-    // passenger updates meanwhile (VehicleSyncPolicy::ChooseLocalUpdate)
+    // the local player is getting out of its vehicle (a leave-car or dragged-out task in its primary task slots): no driver
+    // or passenger updates meanwhile (VehicleSyncPolicy::ChooseLocalUpdate)
     static bool IsLocalPlayerLeavingVehicle(CPed* pPed);
+    // once a frame after CGame::Process (Main.cpp): VEHICLE_EXIT for an exit the exit key didn't start (a script's task,
+    // being dragged out, a warp; VehicleSyncPolicy::CLocalExitTracker); the exit key's goes out from TaskHooks.cpp, which
+    // tells OnKeyExitSent
+    static void ProcessLocalExit(CPlayerPed* pPlayerPed);
+    static void OnKeyExitSent();
     // hooks: CWorld::Remove of a vehicle (site = the call site), CVehicle::~CVehicle (before and after the original), a
     // local createdBy change, CWorld::ClearForRestart (a new game or a load destroys every vehicle in between)
     static void OnWorldRemove(CVehicle* pVehicle, uintptr_t site);

@@ -4,6 +4,7 @@
 #include "network/packets/system.h"
 #include "stdafx.h"
 #include "CPacketBuffer.h"
+#include "CServerTimePolicy.h"
 
 void CPacketBuffer::Receive(Packet* pPacket)
 {
@@ -26,8 +27,35 @@ void CPacketBuffer::Receive(Packet* pPacket)
     m_packets.insert(it, pPacket);
 }
 
+// private build (vehicle sync protocol): packets stamped far ahead of this game's clock came from a game whose clock hadn't
+// had its first server-time answer (its PC's uptime, ServerTimePolicy::IsStampFromUnsyncedClock): they wait at the end of
+// the buffer, which is sorted by stamp, for hours or days. Once this game's clock is synced they get its current time and
+// go back in, in their order, to be handled with the next ones.
+void CPacketBuffer::RestampFromUnsyncedClocks()
+{
+    if (!CServerTime::m_bSynced || m_packets.empty() ||
+        !ServerTimePolicy::IsStampFromUnsyncedClock(m_packets.back()->serverTime, g_serverTime))
+    {
+        return;
+    }
+    std::deque<Packet*> restamped;
+    while (!m_packets.empty() && ServerTimePolicy::IsStampFromUnsyncedClock(m_packets.back()->serverTime, g_serverTime))
+    {
+        restamped.push_front(m_packets.back());
+        m_packets.pop_back();
+    }
+    for (Packet* pPacket : restamped)
+    {
+        pPacket->serverTime = g_serverTime;
+        Receive(pPacket);
+        m_nRestamped++;
+    }
+}
+
 void CPacketBuffer::Process()
 {
+    RestampFromUnsyncedClocks(); // private build
+
     uint32_t renderTime = GetRenderTime(g_serverTime);
 
     for (auto it = m_packets.begin(); it != m_packets.end();)

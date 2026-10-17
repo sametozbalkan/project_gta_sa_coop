@@ -94,3 +94,23 @@ PACKET_HANDLER(ePacketType::REBUILD_PLAYER, Packets::Players::RebuildPlayer* pRe
     GetPacketFactory().SendToAll(*pRebuildPlayer, pNetworkPlayer);
 }
 
+// private build (vehicle sync protocol): that player's game started over (a new game or a load), after the removals of
+// what it synced (same channel). Its scripts are gone, so are the ped claims they made (a ped handed to it later would
+// have nobody to hold it); its player sits in no vehicle; a ped the server still counts as its own (handed to it while it
+// restarted, or spawned just before: that game has no record of it any more) goes to a claimer or from every game, as
+// when a player leaves; and it gets the peds the other games sync again, as a joiner (PedHandoverPolicy::
+// IsSentAfterRestart). Their cars come back on that game from their drivers' next updates, the lost copies' records are
+// still there (client CVehicleSyncPolicy.h, ePedDriverVehicle).
+PACKET_HANDLER(ePacketType::PLAYER_GAME_RESTARTED, Packets::Players::PlayerGameRestarted* pPlayerGameRestarted,
+    CNetworkPlayer* pNetworkPlayer)
+{
+    (void)pPlayerGameRestarted;
+    const size_t claims = pNetworkPlayer->m_vPedClaims.size();
+    pNetworkPlayer->m_vPedClaims.clear();
+    pNetworkPlayer->RemoveFromVehicle();
+    CNetworkPedManager::RemoveAllHostedAndNotify(pNetworkPlayer, "started over");
+    const unsigned int sent = CNetworkPedManager::SendPedsAfterRestart(pNetworkPlayer);
+    printf("[Game] : %s (id %d) started over: %u peds sent again, %u ped claims dropped\n",
+        pNetworkPlayer->GetName().c_str(), pNetworkPlayer->m_iPlayerId, sent, static_cast<unsigned>(claims));
+}
+

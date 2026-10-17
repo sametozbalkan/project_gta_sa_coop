@@ -1,12 +1,15 @@
 // Private build: policy test for the vehicle sync protocol (0.1.1) without GTA or ENet: the client's records
 // (client/src/CVehicleSyncPolicy.h: stated assignments and the ones that wait for their vehicle, removal before
 // VEHICLE_CONFIRM, what a destroyed vehicle does to its record, copies and their createdBy, takeovers, recreation, temp
-// ids and their expiry, the local player's updates while getting out, the pool slot generation), the server's seats,
-// syncers and removals (server/src/CVehicleSeatPolicy.h) and the order of the lifecycle packets and the ids
-// (shared/network/entity_lifecycle.h). Build and run: see CLAUDE.md (Fork changes, vehicle sync protocol).
+// ids and their expiry, the local player's updates while getting out and the exits the others hear of, the pool slot
+// generation, a createdBy change before VEHICLE_CONFIRM, NPC drivers' car copies), the server's seats, syncers and
+// removals (server/src/CVehicleSeatPolicy.h), the order of the lifecycle packets and the ids
+// (shared/network/entity_lifecycle.h) and the heading of resent vehicles (shared/network/vehicle_sync.h). Build and run:
+// see CLAUDE.md (Fork changes, vehicle sync protocol).
 #include "../client/src/CVehicleSyncPolicy.h"
 #include "../server/src/CVehicleSeatPolicy.h"
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -179,16 +182,27 @@ void DestroyedVehicles()
 {
     // ours: removed on every game
     CHECK(VehicleSyncPolicy::DecideVehicleGone(true, true, false, false, false) == eVehicleGone::SEND_REMOVE);
-    CHECK(VehicleSyncPolicy::DecideVehicleGone(true, true, true, true, false) == eVehicleGone::SEND_REMOVE);
+    CHECK(VehicleSyncPolicy::DecideVehicleGone(true, true, false, true, false) == eVehicleGone::SEND_REMOVE);
     // ours while this game starts over (CWorld::ClearForRestart): the server decides about the host's cars
     CHECK(VehicleSyncPolicy::DecideVehicleGone(true, true, false, false, true) == eVehicleGone::SEND_REMOVE_RESTARTED);
     CHECK(VehicleSyncPolicy::DecideVehicleGone(true, true, false, true, true) == eVehicleGone::SEND_REMOVE_RESTARTED);
-    // the host's mission deleted a copy: removed on every game, through the host's request
-    CHECK(VehicleSyncPolicy::IsHostMissionDelete(true, false, true));
-    CHECK(!VehicleSyncPolicy::IsHostMissionDelete(false, false, true));  // the friend's own scripts
-    CHECK(!VehicleSyncPolicy::IsHostMissionDelete(true, true, true));    // the host syncs it: a normal removal
-    CHECK(!VehicleSyncPolicy::IsHostMissionDelete(true, false, false));  // the host's population or another script
+    // the host's mission deleted it: removed on every game, through the host's request, whoever syncs it
+    CHECK(VehicleSyncPolicy::IsHostMissionDelete(true, true));
+    CHECK(!VehicleSyncPolicy::IsHostMissionDelete(false, true));  // the friend's own scripts
+    CHECK(!VehicleSyncPolicy::IsHostMissionDelete(true, false));  // the host's population or another script
     CHECK(VehicleSyncPolicy::DecideVehicleGone(true, false, true, false, false) == eVehicleGone::HOST_MISSION_REMOVE);
+    // the review's case: the friend got into the mission's car, the server made it the syncer and sent the host
+    // ASSIGN_VEHICLE(false), and the host's DELETE_CAR runs before that is handled: its record still says "syncing".
+    // A REMOVE_BY_SYNCER was rejected and the server sent the car back, so the friend kept a car the mission had deleted.
+    CHECK(VehicleSyncPolicy::DecideVehicleGone(true, true, true, false, false) == eVehicleGone::HOST_MISSION_REMOVE);
+    CHECK(VehicleSyncPolicy::DecideVehicleGone(true, true, true, true, false) == eVehicleGone::HOST_MISSION_REMOVE);
+    using VehicleSeatPolicy::eRemove;
+    CHECK(VehicleSeatPolicy::DecideRemove(VehicleSync::REMOVE_BY_HOST_MISSION, false, false, false, true, true, false) ==
+          eRemove::REMOVE);  // the host isn't the syncer any more: still accepted
+    CHECK(VehicleSeatPolicy::DecideRemove(VehicleSync::REMOVE_BY_SYNCER, false, false, false, true, true, false) ==
+          eRemove::REJECT_AND_RESEND);  // what the host sent before
+    // not yet confirmed: the confirmation removes it everywhere anyway
+    CHECK(VehicleSyncPolicy::DecideVehicleGone(false, true, true, false, false) == eVehicleGone::REMOVE_AT_CONFIRM);
     CHECK(VehicleSeatPolicy::AcceptRemove(VehicleSync::REMOVE_BY_HOST_MISSION, false, false, true));
     CHECK(!VehicleSeatPolicy::AcceptRemove(VehicleSync::REMOVE_BY_HOST_MISSION, true, true, false));
     // a copy this game lost to its own engine: recreated from the syncer's next update, a wreck isn't; a restart
@@ -691,6 +705,104 @@ void LeavingAVehicle()
     server.CheckConsistent({&host, &friendPlayer});
 }
 
+// --- second review fixes (0.1.1) ---------------------------------------------------------------------------------------
+
+void CreatedByAtConfirm()
+{
+    using VehicleSyncPolicy::DecideCreatedByAtConfirm;
+    // CREATE_CAR and MARK_CAR_AS_NO_LONGER_NEEDED within a few frames on the host: the hooks found no confirmed record, the
+    // record still says MISSION; at VEHICLE_CONFIRM the record takes RANDOM and the host sends it
+    auto change = DecideCreatedByAtConfirm(true, VehicleSync::CREATED_BY_MISSION, VehicleSync::CREATED_BY_RANDOM);
+    CHECK(change.bChanged && change.bSend);
+    // the same on another game: its record takes it, the server takes created-by changes from the host only
+    change = DecideCreatedByAtConfirm(false, VehicleSync::CREATED_BY_MISSION, VehicleSync::CREATED_BY_RANDOM);
+    CHECK(change.bChanged && !change.bSend);
+    // nothing changed
+    change = DecideCreatedByAtConfirm(true, VehicleSync::CREATED_BY_RANDOM, VehicleSync::CREATED_BY_RANDOM);
+    CHECK(!change.bChanged && !change.bSend);
+    // the server's flag follows the host's SET_VEHICLE_CREATED_BY: the released car no longer goes back to the host
+    CHECK(!VehicleSeatPolicy::IsHostMission(VehicleSync::CREATED_BY_RANDOM, true));
+
+    // --coopdiag: a quick confirmation is routine, a slow one, one that replaced a record or found a change gets a line
+    using VehicleSyncPolicy::IsConfirmWorthALine;
+    CHECK(!IsConfirmWorthALine(VehicleSyncPolicy::CONFIRM_SLOW_MS - 1, false, false));
+    CHECK(IsConfirmWorthALine(VehicleSyncPolicy::CONFIRM_SLOW_MS, false, false));
+    CHECK(IsConfirmWorthALine(10, true, false));
+    CHECK(IsConfirmWorthALine(10, false, true));
+}
+
+void PedDrivers()
+{
+    using VehicleSyncPolicy::DecidePedDriverVehicle;
+    using VehicleSyncPolicy::ePedDriverVehicle;
+    // the review's frozen ghost: after a restart the NPC's car copy and its driver copy are gone; no car without a driver
+    CHECK(DecidePedDriverVehicle(false, false) == ePedDriverVehicle::SKIP);
+    // the driver copy is back (the restart's snapshot, or recreated from this update): the car comes back with it
+    CHECK(DecidePedDriverVehicle(false, true) == ePedDriverVehicle::RECREATE);
+    CHECK(DecidePedDriverVehicle(true, true) == ePedDriverVehicle::SEAT_AND_APPLY);
+    // the car copy is there but its driver copy died: the car still moves with the updates instead of standing still
+    CHECK(DecidePedDriverVehicle(true, false) == ePedDriverVehicle::APPLY_VEHICLE);
+}
+
+void LocalExits()
+{
+    using VehicleSyncPolicy::CLocalExitTracker;
+    using VehicleSyncPolicy::eExitNotice;
+
+    // the exit key: VEHICLE_EXIT went out from CPlayerInfo::Process, nothing more
+    CLocalExitTracker key;
+    CHECK(key.Update(true, false, false) == eExitNotice::NONE);  // driving
+    key.OnKeyExitSent();
+    CHECK(key.Update(true, true, false) == eExitNotice::NONE);  // the exit runs
+    CHECK(key.Update(true, true, false) == eExitNotice::NONE);
+    CHECK(key.Update(false, false, false) == eExitNotice::NONE);  // out: no "warped" either
+
+    // a script's Task.LeaveCar (#3, #4): announced once, when the exit starts
+    CLocalExitTracker script;
+    CHECK(script.Update(true, false, false) == eExitNotice::NONE);
+    CHECK(script.Update(true, true, false) == eExitNotice::LEAVE);
+    CHECK(script.Update(true, true, false) == eExitNotice::NONE);
+    CHECK(script.Update(false, false, false) == eExitNotice::NONE);
+    // getting in again and out with the next script task: announced again
+    CHECK(script.Update(true, false, false) == eExitNotice::NONE);
+    CHECK(script.Update(true, true, false) == eExitNotice::LEAVE);
+
+    // jacked: the dragged-out task, not a leave task; the victim's game sends no driver updates meanwhile
+    CLocalExitTracker jacked;
+    CHECK(jacked.Update(true, false, false) == eExitNotice::NONE);
+    CHECK(jacked.Update(true, false, true) == eExitNotice::DRAGGED_OUT);
+    CHECK(jacked.Update(true, true, true) == eExitNotice::NONE);  // the drag's own leave subtask: no second one
+    CHECK(jacked.Update(false, false, false) == eExitNotice::NONE);
+    CHECK(VehicleSyncPolicy::ChooseLocalUpdate(true, true, true) == VehicleSyncPolicy::eLocalUpdate::NONE);
+
+    // a warp out (a script, a respawn): out without an exit task
+    CLocalExitTracker warped;
+    CHECK(warped.Update(true, false, false) == eExitNotice::NONE);
+    CHECK(warped.Update(false, false, false) == eExitNotice::WARPED);
+    CHECK(warped.Update(false, false, false) == eExitNotice::NONE);
+
+    // an exit that ends without getting out (the player keeps driving), then a new one
+    CLocalExitTracker aborted;
+    CHECK(aborted.Update(true, true, false) == eExitNotice::LEAVE);
+    CHECK(aborted.Update(true, false, false) == eExitNotice::NONE);
+    CHECK(aborted.Update(true, true, false) == eExitNotice::LEAVE);
+}
+
+void Headings()
+{
+    // SetOrientation(0, 0, h): forward (-sin h, cos h, 0); the server's resent vehicles face the way they did
+    const float headings[] = {0.0f, 0.5f, 1.5707963f, 3.0f, -3.0f, -1.0f};
+    for (float heading : headings)
+    {
+        const float back = VehicleSync::HeadingFromForward(-std::sin(heading), std::cos(heading));
+        CHECK(std::fabs(back - heading) < 1e-4f);
+    }
+    CHECK(VehicleSync::HeadingFromForward(0.0f, 0.0f) == 0.0f);  // straight up or down
+    // upstream: the forward vector's z read as degrees, about 0 for a car on the road
+    const float east = VehicleSync::HeadingFromForward(1.0f, 0.0f);
+    CHECK(std::fabs(east + 1.5707963f) < 1e-4f);
+}
+
 void SeatsOnFoot()
 {
     using VehicleSeatPolicy::OnFootSeatTimeoutMs;
@@ -723,5 +835,9 @@ int main()
     Removals();
     LeavingAVehicle();
     SeatsOnFoot();
+    CreatedByAtConfirm();
+    PedDrivers();
+    LocalExits();
+    Headings();
     std::puts("vehicle_sync: all checks passed");
 }

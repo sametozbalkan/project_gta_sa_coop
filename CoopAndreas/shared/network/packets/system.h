@@ -154,11 +154,17 @@ class ServerTimeRequest : public Packet
 
 public:
     server_time_t serverTimeRespond = 0;
+    // private build (vehicle sync protocol): the client's GetTickCount() when it sent the request, echoed in the answer, so
+    // the client pairs each answer with its own request (ServerTimePolicy::IsAnswerToOutstanding); before, an answer that
+    // came after the next request was paired with that one and stepped the clock back
+    uint32_t clientTick = 0;
 
 private:
     template <typename Stream>
     bool Serialize(Stream& stream)
     {
+        serialize_uint32(stream, clientTick);  // private build: both ways
+
         if (Stream::IsWriting)
         {
 // dont write anything as a client

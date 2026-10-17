@@ -6,7 +6,9 @@ CNetworkVehicle::CNetworkVehicle(int vehicleid, unsigned short model, CVector po
     m_nVehicleId = vehicleid;
     m_nModelId = model;
     m_vecPosition = pos;
-    m_vecRotation = CVector(0, 0, 0);
+    // private build (vehicle sync protocol): the forward vector of the spawn's heading (as the updates carry it,
+    // SendVehicleTo turns it back with VehicleSync::HeadingFromForward); upstream kept (0, 0, 0)
+    m_vecRotation = CVector(-sinf(rot), cosf(rot), 0.0f);
 }
 
 void CNetworkVehicle::ReassignSyncer(CNetworkPlayer* newSyncer)

@@ -270,6 +270,13 @@ PACKET_HANDLER(ePacketType::VEHICLE_EXIT, Packets::Vehicles::VehicleExit* pVehic
     pNetworkPlayer->m_oldControllerState = CControllerState{};
     pNetworkPlayer->m_newControllerState = CControllerState{};
 
+    // private build (vehicle sync protocol): a player a jacker drags out is pulled out here by the jacker's own enter task
+    // (VEHICLE_ENTER started it on this game too), a leave task would get in its way; its on-foot updates follow
+    if (pVehicleExit->bDraggedOut)
+    {
+        return;
+    }
+
     // private build: see VEHICLE_ENTER
     CPlayerPed* pPlayerPed = pNetworkPlayer->GetReadyPed();
     if (pPlayerPed == nullptr || pPlayerPed->m_pVehicle == nullptr || !pPlayerPed->m_nPedFlags.bInVehicle)
@@ -286,13 +293,21 @@ PACKET_HANDLER(ePacketType::VEHICLE_EXIT, Packets::Vehicles::VehicleExit* pVehic
     CChat::AddMessage("player %d exited from vehicle", pVehicleExit->playerid);
 #endif
 
+    // private build (vehicle sync protocol): an exit already running here isn't started again. The host's mission gives a
+    // network player its leave task on the host's game too (Task.LeaveAnyCar($NETWORK_PLAYER[...]) in SWEET1 and SWEET1B),
+    // and is replayed on that player's game, which now sends VEHICLE_EXIT for it (CNetworkVehicleManager::ProcessLocalExit);
+    // CPedIntelligence::FindTaskByType 0x600EE0 looks through the primary slots (plugin-sdk CPedIntelligence.cpp)
+    if (!pVehicleExit->bForce && pPlayerPed->m_pIntelligence->FindTaskByType(TASK_COMPLEX_LEAVE_CAR) != nullptr)
+    {
+        return;
+    }
+
     if (pVehicleExit->bForce)
     {
-        pPlayerPed->m_nPedFlags.CantBeKnockedOffBike = 2;  // 2 - normal
-        CVector doorPos{};
-        int door = CCarEnterExit::ComputeTargetDoorToExit(pVehicle, pPlayerPed);
-        auto task = CTaskSimpleCarSetPedOut(pVehicle, door, false);
-        task.ProcessPed(pPlayerPed);
+        // private build (vehicle sync protocol): the sender left the vehicle without an exit task (a warp,
+        // VehicleSyncPolicy::eExitNotice::WARPED; nothing set bForce before): out at once as the on-foot update does it,
+        // the drive task first (upstream set the ped out under its drive task)
+        pNetworkPlayer->RemoveFromVehicle(pVehicle);
     }
     else
     {

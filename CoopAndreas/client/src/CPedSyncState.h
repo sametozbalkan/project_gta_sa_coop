@@ -60,6 +60,90 @@ public:
     }
 };
 
+// private build (vehicle sync protocol review 2): recreating a copy (a ped another game syncs) that this game lost: it
+// couldn't be made (the ped pool was full, the model didn't load) or this game's engine destroyed it (a car copy destroyed
+// with its NPC driver copy inside). At once, then at most once per RetryMs and MaxPerWindow times per WindowMs, as
+// CVehicleRecreateThrottle (CVehicleSyncPolicy.h) for vehicle copies, so a local path that keeps destroying it doesn't
+// loop. Unsigned elapsed time also handles the tick wrap.
+class CPedCopyRecreateThrottle
+{
+public:
+    static constexpr uint32_t RetryMs = 1000;
+    static constexpr uint32_t WindowMs = 30000;
+    static constexpr unsigned MaxPerWindow = 3;
+
+    bool ShouldAttempt(uint32_t now)
+    {
+        unsigned recent = 0;
+        for (unsigned i = 0; i < m_count; i++)
+        {
+            const uint32_t age = static_cast<uint32_t>(now - m_attempts[i]);
+            if (age < RetryMs)
+                return false;
+            if (age < WindowMs)
+                recent++;
+        }
+        if (recent >= MaxPerWindow)
+            return false;
+        m_attempts[m_next] = now;
+        m_next = (m_next + 1) % MaxPerWindow;
+        if (m_count < MaxPerWindow)
+            m_count++;
+        return true;
+    }
+
+private:
+    uint32_t m_attempts[MaxPerWindow]{};
+    unsigned m_count = 0;
+    unsigned m_next = 0;
+};
+
+namespace PedSyncPolicy
+{
+// private build (vehicle sync protocol review 2): PED_SPAWN for an id this game already has a record with. A client finds
+// a ped by the first record with its id (CNetworkPedManager::GetPed), so a second record would never be found.
+enum class eSpawn
+{
+    CREATE,         // no record: a new copy
+    KEEP_EXISTING,  // a record with its ped: the same ped again (the snapshot a game gets after its restart, following the
+                    // spawn's relay, or a claim handover's copy); nothing new
+    REPLACE         // a record without a ped (a lost copy, or a syncing record of a ped this game no longer has, which the
+                    // server doesn't count as this game's any more since it sends it): it goes without a PED_REMOVE, then
+                    // a new copy
+};
+
+inline eSpawn DecideSpawn(bool bRecordKnown, bool bRecordHasPed)
+{
+    if (!bRecordKnown)
+        return eSpawn::CREATE;
+    return bRecordHasPed ? eSpawn::KEEP_EXISTING : eSpawn::REPLACE;
+}
+
+// This game started over: CWorld::ClearForRestart (0x564360) deleted every ped, the copies of the other games' peds too,
+// and nothing recreated them (a copy without a ped was never made again; its NPC driver's car came back from the next
+// update as a driverless, frozen copy). Every record goes at once, before the server's snapshot (PLAYER_GAME_RESTARTED)
+// brings the other games' peds back as new copies: a record of a ped this game synced sends PED_REMOVE (the server hands
+// the ped to a claimer, which sends it back here as a copy, or removes it from every game, as when a syncer leaves), a
+// copy's record goes without a word.
+enum class eRestartRecord
+{
+    SEND_REMOVE,
+    DROP
+};
+
+inline eRestartRecord DecideRestartRecord(bool bSyncing)
+{
+    return bSyncing ? eRestartRecord::SEND_REMOVE : eRestartRecord::DROP;
+}
+
+// A copy whose ped is gone comes back from its syncer's next update (on foot, driver or passenger) where that puts it; a
+// ped this game syncs never does (its record goes with the next sweep, PED_REMOVE)
+inline bool ShouldRecreateCopy(bool bSyncing, bool bCopyLost, bool bHasPed)
+{
+    return !bSyncing && bCopyLost && !bHasPed;
+}
+}  // namespace PedSyncPolicy
+
 enum class ePedSnapshotResult { Idle, Invalid, Expired, Deferred, Applied };
 
 // Exactly one visual snapshot; unsigned elapsed time also handles tick wrap.

@@ -1,8 +1,10 @@
 #include "../client/src/CPedSyncState.h"
 #include "../shared/network/entity_lifecycle.h"
+#include "../server/src/CPedHandoverPolicy.h"
 #include <cstdio>
 #include <cstdlib>
 #include <limits>
+#include <vector>
 
 #define CHECK(condition) do { if (!(condition)) { std::fprintf(stderr, "line %d: %s\n", __LINE__, #condition); std::exit(1); } } while (false)
 
@@ -222,6 +224,76 @@ void PedIdsAndRemovals()
     CHECK(!EntityLifecycle::IsFromBeforeCreation(10050, 10000));
 }
 
+// private build (vehicle sync protocol, second review): ped copies a game loses and gets back
+void LostCopies()
+{
+    using PedSyncPolicy::ShouldRecreateCopy;
+    // a copy that couldn't be made (a full ped pool: upstream wrote through the NULL `new` gave) or that the game
+    // destroyed comes back from its syncer's next update; this game's own peds never do (their record goes)
+    CHECK(ShouldRecreateCopy(false, true, false));
+    CHECK(!ShouldRecreateCopy(true, true, false));
+    CHECK(!ShouldRecreateCopy(false, false, false));
+    CHECK(!ShouldRecreateCopy(false, true, true));
+
+    CPedCopyRecreateThrottle throttle;
+    CHECK(throttle.ShouldAttempt(1000));    // at once
+    CHECK(!throttle.ShouldAttempt(1999));   // age 999
+    CHECK(throttle.ShouldAttempt(2000));
+    CHECK(throttle.ShouldAttempt(3000));    // three in the window
+    CHECK(!throttle.ShouldAttempt(4000));
+    CHECK(!throttle.ShouldAttempt(30999));  // the first is 29999 old
+    CHECK(throttle.ShouldAttempt(31000));
+    CPedCopyRecreateThrottle wrap;
+    const uint32_t beforeWrap = std::numeric_limits<uint32_t>::max() - 10;
+    CHECK(wrap.ShouldAttempt(beforeWrap));
+    CHECK(!wrap.ShouldAttempt(988));  // age 999 across the wrap
+    CHECK(wrap.ShouldAttempt(989));
+}
+
+struct HandoverPlayer
+{
+    int id;
+    std::vector<const void*> m_vPedClaims;
+};
+struct HandoverPed
+{
+    HandoverPlayer* m_pSyncer;
+};
+
+void Restarts()
+{
+    using PedSyncPolicy::DecideRestartRecord;
+    using PedSyncPolicy::DecideSpawn;
+    using PedSyncPolicy::eRestartRecord;
+    using PedSyncPolicy::eSpawn;
+    // the restarting game: every record goes at once, its own peds with PED_REMOVE, the copies without a word
+    CHECK(DecideRestartRecord(true) == eRestartRecord::SEND_REMOVE);
+    CHECK(DecideRestartRecord(false) == eRestartRecord::DROP);
+
+    // the server's snapshot after PLAYER_GAME_RESTARTED: every ped another game syncs, not the restarting game's own
+    HandoverPlayer host{0, {}};
+    HandoverPlayer friendPlayer{1, {}};
+    HandoverPed sweet{&host};       // the host's mission ped: the friend's restart brings it back there
+    HandoverPed traffic{&friendPlayer};
+    HandoverPed orphan{nullptr};
+    CHECK(PedHandoverPolicy::IsSentAfterRestart(&sweet, &friendPlayer));
+    CHECK(!PedHandoverPolicy::IsSentAfterRestart(&traffic, &friendPlayer));
+    CHECK(PedHandoverPolicy::IsSentAfterRestart(&traffic, &host));  // the host loads a save: the friend's traffic returns
+    CHECK(!PedHandoverPolicy::IsSentAfterRestart(&orphan, &host));
+    // its own peds' PED_REMOVE hands a claimed one to the claimer (not to itself), as when a syncer leaves
+    HandoverPed barber{&friendPlayer};
+    host.m_vPedClaims.push_back(&barber);
+    const std::vector<HandoverPlayer*> players{&host, &friendPlayer};
+    CHECK(PedHandoverPolicy::FindClaimer(players, &friendPlayer, &barber) == &host);
+    friendPlayer.m_vPedClaims.push_back(&traffic);
+    CHECK(PedHandoverPolicy::FindClaimer(players, &friendPlayer, &traffic) == nullptr);
+
+    // one record per id on the restarted game: the snapshot after the spawn's relay, a claim handover's copy
+    CHECK(DecideSpawn(false, false) == eSpawn::CREATE);
+    CHECK(DecideSpawn(true, true) == eSpawn::KEEP_EXISTING);
+    CHECK(DecideSpawn(true, false) == eSpawn::REPLACE);
+}
+
 int main()
 {
     PoolLifetime();
@@ -231,5 +303,7 @@ int main()
     RecreatedPlayerPedReference();
     RecoveryThrottle();
     PedIdsAndRemovals();
+    LostCopies();
+    Restarts();
     std::puts("ped_sync_state: all checks passed");
 }

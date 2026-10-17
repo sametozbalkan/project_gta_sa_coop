@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cmath>
 #include <cstdint>
 
 // Private build (vehicle sync protocol, 0.1.1): wire values the client, the server and tests/vehicle_sync_test.cpp share,
@@ -44,4 +45,18 @@ constexpr int SEAT_UNKNOWN = -1;
 // the rules that compile without plugin-sdk
 constexpr uint8_t CREATED_BY_RANDOM = 1;
 constexpr uint8_t CREATED_BY_MISSION = 2;
+constexpr uint8_t CREATED_BY_PARKED = 3;  // a car generator's (CCarGenerator::DoInternalProcessing, gta-reversed CarGenerator.cpp)
+
+// The heading VehicleSpawn::rot carries (CPlaceable::SetOrientation(0, 0, heading): right (cos, sin, 0), forward
+// (-sin, cos, 0)) from a vehicle's forward vector, the `rot` of the idle, driver and NPC driver updates (CMatrix::up); 0
+// for a vehicle that points straight up or down. The server's resent vehicles (SendVehicleTo) took the forward vector's z
+// for the heading, so they faced north until their first update.
+inline float HeadingFromForward(float forwardX, float forwardY)
+{
+    if (std::fabs(forwardX) < 1e-6f && std::fabs(forwardY) < 1e-6f)
+    {
+        return 0.0f;
+    }
+    return std::atan2(-forwardX, forwardY);
+}
 }  // namespace VehicleSync

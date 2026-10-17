@@ -3,8 +3,8 @@
 #include "network/vehicle_sync.h"
 
 // private build (vehicle sync protocol): the wire values below and the plugin-sdk enum agree
-static_assert(VehicleSync::CREATED_BY_RANDOM == RANDOM_VEHICLE && VehicleSync::CREATED_BY_MISSION == MISSION_VEHICLE,
-    "eVehicleCreatedBy");
+static_assert(VehicleSync::CREATED_BY_RANDOM == RANDOM_VEHICLE && VehicleSync::CREATED_BY_MISSION == MISSION_VEHICLE &&
+    VehicleSync::CREATED_BY_PARKED == PARKED_VEHICLE, "eVehicleCreatedBy");
 
 namespace Packets::Vehicles
 {
@@ -323,6 +323,9 @@ class VehicleExit : public Packet
 public:
     SenderPlayerId playerid{};
     bool bForce = false;
+    // private build (vehicle sync protocol): the player is being dragged out by a jacker, whose own enter task pulls it
+    // out on every game; the others only release its keys (VehicleSyncPolicy::eExitNotice)
+    bool bDraggedOut = false;
 
 private:
     template <typename Stream>
@@ -330,6 +333,7 @@ private:
     {
         serialize_object(stream, playerid);
         serialize_bool(stream, bForce);
+        serialize_bool(stream, bDraggedOut);
 
         return true;
     }

@@ -259,14 +259,8 @@ void CNetwork::HandlePlayerConnected(ENetPeer* pENetPeer, Packets::System::Playe
 
     for (auto i : CNetworkPedManager::m_pPeds)
     {
-        Packets::Peds::PedSpawn packet{};
-        packet.pedid = i->m_nPedId;
-        packet.modelId = i->m_nModelId;
-        packet.pos = i->m_vecPos;
-        packet.pedType = i->m_nPedType;
-        packet.createdBy = i->m_nCreatedBy;
-        snprintf(packet.specialModelName, sizeof(packet.specialModelName), "%s", i->m_szSpecialModelName);
-        GetPacketFactory().Send(packet, pNewNetworkPlayer);
+        // private build (vehicle sync protocol): shared with a game that started over (PLAYER_GAME_RESTARTED)
+        CNetworkPedManager::SendPedTo(i, pNewNetworkPlayer);
     }
 
      if (Packets::Scripts::g_pLastEnExPlayerOwner)

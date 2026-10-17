@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "CServerTime.h"
+#include "CServerTimePolicy.h"
 #include <CWeatherSync.h>
 
 server_time_t g_serverTime = 0;
@@ -7,6 +8,12 @@ server_time_t g_serverTime = 0;
 uint32_t CServerTime::m_requestTick = 0;
 uint32_t CServerTime::m_lastUpdated = 0;
 int32_t CServerTime::m_serverTimeOffset = 0;
+// private build (vehicle sync protocol)
+int32_t CServerTime::m_targetOffset = 0;
+bool CServerTime::m_bSynced = false;
+uint32_t CServerTime::m_lastRecalculated = 0;
+unsigned CServerTime::m_nAnswers = 0;
+unsigned CServerTime::m_nAnswersIgnored = 0;
 
 void CServerTime::Process()
 {
@@ -15,7 +22,9 @@ void CServerTime::Process()
     if (CNetwork::m_bAuthenticated)
     {
         uint32_t clientTick = GetTickCount();
-        if (clientTick - m_lastUpdated > REQUEST_FREQUENCY)
+        // private build (vehicle sync protocol): one request in flight at a time, for up to REQUEST_TIMEOUT_MS
+        // (ServerTimePolicy::MaySendRequest); upstream sent one every 500 ms whatever was still on its way
+        if (clientTick - m_lastUpdated > REQUEST_FREQUENCY && ServerTimePolicy::MaySendRequest(m_requestTick, clientTick))
         {
             SendRequest();
             m_lastUpdated = clientTick;
@@ -25,36 +34,54 @@ void CServerTime::Process()
 
 void CServerTime::RecalculateServerTime()
 {
-    g_serverTime = GetTickCount() + m_serverTimeOffset;
+    // private build (vehicle sync protocol): after the first answer the stamped clock never runs backwards, a correction
+    // that would take it back is spread out (ServerTimePolicy::NextAppliedOffset)
+    const uint32_t now = GetTickCount();
+    if (m_bSynced)
+    {
+        m_serverTimeOffset = ServerTimePolicy::NextAppliedOffset(m_serverTimeOffset, m_targetOffset, now - m_lastRecalculated);
+        m_lastRecalculated = now;
+    }
+    g_serverTime = now + m_serverTimeOffset;
 
     CWeatherSync::ServerTimeRecalculated(g_serverTime);
 }
 
 void CServerTime::RecalculateOffset(int32_t newOffset)
 {
-    if (m_serverTimeOffset == 0)
+    // private build (vehicle sync protocol): the first answer replaces the PC's uptime outright (the one step the clock
+    // makes, mostly backwards: the server's clock starts at 0 with server.exe); later ones move the estimate by a tenth,
+    // and the stamped clock follows it (RecalculateServerTime)
+    const bool bFirst = !m_bSynced;
+    m_targetOffset = ServerTimePolicy::NextTargetOffset(bFirst, m_targetOffset, newOffset);
+    if (bFirst)
     {
-        m_serverTimeOffset = newOffset;
-        return;
+        m_bSynced = true;
+        m_serverTimeOffset = m_targetOffset;
+        m_lastRecalculated = GetTickCount();
     }
-
-    // a + t(b-a)
-    m_serverTimeOffset += static_cast<int32_t>(0.1f * (newOffset - m_serverTimeOffset));
 }
 
 void CServerTime::SendRequest()
 {
     m_requestTick = GetTickCount();
+    if (m_requestTick == 0)
+    {
+        m_requestTick = 1;  // private build: 0 means "none in flight"
+    }
 
     Packets::System::ServerTimeRequest serverTimeRequest{};
+    serverTimeRequest.clientTick = m_requestTick;  // private build: echoed in the answer
     GetPacketFactory().Send(serverTimeRequest);
 }
 
 PACKET_HANDLER(ePacketType::SERVER_TIME_REQUEST, Packets::System::ServerTimeRequest* pServerTimeRequest)
 {
-    if (CServerTime::m_requestTick == 0)
+    // private build (vehicle sync protocol): only the answer to the request in flight (ServerTimePolicy::
+    // IsAnswerToOutstanding); upstream paired any answer with the newest request
+    if (!ServerTimePolicy::IsAnswerToOutstanding(CServerTime::m_requestTick, pServerTimeRequest->clientTick))
     {
-        logger::warn("m_requestTick wasn't set, skipping");
+        CServerTime::m_nAnswersIgnored++;
         return;
     }
 
@@ -72,4 +99,5 @@ PACKET_HANDLER(ePacketType::SERVER_TIME_REQUEST, Packets::System::ServerTimeRequ
     //     serverTime, newOffset, CServerTime::m_serverTimeOffset, g_serverTime);
 
     CServerTime::m_requestTick = 0;
+    CServerTime::m_nAnswers++;
 }

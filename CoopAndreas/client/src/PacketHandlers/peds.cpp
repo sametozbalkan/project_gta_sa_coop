@@ -11,6 +11,14 @@ PACKET_HANDLER(ePacketType::PED_SPAWN, Packets::Peds::PedSpawn* pPedSpawn)
         packet->pos.y, packet->pos.z, packet->pedType, packet->createdBy);
 #endif
 
+    // private build (vehicle sync protocol review 2): one record per id. The snapshot after this game's restart can bring a
+    // ped whose relayed spawn came in between, a claim handover sends its ped back here: the record with a ped stays, one
+    // without a ped goes (PedSyncPolicy::DecideSpawn)
+    if (!CNetworkPedManager::PrepareSpawn(pPedSpawn->pedid))
+    {
+        return;
+    }
+
     CNetworkPed* pNetworkPed = new CNetworkPed(pPedSpawn->pedid, pPedSpawn->modelId, pPedSpawn->pedType, pPedSpawn->pos,
         pPedSpawn->createdBy, pPedSpawn->specialModelName);
 
@@ -92,63 +100,16 @@ PACKET_HANDLER(ePacketType::PED_ONFOOT, Packets::Peds::PedOnFoot* pPedOnFoot)
     if (pNetworkPed) pNetworkPed->ReceiveOnFoot(*pPedOnFoot);
 }
 
-PACKET_HANDLER(ePacketType::PED_DRIVER_UPDATE, Packets::Peds::PedDriverUpdate* pPedDriverUpdate)
+// private build (vehicle sync protocol review 2): the car's part of a PED_DRIVER_UPDATE, also onto a car copy whose driver
+// copy is gone (VehicleSyncPolicy::ePedDriverVehicle::APPLY_VEHICLE)
+static void ApplyDriverUpdateToVehicle(
+    CNetworkVehicle* pNetworkVehicle, CVehicle* pVehicle, const Packets::Peds::PedDriverUpdate* pPedDriverUpdate)
 {
-    CNetworkPed* pNetworkPed = CNetworkPedManager::GetPed(pPedDriverUpdate->pedid);
-    if (!pNetworkPed) return;
-    pNetworkPed->CancelPendingOnFoot("driver");
-    if (pNetworkPed->m_bSyncing) return;
-
-    CNetworkVehicle* pNetworkVehicle = CNetworkVehicleManager::GetVehicle(pPedDriverUpdate->vehicleid);
-    if (pNetworkVehicle == nullptr)
-    {
-        return;
-    }
-
-    // private build (vehicle sync protocol): the vehicle's state, and a copy this game lost comes back where the ped's
-    // syncer has it (a car an NPC drives gets no idle or player driver updates, only these)
-    const int vehicleid = pPedDriverUpdate->vehicleid;
-    pNetworkVehicle->RememberState(pPedDriverUpdate->pos, pPedDriverUpdate->roll, pPedDriverUpdate->rot,
-        pPedDriverUpdate->color1, pPedDriverUpdate->color2);
-    CVehicle* pVehicle = pNetworkVehicle->GetLiveVehicle();
-    if (pVehicle == nullptr)
-    {
-        pVehicle = CNetworkVehicleManager::RecreateLostCopy(pNetworkVehicle, pPedDriverUpdate->pos, pPedDriverUpdate->roll,
-            pPedDriverUpdate->rot, pPedDriverUpdate->color1, pPedDriverUpdate->color2);
-    }
-    if (pVehicle == nullptr || !pVehicle->IsVTableValid())
-    {
-        return;
-    }
-
-    CPed* pPed = pNetworkPed->GetLivePed();
-    if (pPed == nullptr)
-    {
-        return;
-    }
-
-    if (pPed->m_pVehicle != pVehicle || !pPed->m_nPedFlags.bInVehicle)
-    {
-        pNetworkPed->WarpIntoVehicleDriver(pVehicle);
-    }
-    // private build (vehicle sync protocol): the record and its vehicle again after the warp (see VEHICLE_DRIVER_UPDATE)
-    if (!CNetworkVehicleManager::StillHolds(vehicleid, pNetworkVehicle, pVehicle)) return;
-    if (!pNetworkPed->GetLivePed() || !pVehicle->m_matrix) return;
     pVehicle->m_matrix->pos = pPedDriverUpdate->pos;
     pVehicle->m_matrix->right = pPedDriverUpdate->roll;
     pVehicle->m_matrix->up = pPedDriverUpdate->rot;
-    pNetworkPed->m_vecVelocity = pPedDriverUpdate->velocity;
     pVehicle->m_vecMoveSpeed = pPedDriverUpdate->velocity;
     pVehicle->m_vecTurnSpeed = pPedDriverUpdate->turnSpeed;
-
-    pNetworkPed->ApplyWeaponSnapshot(pPedDriverUpdate->pedWeapon);
-    // private build (vehicle sync protocol): the weapon's model may load in there (CStreaming::LoadAllRequestedModels)
-    if (!CNetworkVehicleManager::StillHolds(vehicleid, pNetworkVehicle, pVehicle)) return;
-    pPed = pNetworkPed->GetLivePed();
-    if (!pPed) return;
-
-    pNetworkPed->m_fHealth = pPed->m_fHealth = pPedDriverUpdate->pedHealth.iHealth;
-    pPed->m_fArmour = pPedDriverUpdate->pedHealth.iArmour;
 
     pVehicle->m_nPrimaryColor = pPedDriverUpdate->color1;
     pVehicle->m_nSecondaryColor = pPedDriverUpdate->color2;
@@ -181,9 +142,94 @@ PACKET_HANDLER(ePacketType::PED_DRIVER_UPDATE, Packets::Peds::PedDriverUpdate* p
     }
     pVehicle->m_eDoorLock = pPedDriverUpdate->locked;
 
-    pVehicle->m_fGasPedal = pNetworkPed->m_fGasPedal = pPedDriverUpdate->gasPedal;
-    pVehicle->m_fBreakPedal = pNetworkPed->m_fBreakPedal = pPedDriverUpdate->breakPedal;
-    pVehicle->m_fSteerAngle = pNetworkPed->m_fSteerAngle = pPedDriverUpdate->steerAngle;
+    pVehicle->m_fGasPedal = pPedDriverUpdate->gasPedal;
+    pVehicle->m_fBreakPedal = pPedDriverUpdate->breakPedal;
+    pVehicle->m_fSteerAngle = pPedDriverUpdate->steerAngle;
+}
+
+PACKET_HANDLER(ePacketType::PED_DRIVER_UPDATE, Packets::Peds::PedDriverUpdate* pPedDriverUpdate)
+{
+    CNetworkPed* pNetworkPed = CNetworkPedManager::GetPed(pPedDriverUpdate->pedid);
+    if (!pNetworkPed) return;
+    pNetworkPed->CancelPendingOnFoot("driver");
+    if (pNetworkPed->m_bSyncing) return;
+
+    CNetworkVehicle* pNetworkVehicle = CNetworkVehicleManager::GetVehicle(pPedDriverUpdate->vehicleid);
+    if (pNetworkVehicle == nullptr)
+    {
+        return;
+    }
+
+    // private build (vehicle sync protocol): the vehicle's state, and a copy this game lost comes back where the ped's
+    // syncer has it (a car an NPC drives gets no idle or player driver updates, only these)
+    const int vehicleid = pPedDriverUpdate->vehicleid;
+    pNetworkVehicle->RememberState(pPedDriverUpdate->pos, pPedDriverUpdate->roll, pPedDriverUpdate->rot,
+        pPedDriverUpdate->color1, pPedDriverUpdate->color2);
+
+    // private build (vehicle sync protocol review 2): a lost driver copy comes back first, and the car copy only with its
+    // driver (VehicleSyncPolicy::DecidePedDriverVehicle): CWorld::ClearForRestart deletes a car copy with its NPC driver
+    // copy, and the car alone came back from this update as a frozen, driverless MISSION_VEHICLE nobody removed
+    CPed* pPed = pNetworkPed->GetLivePed();
+    if (pPed == nullptr)
+    {
+        pPed = pNetworkPed->RecreateLostCopy(pPedDriverUpdate->pos);
+        // the ped's model load (CStreaming::LoadAllRequestedModels): the record again, as after the weapon load below
+        if (CNetworkVehicleManager::GetVehicle(vehicleid) != pNetworkVehicle) return;
+    }
+    CVehicle* pVehicle = pNetworkVehicle->GetLiveVehicle();
+    switch (VehicleSyncPolicy::DecidePedDriverVehicle(pVehicle != nullptr, pPed != nullptr))
+    {
+        case VehicleSyncPolicy::ePedDriverVehicle::SKIP:
+            return;
+
+        case VehicleSyncPolicy::ePedDriverVehicle::APPLY_VEHICLE:
+            if (pVehicle->IsVTableValid() && pVehicle->m_matrix)
+            {
+                ApplyDriverUpdateToVehicle(pNetworkVehicle, pVehicle, pPedDriverUpdate);
+            }
+            return;
+
+        case VehicleSyncPolicy::ePedDriverVehicle::RECREATE:
+            pVehicle = CNetworkVehicleManager::RecreateLostCopy(pNetworkVehicle, pPedDriverUpdate->pos,
+                pPedDriverUpdate->roll, pPedDriverUpdate->rot, pPedDriverUpdate->color1, pPedDriverUpdate->color2);
+            break;
+
+        case VehicleSyncPolicy::ePedDriverVehicle::SEAT_AND_APPLY:
+            break;
+    }
+    if (pVehicle == nullptr || !pVehicle->IsVTableValid())
+    {
+        return;
+    }
+
+    // private build: the car's model load in RecreateLostCopy can take the ped's clump or slot (see ApplyWeapon)
+    pPed = pNetworkPed->GetLivePed();
+    if (pPed == nullptr)
+    {
+        return;
+    }
+
+    if (pPed->m_pVehicle != pVehicle || !pPed->m_nPedFlags.bInVehicle)
+    {
+        pNetworkPed->WarpIntoVehicleDriver(pVehicle);
+    }
+    // private build (vehicle sync protocol): the record and its vehicle again after the warp (see VEHICLE_DRIVER_UPDATE)
+    if (!CNetworkVehicleManager::StillHolds(vehicleid, pNetworkVehicle, pVehicle)) return;
+    if (!pNetworkPed->GetLivePed() || !pVehicle->m_matrix) return;
+    ApplyDriverUpdateToVehicle(pNetworkVehicle, pVehicle, pPedDriverUpdate);
+    pNetworkPed->m_vecVelocity = pPedDriverUpdate->velocity;
+    pNetworkPed->m_fGasPedal = pPedDriverUpdate->gasPedal;
+    pNetworkPed->m_fBreakPedal = pPedDriverUpdate->breakPedal;
+    pNetworkPed->m_fSteerAngle = pPedDriverUpdate->steerAngle;
+
+    pNetworkPed->ApplyWeaponSnapshot(pPedDriverUpdate->pedWeapon);
+    // private build (vehicle sync protocol): the weapon's model may load in there (CStreaming::LoadAllRequestedModels)
+    if (!CNetworkVehicleManager::StillHolds(vehicleid, pNetworkVehicle, pVehicle)) return;
+    pPed = pNetworkPed->GetLivePed();
+    if (!pPed) return;
+
+    pNetworkPed->m_fHealth = pPed->m_fHealth = pPedDriverUpdate->pedHealth.iHealth;
+    pPed->m_fArmour = pPedDriverUpdate->pedHealth.iArmour;
 }
 
 PACKET_HANDLER(ePacketType::PED_PASSENGER_UPDATE, Packets::Peds::PedPassengerSync* pPedPassengerSync)
@@ -199,6 +245,18 @@ PACKET_HANDLER(ePacketType::PED_PASSENGER_UPDATE, Packets::Peds::PedPassengerSyn
 
     if (pNetworkVehicle->m_pVehicle == nullptr)
         return;
+
+    // private build (vehicle sync protocol review 2): a lost passenger copy comes back at its vehicle; its model load may
+    // destroy vehicles, so the record and its vehicle again (StillHolds)
+    if (!pNetworkPed->GetLivePed())
+    {
+        CVehicle* pVehicle = pNetworkVehicle->m_pVehicle;
+        if (!pVehicle->IsVTableValid() || !pVehicle->m_matrix || !pNetworkPed->RecreateLostCopy(pVehicle->GetPosition()) ||
+            !CNetworkVehicleManager::StillHolds(pPedPassengerSync->vehicleid, pNetworkVehicle, pVehicle))
+        {
+            return;
+        }
+    }
 
     if (!pNetworkPed->GetLivePed())
         return;

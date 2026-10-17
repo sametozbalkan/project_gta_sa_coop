@@ -174,6 +174,10 @@ public:
                 int syncRate = 50;
                 CVector velocity{};
 
+                // private build (vehicle sync protocol): VEHICLE_EXIT for the exits the exit key didn't start (a script's
+                // task, being dragged out by a jacker, a warp)
+                CNetworkVehicleManager::ProcessLocalExit(localPlayer);
+
                 bool isDriver = localPlayer->m_nPedFlags.bInVehicle && localPlayer->m_pVehicle &&
                                 localPlayer->m_pVehicle->m_pDriver == localPlayer;
 

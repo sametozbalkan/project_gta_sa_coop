@@ -374,6 +374,8 @@ static void __fastcall CVehicle__Destructor_Hook(CVehicle* This)
 // sector), called only by CGame::ShutDownForRestart (0x53C550) at 0x53C5CB (ReVa cross-references; bytes E8 90 7D 02 00
 // read with tools/pe_peek.py from C:\Games\GTASA_Coop\gta_sa.exe). Around it the vehicles this game syncs go with
 // REMOVE_SYNCER_RESTARTED instead of REMOVE_BY_SYNCER, so the server gives the cars of the host's scripts back to the host.
+// After it the ped records go too (it deleted every ped) and the server is asked for the peds the other games sync
+// (CNetworkPedManager::OnGameRestartCleared, PLAYER_GAME_RESTARTED).
 namespace
 {
 constexpr uintptr_t WORLD_CLEAR_FOR_RESTART = 0x564360;
@@ -385,6 +387,7 @@ static void __cdecl CWorld__ClearForRestart_Hook()
     CNetworkVehicleManager::SetRestartClear(true);
     plugin::Call<WORLD_CLEAR_FOR_RESTART>();
     CNetworkVehicleManager::SetRestartClear(false);
+    CNetworkPedManager::OnGameRestartCleared(); // private build (vehicle sync protocol review 2)
 }
 
 static void InjectVehicleDestructorHooks()

@@ -27,4 +27,15 @@ TPlayer* FindClaimer(const std::vector<TPlayer*>& players, const TPlayer* pLeavi
     }
     return nullptr;
 }
+
+// Private build (vehicle sync protocol): a game that started over (PLAYER_GAME_RESTARTED) gets every ped another game
+// syncs again, as a joiner does (PED_SPAWN). The peds it synced itself are not among them: its PED_REMOVE for each, sent
+// before the notice, handed them to a claimer (FindClaimer, which sends it the ped back as a copy) or removed them from
+// every game, and the server releases the same way one it still counts as that game's (CNetworkPedManager::
+// RemoveAllHostedAndNotify, as when a syncer leaves; vehicles go the same way: REMOVE_SYNCER_RESTARTED). TPed: m_pSyncer.
+template <class TPlayer, class TPed>
+bool IsSentAfterRestart(const TPed* pPed, const TPlayer* pRestarted)
+{
+    return pPed != nullptr && pPed->m_pSyncer != nullptr && pPed->m_pSyncer != pRestarted;
+}
 }  // namespace PedHandoverPolicy

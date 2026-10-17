@@ -8,13 +8,48 @@
 
 CNetworkPed::CNetworkPed(int pedid, int modelId, ePedType pedType, CVector pos, unsigned char createdBy, char specialModelName[])
 {
+    m_nPedId = pedid;
+    m_nPedType = pedType;
+    m_bSyncing = false;
+    m_nCreatedBy = createdBy;
+
+    // private build (vehicle sync protocol review 2): kept for making a lost copy again (RecreateLostCopy)
+    m_nModelId = modelId;
+    if (specialModelName != nullptr)
+    {
+        strncpy_s(m_szSpecialModelName, specialModelName, _TRUNCATE);
+    }
+
+    // private build: a copy that can't be made now (the ped or intelligence pool is full, the model didn't load) is a lost
+    // copy, made from its syncer's next update, as a vehicle copy is (CNetworkVehicle's constructor); upstream went on
+    // with the NULL a full ped pool gives `new CCivilianPed`
+    if (!CreateCopy(pos))
+    {
+        m_bCopyLost = true;
+        LogSyncDiagnostic("copy-create-failed", "pool-or-model");
+    }
+}
+
+bool CNetworkPed::CreateCopy(const CVector& pos)
+{
+    int modelId = m_nModelId;
     if (modelId >= 290 && modelId <= 299)
-        CStreaming::RequestSpecialModel(modelId, specialModelName, 0);
+        CStreaming::RequestSpecialModel(modelId, m_szSpecialModelName, 0);
     else
         CStreaming::RequestModel(modelId, 0);
 
     CStreaming::LoadAllRequestedModels(false);
 
+    // private build (vehicle sync protocol review 2): no ped from a model that didn't load, and none when a pool has no
+    // room: the ped's constructor takes its intelligence from CPools::ms_pPedIntelligencePool without a check (as
+    // CREATE_PLAYER's, see CNetworkPlayer::CreatePed), and MSVC's `new` gives NULL for a full ped pool
+    if (CStreaming::ms_aInfoForModel[modelId].m_nLoadState != LOADSTATE_LOADED ||
+        CPools::ms_pPedPool->GetNoOfFreeSpaces() == 0 || CPools::ms_pPedIntelligencePool->GetNoOfFreeSpaces() == 0)
+    {
+        return false;
+    }
+
+    const ePedType pedType = m_nPedType;
     if (pedType == PED_TYPE_COP)
     {
         switch (modelId) 
@@ -37,19 +72,25 @@ CNetworkPed::CNetworkPed(int pedid, int modelId, ePedType pedType, CVector pos, 
         }
     }
 
+    CPed* pPed = nullptr;
     if (pedType == PED_TYPE_COP)
     {
-        m_pPed = new CCopPed((eCopType)modelId);
+        pPed = new CCopPed((eCopType)modelId);
     }
     else if (pedType == PED_TYPE_MEDIC || pedType == PED_TYPE_FIREMAN)
     {
-        m_pPed = new CEmergencyPed(pedType, modelId);
+        pPed = new CEmergencyPed(pedType, modelId);
     }
     else
     {
-        m_pPed = new CCivilianPed(pedType, modelId);
+        pPed = new CCivilianPed(pedType, modelId);
+    }
+    if (pPed == nullptr)
+    {
+        return false;
     }
 
+    m_pPed = pPed;
     m_poolReference.Capture(CPools::ms_pPedPool, m_pPed);
     m_pPed->m_nCreatedBy = 2;
     m_pPed->m_pIntelligence->SetPedDecisionMakerType(-1);
@@ -62,13 +103,46 @@ CNetworkPed::CNetworkPed(int pedid, int modelId, ePedType pedType, CVector pos, 
     m_pPed->SetOrientation(0.f, 0.f, 0.f);
     CWorld::Add(m_pPed);
 
-    m_nPedId = pedid;
-    m_nPedType = pedType;
-    m_bSyncing = false;
-    m_nCreatedBy = createdBy;
-
     // THIS IS AN EXPERIMENTAL SOLUTION FOR THE 0x4D68BA CRASH
     m_pPed->m_bStreamingDontDelete = true;
+
+    m_bCopyLost = false; // private build
+    return true;
+}
+
+CPed* CNetworkPed::RecreateLostCopy(const CVector& pos)
+{
+    // private build (vehicle sync protocol review 2): GetLivePed first, it marks a copy whose ped the game destroyed
+    const bool bHasPed = GetLivePed() != nullptr;
+    if (!PedSyncPolicy::ShouldRecreateCopy(m_bSyncing, m_bCopyLost, bHasPed) ||
+        !m_recreateThrottle.ShouldAttempt(GetTickCount()))
+    {
+        return nullptr;
+    }
+    if (!CreateCopy(pos))
+    {
+        LogSyncDiagnostic("recreate-failed", "pool-or-model");
+        return nullptr;
+    }
+    m_nBlipHandle = -1;  // the old ped's blip went with it (CRadar::ClearBlipForEntity in ~CPed)
+    LogSyncDiagnostic("recreated", "lost-copy");
+    CNetworkPedManager::OnCopyRecreated();
+    return GetLivePed();
+}
+
+void CNetworkPed::ForgetPedForRestart()
+{
+    // private build (vehicle sync protocol review 2): CWorld::ClearForRestart deletes the peds of every repeat sector, and
+    // CPools::CheckPoolsEmpty follows it; a ped of this record that is still there all the same stays a ped of this game
+    // without a record (no engine call in the middle of CGame::ShutDownForRestart)
+    if (m_pPed != nullptr && m_poolReference.Matches(CPools::ms_pPedPool, m_pPed))
+    {
+        LogSyncDiagnostic("restart-survivor", m_bSyncing ? "syncing" : "copy");
+    }
+    m_pendingOnFoot.Cancel();
+    m_bVisualDeferred = false;
+    m_pPed = nullptr;
+    m_poolReference = CPedPoolReference();
 }
 
 CNetworkPed::~CNetworkPed()
@@ -248,6 +322,10 @@ CPed* CNetworkPed::GetLivePed()
         m_pendingOnFoot.Cancel();
         m_bVisualDeferred = false;
         m_pPed = nullptr; // Never recapture a generation for this wrapper.
+        // private build (vehicle sync protocol review 2): a copy the game destroyed comes back from its syncer's next
+        // update as a new ped with its own capture (RecreateLostCopy); a ped this game syncs doesn't, its record goes
+        // with the next sweep
+        m_bCopyLost = !m_bSyncing;
         return nullptr;
     }
     return m_pPed;
@@ -304,6 +382,8 @@ void CNetworkPed::ReceiveOnFoot(const Packets::Peds::PedOnFoot& snapshot)
 {
     if (m_bSyncing) return;
     CPed* ped = GetLivePed();
+    // private build (vehicle sync protocol review 2): a lost copy comes back where its syncer has the ped
+    if (!ped) ped = RecreateLostCopy(snapshot.pos);
     if (!ped) return;
 
     // These fields do not need a RenderWare object or intelligence tasks.

@@ -487,6 +487,22 @@ private:
     }
 };
 
+// private build (vehicle sync protocol): the sender's game started over (a new game or a load: CWorld::ClearForRestart
+// deleted every ped and vehicle), sent once that is done, after the VEHICLE_REMOVE and PED_REMOVE of what it synced (one
+// channel, so the server handles them first). The server drops that player's ped claims and seat and sends it the peds
+// the other games sync, as to a joiner (server PacketHandlers/players.cpp). Not relayed.
+class PlayerGameRestarted : public Packet
+{
+    DEFINE_PACKET_TYPE(PlayerGameRestarted, ePacketType::PLAYER_GAME_RESTARTED, ePacketChannel::EVENT);
+
+private:
+    template <typename Stream>
+    bool Serialize(Stream&)
+    {
+        return true;
+    }
+};
+
 }  // namespace Packets::Players
 
 // NOLINTEND(readability-isolate-declaration)

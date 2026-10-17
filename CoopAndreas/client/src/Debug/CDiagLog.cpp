@@ -4,6 +4,8 @@
 #include "CSessionLifecycle.h"
 #include "CWorldStateRegistry.h"
 #include "CMissionMirror.h"
+#include "CServerTime.h"
+#include "CPacketBuffer.h"
 #include <CCamera.h>
 #include <CGame.h>
 #include <CMenuManager.h>
@@ -34,6 +36,13 @@ static void WriteSnapshot(FILE* file)
     CWorldStateRegistry::WriteDiagSummary(file); // private build: world-state registry
     CMissionMirror::WriteDiagSummary(file); // private build: mission mirror layer
     CNetworkVehicleManager::WriteDiagSummary(file); // private build: vehicle sync protocol
+    CNetworkPedManager::WriteDiagSummary(file); // private build: vehicle sync protocol, peds
+    // private build (vehicle sync protocol): the server clock (CServerTimePolicy.h); plain values the game thread writes
+    const uint32_t requestTick = CServerTime::m_requestTick;
+    fprintf(file, "  clock: synced=%d offset=%d target=%d request-age=%d answers=%u ignored=%u restamped=%u\n",
+        CServerTime::m_bSynced, CServerTime::m_serverTimeOffset, CServerTime::m_targetOffset,
+        requestTick != 0 ? static_cast<int>(GetTickCount() - requestTick) : -1, CServerTime::m_nAnswers,
+        CServerTime::m_nAnswersIgnored, GetPacketBuffer().m_nRestamped);
 
     // scripts: name, IP offset into the script space, ms until it wakes up
     fprintf(file, "  scripts:");

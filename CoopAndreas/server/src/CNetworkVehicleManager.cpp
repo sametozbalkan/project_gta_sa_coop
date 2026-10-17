@@ -53,8 +53,9 @@ void CNetworkVehicleManager::SendVehicleTo(CNetworkVehicle* vehicle, CNetworkPla
     vehicleSpawnPacket.vehicleid = vehicle->m_nVehicleId;
     vehicleSpawnPacket.modelid = vehicle->m_nModelId;
     vehicleSpawnPacket.pos = vehicle->m_vecPosition;
-    vehicleSpawnPacket.rot = static_cast<float>(
-        vehicle->m_vecRotation.z * (3.141592f / 180.0f));  // convert to radians TODO(v0.3.1-alpha): is this wrong?
+    // private build (vehicle sync protocol): m_vecRotation is the forward vector of the last update (CMatrix::up, the
+    // updates' `rot`), not angles: upstream took its z for degrees, so a resent car faced north until its first update
+    vehicleSpawnPacket.rot = VehicleSync::HeadingFromForward(vehicle->m_vecRotation.x, vehicle->m_vecRotation.y);
     vehicleSpawnPacket.color1 = vehicle->m_nPrimaryColor;
     vehicleSpawnPacket.color2 = vehicle->m_nSecondaryColor;
     // private build (vehicle sync protocol): a joiner who becomes the syncer applies this (was always RANDOM_VEHICLE,

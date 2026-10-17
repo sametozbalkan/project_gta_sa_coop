@@ -30,10 +30,16 @@ static void __fastcall CTaskComplexEnterCarAsDriver__Ctor_Hook(
 static void __fastcall CTaskComplexLeaveCar__Ctor_Hook(CTaskComplexLeaveCar* This, SKIP_EDX, CVehicle* vehicle,
     int targetDoor, int delayTime, bool sensibleLeaveCar, bool forceGetOut)
 {
-    if (CNetwork::m_bAuthenticated)
+    // private build (vehicle sync protocol): only for the local player's vehicle (CWorld::Process runs CPlayerInfo::Process
+    // for CWorld::Players[1] too, a network player, with pad 1: loop at 0x568A78-0x568A9A); the exits the exit key doesn't
+    // start go out from CNetworkVehicleManager::ProcessLocalExit, which this one keeps from sending a second VEHICLE_EXIT
+    CPlayerPed* pLocalPlayer = FindPlayerPed(0);
+    if (CNetwork::m_bAuthenticated && pLocalPlayer != nullptr && pLocalPlayer->m_nPedFlags.bInVehicle &&
+        pLocalPlayer->m_pVehicle == vehicle)
     {
         Packets::Vehicles::VehicleExit packet{};
         GetPacketFactory().Send(packet);
+        CNetworkVehicleManager::OnKeyExitSent();
     }
 
     plugin::CallMethod<0x63B8C0, CTaskComplexLeaveCar*, CVehicle*, int, int, bool, bool>(
