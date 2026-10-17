@@ -6,7 +6,7 @@ GTA: San Andreas hikâyesinin tamamını birlikte oynayın: iki oyuncu, tek kay�
 görevler.
 
 ![durum: alfa](https://img.shields.io/badge/durum-alfa-orange)
-![sürüm: 0.1.1-alpha](https://img.shields.io/badge/s%C3%BCr%C3%BCm-0.1.1--alpha-blue)
+![sürüm: 0.1.2-alpha](https://img.shields.io/badge/s%C3%BCr%C3%BCm-0.1.2--alpha-blue)
 [![lisans: GPL-3.0](https://img.shields.io/badge/lisans-GPL--3.0-green)](LICENSE)
 <!-- Buy Me a Coffee rozeti, hesap açılınca buraya eklenecek. -->
 

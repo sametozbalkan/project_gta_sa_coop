@@ -5,7 +5,7 @@
 Play the whole GTA: San Andreas story together: two players, one save, every mission rebuilt for co-op, one by one.
 
 ![status: alpha](https://img.shields.io/badge/status-alpha-orange)
-![version: 0.1.1-alpha](https://img.shields.io/badge/version-0.1.1--alpha-blue)
+![version: 0.1.2-alpha](https://img.shields.io/badge/version-0.1.2--alpha-blue)
 [![license: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-green)](LICENSE)
 <!-- Buy Me a Coffee badge goes here once the account exists. -->
 

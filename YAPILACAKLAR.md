@@ -104,6 +104,19 @@ gelecek, test listesi `docs/test-0.1.1.md`):
 - **Durum:** araç paketi iki inceleme ve iki düzeltme turundan geçti. Bunlarla gelenler: oturumda yeniden başlayan
   oyun NPC'leri sunucudan baştan alıyor, bağlantı saati geriye kaymıyor, her arabadan iniş öbür ekrana gidiyor.
   Kanca denetimi 417 nokta, 14 politika testi geçiyor; 0.1.1 hâlâ paketlenmedi.
+**0.1.1 testi (2026-10-17, üç oyuncu):** #8 Drive-By'da host olmayan iki oyuncunun oyunu, Ballas Voodoo'larından
+inerken aynı anda çöktü (0x642067); host'unki çökmedi. Daha önce host'un oyunu bir hikâye görevini başlatırken
+çöktü (22:07, EIP 0x3F800000).
+**0.1.2 hazır** (2026-10-18, paketlendi; yayın ve kurulum kullanıcının onayını bekliyor; test listesi
+`docs/test-0.1.2.md`):
+- **Drive-By çökmesi:** görev arabaları ve onlara verdiği "arabadan in" sırasını aynı karede kuruyordu; arabalar
+  henüz ağ kimliği almadığı için sıra diğer oyunlara arabasız gidiyordu. Sıranın görevleri artık sıra oynatılırken
+  adlandırılıyor; diğer oyunlar sahip olmadıkları bir araç ya da karakter için gelen komutu çalıştırmıyor; aracı
+  olmayan "arabadan in" görevi de artık oyunu çökertmiyor.
+- **Görev başında ölü oyuncu:** ölüm/tutuklanma denetimi görevin ilk karesinde boş geri dönüş yığınından okuyup
+  geçersiz bir adrese atlıyordu; artık görev ilk alt yordamına girene kadar bekliyor.
+- Ağ biçimi değişmedi; sürüm 0.1.2'ye çekildi ki 0.1.1 ile karışık oturum kurulmasın (host dahil herkes
+  güncellemeli). Kanca denetimi 417 nokta, 15 politika testi geçiyor.
 
 ## Sonraki işler (öncelik sırasıyla)
 - **Grup 2 altyapısı: trenler ve görev nesneleri** (tasarımlar 2026-10-17'de hazır: `docs/design/trains.md`,
@@ -165,6 +178,10 @@ gelecek, test listesi `docs/test-0.1.1.md`):
 - Upstream PR #106 **alınmadı**: sonradan katılan oyuncu diğerinin parasını sıfırlıyor, aynı anda kazanılan para
   kayboluyor, hileler iki oyunda birden çalışıyor. Para herkesin kendine kalıyor (uyarlanmış görevlerin ödülü ikinize de
   ödeniyor), hileler yerel kalıyor; aranma seviyesi 2. dalgada host'un görev komutlarıyla geliyor.
+- **Görev sıraları (küçük, 0.1.2 incelemesinden):** bir görev karakterini oluşturduğu karede ona sıra verirse
+  sıra diğer ekranlara gitmiyor (upstream'den; #1–#10'da bilinen etkisi yok); türemiş arabadan inme görevleri
+  (LeaveCarAndDie vb.) yeni emniyete girmiyor; `CNetworkAnimQueue::Process` kuyruklar işlenirken eklenen
+  girdileri siliyor (nadir: bir animasyon bloğunun iki kez yüklenememesi gerekiyor).
 
 ## Ana hikâyeden sonra (acelesi yok)
 - Yan içerik: yarışlar, okullar, araç yan görevleri vb.

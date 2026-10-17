@@ -338,8 +338,10 @@ scene's end position before or right after (`INTRO1` sets them near the house af
 their weapons with `Char.HideWeaponForScriptedCutscene` like the host's.
 
 **Entities the mission creates**: wait until they have network ids only before tasking or teleporting them
-(the replayed task and `Char.SetCoordinates`/`Car.SetCoordinates` commands of an entity without a network
-instance on the receiver are dropped). A hosted entity gets its id from the server about a round trip
+(the host doesn't send a replayed task or `Char.SetCoordinates`/`Car.SetCoordinates` command naming an entity
+without a network id, and the receivers drop one naming an entity they don't have). A task sequence may be
+defined in the frame its entities are created: its tasks name them when it is performed (0.1.2), so only the
+perform has to come after the ids. A hosted entity gets its id from the server about a round trip
 after it is created; until then `Coop.GetVehicleNetworkId`/`Coop.GetPedNetworkId` return -1. The host's
 blips on it need no wait: the mirror shows a coordinate blip at the entity until the id arrives. A
 friend-only blip does: a `Coop.Update*BlipForNetworkPlayer` sent too early marks the wrong entity, because
