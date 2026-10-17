@@ -143,3 +143,6 @@ The players' list is in the README (Known limitations). For the work here:
   `C:\Program Files\Java\latest\jdk-21`.
 - The 11 new names of the Ghidra names pipeline aren't in the Ghidra project yet: run
   `pwsh -File tools/ghidra/update-project.ps1` while no session with ReVa is open in this checkout.
+- The English installer, tunnel and package names (2026-10-18) reach players with the next release. Once nobody
+  plays 0.1.2 or earlier, drop the old-name notes in `README.md`, `README.tr.md` and `docs/test-plan.md` ("`Kur.bat`
+  in 0.1.2 and earlier" and the like); `Install.ps1`'s `Remove-LegacyFiles` can stay.
