@@ -5,7 +5,7 @@
 Play the whole GTA: San Andreas story together: two players, one save, every mission rebuilt for co-op, one by one.
 
 ![status: alpha](https://img.shields.io/badge/status-alpha-orange)
-![version: 0.1.0-alpha](https://img.shields.io/badge/version-0.1.0--alpha-blue)
+![version: 0.1.1-alpha](https://img.shields.io/badge/version-0.1.1--alpha-blue)
 [![license: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-green)](LICENSE)
 <!-- Buy Me a Coffee badge goes here once the account exists. -->
 
@@ -213,7 +213,8 @@ follow [docs/missions.md](docs/missions.md), which also lists each mission's scr
 - **Installer:** copies your Steam game to a separate folder, converts that copy to version 1.0 US with every
   file checked, and installs the mod and the tunnel. The Steam installation stays untouched; running the
   installer again only updates the mod files.
-- **Alt+Tab:** switching to another window or minimizing the game no longer drops you from the server.
+- **Alt+Tab:** switching to another window or minimizing the game no longer drops you from the server, and the
+  keys you held are released on the other player's screen.
 - **Radio:** in the same car, the passenger hears the driver's radio station.
 - **Tags:** a gang tag sprayed by either player counts for both (Tagging Up Turf).
 - **Wanted levels from missions:** when the host's mission raises or clears the wanted level or makes the police
@@ -226,6 +227,11 @@ follow [docs/missions.md](docs/missions.md), which also lists each mission's scr
 - **Story host:** the server can name the player who is always the host (`story-host`), so the story stays in
   the right game even if the other player connects first or the host reconnects.
 - **NPC sync:** fixes for a crash on the other player's game when NPCs are synced.
+- **Vehicle and NPC sync:** every car has one game that drives it, a car a mission deletes goes on both screens,
+  every way of leaving a car shows on the other screen, and after a New Game or a load during a session the
+  other game's NPCs and their cars come back (with the host's mission characters).
+- **A player who leaves mid-mission:** the host's game doesn't crash and the mission goes on without them;
+  story missions start only on the host's game.
 - **Widescreen:** the video mode dialog at startup also lists widescreen (16:9) resolutions.
 - **Frame limiter:** always on; without it, a New Game could stay on a black screen.
 - **Saved player state:** the other player's weapons, armour, money, clothes, skills and respect are saved with
@@ -265,8 +271,11 @@ host's normal save; a small side file also keeps the other players' state.
 
 ## Playing
 
-There is no public download yet: the project is in alpha and is tested by a small group. Playing needs a
-legitimately bought copy of GTA: San Andreas on Steam (PC).
+Test builds are on the [Releases](https://github.com/sametozbalkan/project_gta_sa_coop/releases) page, marked
+as pre-releases: download `CoopAndreas-Kurulum.zip`, extract all of it and run `Kur.bat`; `OKU-BENI.txt` in the
+package explains the steps (in Turkish), and `TEST-LISTESI.md` lists what to check. Both players need the same
+release. The project is in alpha: expect bugs and crashes. Playing needs a legitimately bought copy of GTA: San
+Andreas on Steam (PC).
 
 ## Building from source
 
@@ -351,4 +360,4 @@ The tunnel build also contains Valve's `steam_api64.dll`, which comes with the F
 source tree keeps the upstream Discord RPC SDK (with RapidJSON, MIT), which this build doesn't link into the
 client. Sanny Builder 4 compiles the mission scripts; it is a build tool and isn't shipped.
 
-_A personal project: there is no public release and no support yet._
+_A personal project: test builds only, no support._

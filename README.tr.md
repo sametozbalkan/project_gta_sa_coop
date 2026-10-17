@@ -6,7 +6,7 @@ GTA: San Andreas hikâyesinin tamamını birlikte oynayın: iki oyuncu, tek kay�
 görevler.
 
 ![durum: alfa](https://img.shields.io/badge/durum-alfa-orange)
-![sürüm: 0.1.0-alpha](https://img.shields.io/badge/s%C3%BCr%C3%BCm-0.1.0--alpha-blue)
+![sürüm: 0.1.1-alpha](https://img.shields.io/badge/s%C3%BCr%C3%BCm-0.1.1--alpha-blue)
 [![lisans: GPL-3.0](https://img.shields.io/badge/lisans-GPL--3.0-green)](LICENSE)
 <!-- Buy Me a Coffee rozeti, hesap açılınca buraya eklenecek. -->
 
@@ -215,7 +215,8 @@ numaraları
 - **Kurulum:** Steam'deki oyununuzu ayrı bir klasöre kopyalar, bu kopyayı her dosyayı doğrulayarak 1.0 US
   sürümüne çevirir, modu ve tüneli kurar. Steam kurulumuna dokunulmaz; kurulum yeniden çalıştırılınca yalnızca
   mod dosyaları güncellenir.
-- **Alt+Tab:** başka bir pencereye geçmek ya da oyunu simge durumuna küçültmek artık sunucudan düşürmez.
+- **Alt+Tab:** başka bir pencereye geçmek ya da oyunu simge durumuna küçültmek artık sunucudan düşürmez;
+  basılı tuttuğunuz tuşlar diğer oyuncunun ekranında bırakılır.
 - **Radyo:** aynı araçta yolcu, sürücünün radyo istasyonunu dinler.
 - **Tag'ler:** hangi oyuncu sıkarsa sıksın, çete tag'i iki oyuncu için de sayılır (Tagging Up Turf).
 - **Görevlerden gelen aranma seviyesi:** host'un görevi aranma seviyesini yükselttiğinde, sıfırladığında ya da
@@ -229,6 +230,11 @@ numaraları
 - **Hikâye host'u:** sunucu, hep host olacak oyuncuyu belirleyebilir (`story-host`); böylece diğer oyuncu önce
   bağlansa ya da host yeniden bağlansa da hikâye doğru oyunda kalır.
 - **NPC senkronu:** NPC'ler senkronlanırken diğer oyuncunun oyununda yaşanan bir çökme düzeltildi.
+- **Araç ve NPC senkronu:** her arabayı tek bir oyun yönetir, görevin sildiği araba iki ekrandan birden kalkar,
+  arabadan her iniş diğer ekranda da görünür; oturum sırasında New Game ya da kayıt yüklemesinden sonra diğer
+  oyunun NPC'leri ve arabaları geri gelir (host'un görev karakterleriyle birlikte).
+- **Görev ortasında ayrılan oyuncu:** host'un oyunu çökmez, görev onsuz sürer; hikâye görevleri yalnızca host'un
+  oyununda başlar.
 - **Geniş ekran:** açılıştaki görüntü modu penceresi geniş ekran (16:9) çözünürlükleri de listeler.
 - **Kare sınırlayıcı:** hep açık; kapalıyken New Game siyah ekranda kalabiliyordu.
 - **Saklanan oyuncu durumu:** diğer oyuncunun silahları, zırhı, parası, kıyafetleri, becerileri ve saygısı
@@ -268,8 +274,11 @@ ek olarak küçük bir dosya diğer oyuncuların durumunu tutar.
 
 ## Oynamak
 
-Henüz herkese açık bir indirme yok: proje alfa aşamasında ve küçük bir grup tarafından test ediliyor. Oynamak
-için GTA: San Andreas'ın Steam'den (PC) yasal olarak satın alınmış bir kopyası gerekir.
+Test sürümleri [Releases](https://github.com/sametozbalkan/project_gta_sa_coop/releases) sayfasında, ön sürüm
+(pre-release) olarak: `CoopAndreas-Kurulum.zip` dosyasını indirin, tamamını çıkarın ve `Kur.bat` dosyasını
+çalıştırın; paketteki `OKU-BENI.txt` adımları, `TEST-LISTESI.md` kontrol edilecekleri anlatır. İki oyuncuda da aynı
+sürüm olmalı. Proje alfa aşamasında: hata ve çökme bekleyin. Oynamak için GTA: San Andreas'ın Steam'den (PC) yasal
+olarak satın alınmış bir kopyası gerekir.
 
 ## Kaynaktan derleme
 
@@ -355,4 +364,4 @@ Tünel derlemesi, Facepunch.Steamworks paketiyle gelen Valve'ın `steam_api64.dl
 ağacında upstream'den gelen Discord RPC SDK'sı (RapidJSON ile, MIT) da durur; bu derleme onu istemciye bağlamaz.
 Görev betiklerini Sanny Builder 4 derler; bu bir derleme aracıdır ve dağıtılmaz.
 
-_Kişisel bir proje: henüz herkese açık bir sürüm ya da destek yok._
+_Kişisel bir proje: yalnızca test sürümleri, destek yok._

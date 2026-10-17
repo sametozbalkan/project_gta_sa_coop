@@ -2,9 +2,10 @@
 
 Hedef sürüm: **0.1.1-alpha**. Kutuları yalnızca iki bilgisayarda gözledikten sonra işaretleyin.
 
-**Durum (2026-10-17):** 0.1.1, 0.1.0 testinden sonra gelecek düzeltme paketi; 0.1.0 testinde çıkan düzeltmeler de bu
-pakete ve bu listeye eklenecek. Görev sırası ve kayıt yapısı değişmedi: 0.1.0 ile alınan co-op kayıtları yüklenir,
-New Game gerekmez. Hiçbir madde henüz oyunda denenmedi.
+**Durum (2026-10-17):** 0.1.1, 0.1.0'ın düzeltme paketi; GitHub'da ön sürüm (pre-release) olarak yayımlandı. Görev
+sırası ve kayıt yapısı değişmedi: 0.1.0 ile alınan co-op kayıtları yüklenir. **İlk kez oynuyorsanız** New Game ile
+başlayın ve görevleri #1'den sırayla oynayın; görev görev ayrıntılı kontroller repodaki `docs/test-0.1.0.md`
+listesinde (oradaki sürüm adı yerine 0.1.1-alpha okuyun). Hiçbir madde henüz oyunda denenmedi.
 
 ## 0.1.1'de ne değişti
 
