@@ -39,6 +39,7 @@
 #include <CTaskSequenceSync.h>
 #include <CNetworkAnimQueue.h>
 #include <CMissionMirror.h>
+#include <CReplayEntityPolicy.h>
 
 // Keep sorted!
 const SSyncedOpCode syncedOpcodes[] =
@@ -290,7 +291,7 @@ bool COpCodeSync::IsOpcodeSyncable(int opcode, int* opcodeIdx, bool ignoreOpCode
     return false;
 }
 
-std::vector<uint8_t> COpCodeSync::SerializeOpcode(int idx, int& outSize)
+std::vector<uint8_t> COpCodeSync::SerializeOpcode(int idx, int& outSize, bool bNameEntities)
 {
     int dataSize =
         sizeof(OpcodeSyncHeader)
@@ -315,7 +316,7 @@ std::vector<uint8_t> COpCodeSync::SerializeOpcode(int idx, int& outSize)
 
     for (int i = 0; i < scriptParamCount; i++)
     {
-        if (syncedOpcodes[idx].m_bHasComplexParams && i < 4)
+        if (bNameEntities && syncedOpcodes[idx].m_bHasComplexParams && i < 4) // private build: bNameEntities
         {
             //CChat::AddMessage("Parsing complex opcode %04x parameter %d...", header.opcode, i);
             switch (syncedOpcodes[idx].m_aParamTypes[i])
@@ -425,6 +426,103 @@ std::vector<uint8_t> COpCodeSync::SerializeOpcode(int idx, int& outSize)
     return buffer;
 }
 
+// private build: whether SerializeOpcode left a PED or VEHICLE parameter at -1 although the script named an entity
+// (scriptValues: the first four parameters before it ran; ReplayEntityPolicy::IsUnnamed). The others replay -1 as "no
+// entity" where they allow it (a sequence's tasks, TASK_DRIVE_BY), and a vanilla task built around no entity can crash:
+// TASK_LEAVE_CAR (05CD, case 0x490554) builds CTaskComplexLeaveCar with whatever CPools::GetVehicle returns, and its
+// CreateFirstSubTask reads the missing vehicle at 0x642067 (both other games in Drive-By).
+static bool HasUnnamedEntity(int idx, const int (&scriptValues)[4])
+{
+    if (!syncedOpcodes[idx].m_bHasComplexParams)
+    {
+        return false;
+    }
+
+    for (int i = 0; i < 4 && i < scriptParamCount; i++)
+    {
+        const eSyncedParamType type = syncedOpcodes[idx].m_aParamTypes[i];
+        if ((type == eSyncedParamType::PED || type == eSyncedParamType::VEHICLE) &&
+            ReplayEntityPolicy::IsUnnamed(scriptValues[i], COpCodeSync::scriptParamsBuffer[i].value))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+// private build: CTaskSequenceSync stores a sequence's tasks with the script's handles (SerializeOpcode(idx, size, false))
+// and names their entities here when the sequence is performed: a mission often creates the car a task names in the frame
+// it defines the sequence (Drive-By: Car.Create, Char.CreateInsideCar and the Task.LeaveCar sequence in one frame), when
+// the car has no network id yet (a temp record until VEHICLE_CONFIRM), and the others then built CTaskComplexLeaveCar
+// with no vehicle. This runs inside BuildAndSendOpcode for PERFORM_SEQUENCE_TASK, which clears the command state it reuses.
+bool COpCodeSync::SerializeStoredOpcode(const std::vector<uint8_t>& stored, std::vector<uint8_t>& out)
+{
+    if (stored.size() < sizeof(OpcodeSyncHeader))
+    {
+        return false;
+    }
+
+    OpcodeSyncHeader header;
+    memcpy(&header, stored.data(), sizeof(header));
+    size_t position = sizeof(header) + header.intParamCount * sizeof(int);
+    if (position > stored.size())
+    {
+        return false;
+    }
+
+    int idx = -1;
+    for (size_t i = 0; i < ARRAY_SIZE(syncedOpcodes); i++)
+    {
+        if (syncedOpcodes[i].m_wOpCode == header.opcode)
+        {
+            idx = static_cast<int>(i);
+            break;
+        }
+    }
+    if (idx == -1)
+    {
+        return false;
+    }
+
+    // the command state SerializeOpcode reads, as when the command ran
+    memset(scriptParamsBuffer, 0, sizeof(scriptParamsBuffer));
+    memcpy(scriptParamsBuffer, stored.data() + sizeof(header), header.intParamCount * sizeof(int));
+    memset(textLengthBuffer, 0, sizeof textLengthBuffer);
+    memset(textParamBuffer, 0, sizeof textParamBuffer);
+    for (int i = 0; i < header.stringParamCount; i++)
+    {
+        if (position >= stored.size())
+        {
+            return false;
+        }
+        const uint8_t length = stored[position++];
+        if (position + length > stored.size())
+        {
+            return false;
+        }
+        textLengthBuffer[i] = length;
+        memcpy(textParamBuffer[i], stored.data() + position, length);
+        position += length;
+    }
+    scriptParamCount = header.intParamCount;
+    textParamCount = header.stringParamCount;
+
+    const int scriptValues[4] = {scriptParamsBuffer[0].value, scriptParamsBuffer[1].value, scriptParamsBuffer[2].value,
+        scriptParamsBuffer[3].value};
+    const uint32_t runningOpcode = lastOpCodeProcessed;
+    lastOpCodeProcessed = header.opcode; // SerializeOpcode writes it into the header
+    int size = 0;
+    std::vector<uint8_t> named = SerializeOpcode(idx, size);
+    lastOpCodeProcessed = runningOpcode;
+
+    if (HasUnnamedEntity(idx, scriptValues))
+    {
+        return false;
+    }
+    out = std::move(named);
+    return true;
+}
+
 
 void BuildAndSendOpcode()
 {
@@ -459,7 +557,21 @@ void BuildAndSendOpcode()
         return;
 
     int dataSize = 0;
+    // private build: the parameters as the script gave them (SerializeOpcode turns entity handles into network ids)
+    const int scriptValues[4] = {COpCodeSync::scriptParamsBuffer[0].value, COpCodeSync::scriptParamsBuffer[1].value,
+        COpCodeSync::scriptParamsBuffer[2].value, COpCodeSync::scriptParamsBuffer[3].value};
     std::vector<uint8_t> buffer = COpCodeSync::SerializeOpcode(idx, dataSize);
+
+    // private build: a command naming an entity without a network id doesn't go out (HasUnnamedEntity); strict commands
+    // were dropped by the others anyway, TASK_DRIVE_BY became a drive-by at its coordinates
+    if (HasUnnamedEntity(idx, scriptValues))
+    {
+        memset(textParamBuffer, 0, sizeof textParamBuffer);
+        memset(textLengthBuffer, 0, sizeof textLengthBuffer);
+        scriptParamCount = 0;
+        textParamCount = 0;
+        return;
+    }
 
     // private build: the mission mirror layer keeps back what doesn't go out now (a print_big that isn't a mission title,
     // a reward until its mission passes in this script frame) and notes the texts a joiner gets
@@ -558,6 +670,7 @@ void COpCodeSync::HandlePacket(const uint8_t* buffer, int bufferSize)
             int max = VMIN(scriptParamCount, 4);
             for (int i = 0; i < max; i++)
             {
+                const OpcodeParameter sentParameter = scriptParamsBuffer[i]; // private build: checked after the switch
                 switch (syncedOpcodes[idx].m_aParamTypes[i])
                 {
                 case eSyncedParamType::PED:
@@ -577,7 +690,8 @@ void COpCodeSync::HandlePacket(const uint8_t* buffer, int bufferSize)
                         {
                             /*if (header.opcode == 0x0605)
                                 CChat::AddMessage("Network instance found...");*/
-                            if (auto ped = networkPed->m_pPed)
+                            // private build: not a destroyed copy's pointer (pool slot generation)
+                            if (auto ped = networkPed->GetLivePed())
                             {
                                 if (!ped->IsVTableValid())
                                     return;
@@ -606,6 +720,7 @@ void COpCodeSync::HandlePacket(const uint8_t* buffer, int bufferSize)
                             {
                                 scriptParamsBuffer[i].value = CPools::GetPedRef(playerPed);
                             }
+                            else return; // private build: no local player ped (a restart); the encoded id isn't a handle
                         }
                         else
                         {
@@ -708,6 +823,23 @@ void COpCodeSync::HandlePacket(const uint8_t* buffer, int bufferSize)
                 }
                 default:
                     break;
+                }
+
+                // private build (ReplayEntityPolicy::MustDrop): a PED or VEHICLE the host named but this game doesn't have
+                // isn't replayed as "no entity" (Drive-By: Task.LeaveCar of a sequence became CTaskComplexLeaveCar with no
+                // vehicle, read at 0x642067), so the command is dropped and a task of a sequence left out
+                // (CTaskSequenceSync::HandlePacket); and the ped a task is for is never -1 outside a sequence:
+                // GivePedScriptedTask (0x465C20) adds the task for ped -1 to ms_taskSequence[ms_iActiveSequence] (0x465E29,
+                // 0x8D2E98), which is -1 then
+                const eSyncedParamType paramType = syncedOpcodes[idx].m_aParamTypes[i];
+                if ((paramType == eSyncedParamType::PED || paramType == eSyncedParamType::VEHICLE) &&
+                    ReplayEntityPolicy::MustDrop(sentParameter.value, scriptParamsBuffer[i].value, i,
+                        COpCodeSync::ms_bProcessingTaskSequence))
+                {
+                    CNetworkPedManager::LogEvent("replay-dropped", -1, "opcode=%04X param=%d sent=%d:%d in-sequence=%d",
+                        header.opcode, i, static_cast<int>(sentParameter.entityType), sentParameter.entityId,
+                        COpCodeSync::ms_bProcessingTaskSequence);
+                    return;
                 }
             }
             /*if (header.opcode == 0x0605)

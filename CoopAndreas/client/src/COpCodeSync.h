@@ -73,7 +73,12 @@ public:
 
 	static void Init();
 	static void HandlePacket(const uint8_t* buffer, int bufferSize);
-	static std::vector<uint8_t> COpCodeSync::SerializeOpcode(int idx, int& outSize);
+	// private build: bNameEntities false keeps the script's entity handles (CTaskSequenceSync names them when the sequence
+	// is performed, SerializeStoredOpcode)
+	static std::vector<uint8_t> COpCodeSync::SerializeOpcode(int idx, int& outSize, bool bNameEntities = true);
+	// private build: a command stored with SerializeOpcode(idx, size, false), serialized with its entities named now; false
+	// when one of them has no network id (ReplayEntityPolicy::IsUnnamed): that task is left out
+	static bool SerializeStoredOpcode(const std::vector<uint8_t>& stored, std::vector<uint8_t>& out);
 	static bool COpCodeSync::IsOpcodeSyncable(int opcode, int* opcodeIdx = nullptr, bool ignoreOpCodeSync = false, bool* pbMirrorOnly = nullptr);
 
 	// private build: the script whose command CRunningScript::Process runs (the 0x469FF3 redirect sets it around the

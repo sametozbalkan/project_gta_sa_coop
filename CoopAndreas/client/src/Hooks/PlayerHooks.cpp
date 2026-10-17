@@ -392,6 +392,18 @@ void __fastcall CRunningScript__DoDeatharrestCheck_Hook(CRunningScript* This, SK
         }
     }
 
+    // private build: a mission that hasn't entered its first gosub has no return address to go back to (m_nSP 0). The story
+    // trigger threads set $onmission to 1 before they launch a mission (INT.txt), a non-host's $onmission follows the
+    // host's, and a dead or arrested network player counts, so the check can come in the mission's first frame; the pop
+    // below then read m_apStack[0xFFFF] (script + 0x40014) as the IP and the first command crashed (ScriptsArray slot 69
+    // read 0xACF0A4, which holds 0x00D2FFFF: CIP 0x00D30001, EIP 0x3F800000 from beyond CommandHandlerTable). Vanilla's
+    // check (0x485A50, moved to 0x1564F00) pops the same way. The next frame's check fails the mission inside its first
+    // gosub instead.
+    if (wastedOrBusted && This->m_nSP == 0)
+    {
+        return;
+    }
+
     if (wastedOrBusted)
     {
         CMessages::ClearSmallMessagesOnly();

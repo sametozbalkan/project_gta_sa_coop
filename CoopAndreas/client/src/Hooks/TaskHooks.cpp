@@ -5,6 +5,7 @@
 #include "CNetworkPed.h"
 #include "CAimSync.h"
 #include <CKeySync.h>
+#include <CReplayEntityPolicy.h>
 
 // when local player enters any vehicle
 static void __fastcall CTaskComplexEnterCarAsDriver__Ctor_Hook(
@@ -44,6 +45,69 @@ static void __fastcall CTaskComplexLeaveCar__Ctor_Hook(CTaskComplexLeaveCar* Thi
 
     plugin::CallMethod<0x63B8C0, CTaskComplexLeaveCar*, CVehicle*, int, int, bool, bool>(
         This, vehicle, targetDoor, delayTime, sensibleLeaveCar, forceGetOut);
+}
+
+// private build: a CTaskComplexLeaveCar without its vehicle (vtable 0x86E828, gta-reversed TaskComplexLeaveCar.cpp; the
+// slots below read from gta_sa.exe: 0x86E848 holds CreateNextSubTask 0x6419F0, 0x86E84C CreateFirstSubTask 0x641FC0, which
+// CTaskManager::AddSubTasks calls through [vtable+24h] at 0x681A53). Once the ped is in a car (CPed +0x46C bit 0x100)
+// CreateFirstSubTask reads m_pTargetVehicle (+0xC) unchecked (0x642064, 0x642067: both other games in Drive-By, a replayed
+// Task.LeaveCar built with no vehicle), and so do branches of CreateNextSubTask (0x641B68); ControlSubTask 0x6421B0 and
+// MakeAbortable 0x641100 check it. TASK_LEAVE_CAR (05CD, case 0x490554) builds the task with whatever CPools::GetVehicle
+// returns, and a vehicle deleted while the task waits in a sequence or runs clears the registered reference. Then the ped
+// leaves the car it sits in; a ped on foot keeps the game's "ped not in car" path at the start (0x642020, no vehicle read),
+// later the task ends (ReplayEntityPolicy::DecideLeaveCar). Both slots are replaced only while they hold the originals.
+static constexpr uintptr_t CTASKCOMPLEXLEAVECAR_VTBL_CREATENEXTSUBTASK = 0x86E848;
+static constexpr uintptr_t CTASKCOMPLEXLEAVECAR_VTBL_CREATEFIRSTSUBTASK = 0x86E84C;
+static constexpr uintptr_t CTASKCOMPLEXLEAVECAR_CREATENEXTSUBTASK = 0x6419F0;
+static constexpr uintptr_t CTASKCOMPLEXLEAVECAR_CREATEFIRSTSUBTASK = 0x641FC0;
+
+// true when the game's own code may run: the task has its vehicle now, or the ped's state needs none
+static bool PrepareLeaveCarVehicle(CTaskComplexLeaveCar* pTask, CPed* pPed, bool bFirstSubTask)
+{
+    const bool bPedInVehicle = pPed->m_nPedFlags.bInVehicle;
+    switch (ReplayEntityPolicy::DecideLeaveCar(pTask->m_pTargetVehicle != nullptr, bPedInVehicle, pPed->m_pVehicle != nullptr,
+        bFirstSubTask))
+    {
+        case ReplayEntityPolicy::eLeaveCar::ORIGINAL:
+            return true;
+
+        case ReplayEntityPolicy::eLeaveCar::TAKE_PED_VEHICLE:
+            // the door and getting-in counts the task set (+0x20, +0x21) belonged to the vehicle that went;
+            // ~CTaskComplexLeaveCar (0x63B970) takes them off m_pTargetVehicle
+            pTask->m_pTargetVehicle = pPed->m_pVehicle;
+            pTask->m_pTargetVehicle->RegisterReference(reinterpret_cast<CEntity**>(&pTask->m_pTargetVehicle));
+            pTask->m_nDoorFlagsSet = 0;
+            pTask->m_nNumGettingInSet = 0;
+            CNetworkPedManager::LogEvent("leave-car-no-vehicle", -1, "subtask=%s action=own-vehicle model=%d",
+                bFirstSubTask ? "first" : "next", pPed->m_pVehicle->m_nModelIndex);
+            return true;
+
+        case ReplayEntityPolicy::eLeaveCar::NO_SUBTASK:
+            break;
+    }
+    CNetworkPedManager::LogEvent("leave-car-no-vehicle", -1, "subtask=%s action=end in-vehicle=%d",
+        bFirstSubTask ? "first" : "next", bPedInVehicle);
+    return false;
+}
+
+static CTask* __fastcall CTaskComplexLeaveCar__CreateFirstSubTask_Hook(CTaskComplexLeaveCar* This, SKIP_EDX, CPed* pPed)
+{
+    if (!PrepareLeaveCarVehicle(This, pPed, true))
+    {
+        return nullptr;  // the task ends: AddSubTasks (0x681A58) asks its parent for the next subtask (0x681920)
+    }
+    return plugin::CallMethodAndReturn<CTask*, CTASKCOMPLEXLEAVECAR_CREATEFIRSTSUBTASK, CTaskComplexLeaveCar*, CPed*>(This,
+        pPed);
+}
+
+static CTask* __fastcall CTaskComplexLeaveCar__CreateNextSubTask_Hook(CTaskComplexLeaveCar* This, SKIP_EDX, CPed* pPed)
+{
+    if (!PrepareLeaveCarVehicle(This, pPed, false))
+    {
+        return nullptr;  // as the original's TASK_FINISHED (CreateSubTask 0x641530 returns nullptr for it, 0x6419DA)
+    }
+    return plugin::CallMethodAndReturn<CTask*, CTASKCOMPLEXLEAVECAR_CREATENEXTSUBTASK, CTaskComplexLeaveCar*, CPed*>(This,
+        pPed);
 }
 
 CTaskManager* pTaskMgr = nullptr;
@@ -320,6 +384,28 @@ void TaskHooks::InjectHooks()
 
     patch::RedirectCall(0x57049C, CTaskComplexLeaveCar__Ctor_Hook);
     patch::RedirectCall(0x5703F7, CTaskComplexLeaveCar__Ctor_Hook);
+
+    // private build: CTaskComplexLeaveCar without its vehicle, checked before each slot is replaced
+    if (*reinterpret_cast<const uintptr_t*>(CTASKCOMPLEXLEAVECAR_VTBL_CREATEFIRSTSUBTASK) ==
+        CTASKCOMPLEXLEAVECAR_CREATEFIRSTSUBTASK)
+    {
+        patch::SetPointer(CTASKCOMPLEXLEAVECAR_VTBL_CREATEFIRSTSUBTASK, CTaskComplexLeaveCar__CreateFirstSubTask_Hook);
+    }
+    else
+    {
+        logger::warn("[TaskHooks] unexpected CTaskComplexLeaveCar::CreateFirstSubTask at 0x%X, a leave-car task without its "
+            "vehicle isn't caught", CTASKCOMPLEXLEAVECAR_VTBL_CREATEFIRSTSUBTASK);
+    }
+    if (*reinterpret_cast<const uintptr_t*>(CTASKCOMPLEXLEAVECAR_VTBL_CREATENEXTSUBTASK) ==
+        CTASKCOMPLEXLEAVECAR_CREATENEXTSUBTASK)
+    {
+        patch::SetPointer(CTASKCOMPLEXLEAVECAR_VTBL_CREATENEXTSUBTASK, CTaskComplexLeaveCar__CreateNextSubTask_Hook);
+    }
+    else
+    {
+        logger::warn("[TaskHooks] unexpected CTaskComplexLeaveCar::CreateNextSubTask at 0x%X, a leave-car task without its "
+            "vehicle isn't caught", CTASKCOMPLEXLEAVECAR_VTBL_CREATENEXTSUBTASK);
+    }
 
     // patch::RedirectCall(0x62D59B, CTaskSimpleGangDriveBy__SetupStaticAnimForPlayer_Hook);
 

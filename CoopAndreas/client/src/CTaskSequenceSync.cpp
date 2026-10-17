@@ -34,6 +34,16 @@ std::vector<uint8_t> m_serializedSequences[CTaskSequences::NUM_SEQUENCES][CTaskS
 int m_sequenceTaskCount = 0;
 bool m_bSequenceOpened = false;
 
+// private build: whether the game's sequence in this slot holds a task. CTaskSequences::ms_taskSequence is 0xC178F0, 64
+// CTaskComplexSequence of 0x40 (OPEN_SEQUENCE_TASK case 0x49186F: shl ecx,6; add ecx,0C178F0h); a sequence's 8 tasks start
+// at +0x10 (CTaskComplexSequence::AddTask 0x632D10, Flush 0x632C10; gta-reversed TaskComplexSequence.h, m_Tasks)
+static bool SequenceHasTasks(int slot)
+{
+	if (slot < 0 || slot >= CTaskSequences::NUM_SEQUENCES)
+		return false;
+	return *reinterpret_cast<void* const*>(0xC178F0 + slot * 0x40 + 0x10) != nullptr;
+}
+
 bool CTaskSequenceSync::IsOpCodeTaskSynced(eScriptCommands opcode)
 {
 	for (int i = 0; i < ARRAY_SIZE(m_syncedTasks); i++)
@@ -61,6 +71,13 @@ void OpenSequence()
 
 	int sequenceId = CTaskSequences::ms_iActiveSequence;
 
+	// private build: no sequence was free (OPEN_SEQUENCE_TASK, case 0x49186F, left none active)
+	if (sequenceId < 0 || sequenceId >= CTaskSequences::NUM_SEQUENCES)
+	{
+		m_bSequenceOpened = false;
+		return;
+	}
+
 	for (int i = 0; i < CTaskSequences::NUM_TASKS; ++i) 
 	{
 		m_serializedSequences[sequenceId][i].clear();
@@ -77,6 +94,14 @@ void ClearSequence()
 {
 	int sequenceId = CTheScripts::GetActualScriptThingIndex(COpCodeSync::scriptParamsBuffer[0].value, SCRIPT_THING_SEQUENCE_TASK);
 
+	// private build: this runs after CLEAR_SEQUENCE_TASK (case 0x491A4A), which marks the sequence's script thing unused
+	// (0x491A95), so the handle gives -1 here and the loop below wrote before m_serializedSequences on every
+	// Sequence.Clear. OpenSequence empties a sequence's tasks when its slot is opened again.
+	if (sequenceId < 0 || sequenceId >= CTaskSequences::NUM_SEQUENCES)
+	{
+		return;
+	}
+
 	for (int i = 0; i < CTaskSequences::NUM_TASKS; ++i)
 	{
 		m_serializedSequences[sequenceId][i].clear();
@@ -86,6 +111,8 @@ void ClearSequence()
 void PerformSequence()
 {
 	int pedHandle = COpCodeSync::scriptParamsBuffer[0].value;
+	// private build: read before COpCodeSync::SerializeStoredOpcode below reuses the command state
+	const int sequenceHandle = COpCodeSync::scriptParamsBuffer[1].value;
 	auto ped = CPools::GetPed(pedHandle);
 	
 	if (!ped)
@@ -103,7 +130,11 @@ void PerformSequence()
 		if (pedid == -1) return;
 	}
 
-	int sequenceId = CTheScripts::GetActualScriptThingIndex(COpCodeSync::scriptParamsBuffer[1].value, SCRIPT_THING_SEQUENCE_TASK);
+	int sequenceId = CTheScripts::GetActualScriptThingIndex(sequenceHandle, SCRIPT_THING_SEQUENCE_TASK);
+
+	// private build: an unknown handle gives -1 (PERFORM_SEQUENCE_TASK, case 0x49194B, checks it too)
+	if (sequenceId < 0 || sequenceId >= CTaskSequences::NUM_SEQUENCES)
+		return;
 
 	/*
 	packet structure:
@@ -119,13 +150,27 @@ void PerformSequence()
 	int packetSize = 0;
 	uint8_t taskCount = 0;
 
+	// private build: the tasks were stored with the script's handles (AddNewTask) and their entities are named now
+	// (COpCodeSync::SerializeStoredOpcode): Drive-By creates its Voodoos and defines the Task.LeaveCar sequences in one
+	// frame, before VEHICLE_CONFIRM, and the others built CTaskComplexLeaveCar with no vehicle from the -1 that went out.
+	// A task whose entity still has no network id (or none any more) is left out (ReplayEntityPolicy::IsUnnamed).
+	std::vector<uint8_t> namedTasks[CTaskSequences::NUM_TASKS];
+
 	for (int i = 0; i < CTaskSequences::NUM_TASKS; i++)
 	{
 		if (m_serializedSequences[sequenceId][i].empty())
 			break;
 
+		if (!COpCodeSync::SerializeStoredOpcode(m_serializedSequences[sequenceId][i], namedTasks[taskCount]))
+		{
+			uint16_t opcode = 0;
+			memcpy(&opcode, m_serializedSequences[sequenceId][i].data(), sizeof(opcode));
+			CNetworkPedManager::LogEvent("sequence-task-left-out", pedid, "opcode=%04X task=%d", opcode, i);
+			continue;
+		}
+
+		packetSize += sizeof(uint8_t) + namedTasks[taskCount].size(); // size + task
 		taskCount++;
-		packetSize += sizeof(uint8_t) + m_serializedSequences[sequenceId][i].size(); // size + task
 	}
 
 	if (taskCount == 0)
@@ -146,8 +191,9 @@ void PerformSequence()
 
 	for (int i = 0; i < taskCount; i++)
 	{
-		vBuffer.push_back((uint8_t)m_serializedSequences[sequenceId][i].size());
-		vBuffer.insert(vBuffer.end(), m_serializedSequences[sequenceId][i].begin(), m_serializedSequences[sequenceId][i].end());
+		// private build: the named tasks
+		vBuffer.push_back((uint8_t)namedTasks[i].size());
+		vBuffer.insert(vBuffer.end(), namedTasks[i].begin(), namedTasks[i].end());
 	}
 
 	static Packets::Scripts::PerformTaskSequence packet{};
@@ -164,8 +210,13 @@ void AddNewTask(eScriptCommands opcode)
 
 	assert(idx != -1 && "an opcode exists in 'm_serializedSequences' but not found in 'syncedOpcodes'");
 
+	// private build: a sequence holds 8 tasks (CTaskComplexSequence::AddTask 0x632D10 deletes a ninth)
+	if (m_sequenceTaskCount >= CTaskSequences::NUM_TASKS)
+		return;
+
 	int dataSize = 0;
-	m_serializedSequences[sequenceId][m_sequenceTaskCount] = COpCodeSync::SerializeOpcode(idx, dataSize);
+	// private build: with the script's handles; PerformSequence names the entities (COpCodeSync::SerializeStoredOpcode)
+	m_serializedSequences[sequenceId][m_sequenceTaskCount] = COpCodeSync::SerializeOpcode(idx, dataSize, false);
 
 	m_sequenceTaskCount++;
 }
@@ -264,6 +315,9 @@ void CTaskSequenceSync::HandlePacket(void* pData, int size)
 		return;
 	}
 
+	// private build: the sequence slot OPEN_SEQUENCE_TASK opened (case 0x49186F stores it in ms_iActiveSequence, 0x4918B4)
+	const int slot = CTaskSequences::ms_iActiveSequence;
+
 	CTaskSequenceSync::ms_bFailedToProcessSequence = false;
 
 	int ptr = 9;
@@ -273,10 +327,14 @@ void CTaskSequenceSync::HandlePacket(void* pData, int size)
 		ptr++;
 
 		COpCodeSync::ms_bProcessingTaskSequence = true;
+		// private build: a task naming an entity this game doesn't have is left out (ReplayEntityPolicy::MustDrop)
 		COpCodeSync::HandlePacket((uint8_t*)((int)pData + ptr), len);
 
 		if (CTaskSequenceSync::ms_bFailedToProcessSequence == true)
 		{
+			// private build: it stayed set, and the replays until the retry took a sequence's rules (a ped -1 outside a
+			// sequence, a missing entity replayed as none)
+			COpCodeSync::ms_bProcessingTaskSequence = false;
 			if (pData && size > 0)
 			{
 				ms_vTaskSequences.emplace_back((uint8_t*)pData, (uint8_t*)pData + size);
@@ -293,6 +351,11 @@ void CTaskSequenceSync::HandlePacket(void* pData, int size)
 	}
 
 	Command<Commands::CLOSE_SEQUENCE_TASK>(sequenceId);
-	Command<Commands::PERFORM_SEQUENCE_TASK>(CPools::GetPedRef(ped), sequenceId);
+	// private build: when every task was left out the ped keeps what it does (performing an empty sequence would replace its
+	// primary task)
+	if (SequenceHasTasks(slot))
+	{
+		Command<Commands::PERFORM_SEQUENCE_TASK>(CPools::GetPedRef(ped), sequenceId);
+	}
 	Command<Commands::CLEAR_SEQUENCE_TASK>(sequenceId);
 }
