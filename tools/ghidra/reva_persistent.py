@@ -9,10 +9,15 @@ checkin-program tool saves them.
 Run it with the Python of the ReVa uv tool (it has pyghidra, reva_cli and the MCP SDK):
   <uv tool dir>\\reverse-engineering-assistant\\Scripts\\python.exe -I reva_persistent.py
       --project-dir <dir with gta_sa.gpr> --reva-ext <ReVa extension dir with Module.manifest>
-      [--project-name gta_sa] [--settings-dir <Ghidra settings dir>] [--disable-tool-group ID]...
+      [--project-name gta_sa] [--settings-dir <Ghidra settings dir>] [--temp-dir <dir>]
+      [--disable-tool-group ID]...
 Environment: GHIDRA_INSTALL_DIR (required), JAVA_HOME_OVERRIDE (optional, else Ghidra's
 LaunchSupport finds the JDK). The ReVa extension is loaded as an external module
 (-Dghidra.external.modules), so nothing is installed into Ghidra or its user settings.
+Ghidra's temp folder (-Dapplication.tempdir) is --temp-dir, by default ghidra-temp next to the
+project folder: every program open creates a buffer file there (Application.createTempFile), and
+Windows' temp clean-up once removed the default %TEMP%\\ghidra while the server ran, after which
+every tool answered "Program not found ... Did you mean /gta_sa.exe".
 Ghidra refuses a project path with a folder that starts with '.', such as .tools; such a
 path is opened through its 8.3 short form (C:\\...\\TOOLS~1\\...).
 Ghidra allows one process per project: while this server runs, analyzeHeadless cannot open
@@ -82,6 +87,7 @@ def main():
     ap.add_argument("--project-name", default="gta_sa")
     ap.add_argument("--reva-ext", required=True, type=Path)
     ap.add_argument("--settings-dir", type=Path)
+    ap.add_argument("--temp-dir", type=Path)
     group = ap.add_mutually_exclusive_group()
     group.add_argument("--disable-tool-group", action="append", metavar="ID")
     group.add_argument("--tool-group", action="append", metavar="ID")
@@ -100,6 +106,9 @@ def main():
     if args.settings_dir:
         args.settings_dir.mkdir(parents=True, exist_ok=True)
         launcher.add_vmargs(f"-Dapplication.settingsdir={args.settings_dir.resolve()}")
+    temp_dir = (args.temp_dir or project_dir.parent / "ghidra-temp").absolute()
+    temp_dir.mkdir(parents=True, exist_ok=True)
+    launcher.add_vmargs(f"-Dapplication.tempdir={temp_dir}")
     launcher.start()
 
     from java.io import File  # noqa: E402 (needs the JVM)
