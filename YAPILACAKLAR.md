@@ -107,8 +107,8 @@ gelecek, test listesi `docs/test-0.1.1.md`):
 **0.1.1 testi (2026-10-17, üç oyuncu):** #8 Drive-By'da host olmayan iki oyuncunun oyunu, Ballas Voodoo'larından
 inerken aynı anda çöktü (0x642067); host'unki çökmedi. Daha önce host'un oyunu bir hikâye görevini başlatırken
 çöktü (22:07, EIP 0x3F800000).
-**0.1.2 hazır** (2026-10-18, paketlendi; yayın ve kurulum kullanıcının onayını bekliyor; test listesi
-`docs/test-0.1.2.md`):
+**0.1.2 GitHub'da ön sürüm olarak yayımlandı** (2026-10-18, etiket `v0.1.2-alpha`; aynı gün host'un oyun kopyasına
+da kuruldu, 0.1.1'in dosyaları `backups/installed-0.1.1-20261018/` içinde; test listesi `docs/test-0.1.2.md`):
 - **Drive-By çökmesi:** görev arabaları ve onlara verdiği "arabadan in" sırasını aynı karede kuruyordu; arabalar
   henüz ağ kimliği almadığı için sıra diğer oyunlara arabasız gidiyordu. Sıranın görevleri artık sıra oynatılırken
   adlandırılıyor; diğer oyunlar sahip olmadıkları bir araç ya da karakter için gelen komutu çalıştırmıyor; aracı
