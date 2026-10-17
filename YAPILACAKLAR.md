@@ -90,7 +90,9 @@ saklanması. Kanca denetimi 411 nokta; on politika testi geçiyor. C1 (#2–#10 
 rehberi birleştirildi. **0.1.0-alpha paketlendi** (etiket `v0.1.0-alpha`, test listesi `docs/test-0.1.0.md`); host'un
 oyununa kuruldu, iki oyunculu test bekliyor.
 **0.1.1 GitHub'da ön sürüm olarak yayımlandı** (2026-10-17, etiket `v0.1.1-alpha`; kullanıcının arkadaşlarının testi
-için; oyun kopyasında hâlâ 0.1.0 var). Önceki plan: 0.1.0 testinden sonra, testte çıkan düzeltmelerle birlikte
+için; aynı gün host'un oyun kopyasına da kuruldu, kullanıcı arkadaşlarıyla bu sürümle oynuyor. 0.1.0 iki kişiyle hiç
+test edilmedi; test artık 0.1.1 üzerinde, `docs/test-0.1.0.md` görev kontrolleri ve `docs/test-0.1.1.md` ile).
+Önceki plan: 0.1.0 testinden sonra, testte çıkan düzeltmelerle birlikte
 gelecek, test listesi `docs/test-0.1.1.md`):
 - **Araç senkronu:** aracı kimin yönettiği açıkça bildiriliyor; araç kayıtları aracın yok edilmesiyle bitiyor; host
   görevinin sildiği araç her yerden kalkıyor; sunucuda oyuncu başına tek koltuk var; çıkan oyuncunun sürdüğü host görev
