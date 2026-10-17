@@ -5,10 +5,12 @@
     Refuses to run unless the game folder has a 1.0 US gta_sa.exe. On the first run it renames the
     game's eax.dll to eax_orig.dll, because the proxy takes its name and forwards to the original.
     Then it copies the client DLL, the proxy (as eax.dll), the server (into server\) and the co-op
-    main.scm / script.img (into CoopAndreas\), and creates two shortcuts in the game folder:
-    "CoopAndreas" (gta_sa.exe --coop; the proxy only loads the mod with that flag) and
-    "CoopAndreas Server". The launcher isn't used: this build has no serial check. It also removes the
-    discord-<appid> URL handler that older builds' Discord Rich Presence wrote to HKCU. Supports -WhatIf.
+    main.scm / script.img (into CoopAndreas\), and creates three shortcuts in the game folder:
+    "CoopAndreas" (gta_sa.exe --coop; the proxy only loads the mod with that flag),
+    "CoopAndreas (diagnostics)" (--coop --coopdiag, as the installer's) and "CoopAndreas Server".
+    The launcher isn't used: this build has no serial check. It also removes the diagnostics shortcut
+    under its old name and the discord-<appid> URL handler that older builds' Discord Rich Presence
+    wrote to HKCU. Supports -WhatIf.
 .PARAMETER Force
     Continue even if gta_sa.exe has a size that is not a known 1.0 US size.
 #>
@@ -94,6 +96,16 @@ Copy-One (Join-Path $repo 'scm\script.img')     (Join-Path $GameDir 'CoopAndreas
 
 New-Shortcut (Join-Path $GameDir 'CoopAndreas.lnk') $exe '--coop' $GameDir
 New-Shortcut (Join-Path $GameDir 'CoopAndreas Server.lnk') (Join-Path $serverDir 'server.exe') '' $serverDir
+# with diagnostic logs (--coopdiag): CoopAndreas_diag.log and the other CoopAndreas_*.log files go into the game folder
+New-Shortcut (Join-Path $GameDir 'CoopAndreas (diagnostics).lnk') $exe '--coop --coopdiag' $GameDir
+# the name earlier packages gave the diagnostics shortcut
+$oldDiagLink = Join-Path $GameDir 'CoopAndreas (tani).lnk'
+if (Test-Path -LiteralPath $oldDiagLink -PathType Leaf) {
+    if ($PSCmdlet.ShouldProcess($oldDiagLink, 'Remove the diagnostics shortcut under its old name')) {
+        Remove-Item -LiteralPath $oldDiagLink -Force
+        "Removed the old diagnostics shortcut: $oldDiagLink"
+    }
+}
 
 # Story host pinning: "story-host" in server-config.ini names the player who is always the host. When the key is
 # missing, the nickname from this PC's coopandreas.ini (the game reads it from its user files folder) goes in, in the

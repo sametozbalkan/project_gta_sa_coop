@@ -1,3 +1,3 @@
 @echo off
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0Kur.ps1" %*
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0Install.ps1" %*
 pause

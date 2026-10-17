@@ -1,38 +1,39 @@
-CoopAndreas kurulumu
+CoopAndreas setup
 
-GEREKENLER
-- Steam'de GTA San Andreas kurulu olmalı (Steam sürümü).
-- Seçilen sürücüde en az 7 GB boş alan.
-- İlk kurulumda internet: yaklaşık 880 MB yama indirilir (paketin içinde Patches_v2.zip varsa indirilmez).
+WHAT YOU NEED
+- GTA San Andreas installed in Steam (the Steam version).
+- At least 7 GB of free space on the target drive.
+- Internet for the first install: about 880 MB of patches are downloaded (not if Patches_v2.zip is in this folder).
 
-KURULUM
-1. Zip'in tamamını bir klasöre çıkar.
-2. "Kur.bat"a çift tıkla.
-   - Steam'deki oyunun bir kopyası C:\Games\GTASA_Coop klasörüne alınır ve GTA SA 1.0 US'e düşürülür.
-     Steam kurulumuna dokunulmaz, her dosya doğrulanır.
-   - CoopAndreas, CoopTunnel ve kısayollar kurulur.
-   - Başka bir klasör için: Kur.bat -GameDir D:\GTASA_Coop
-3. Windows "bilgisayarınız korundu" derse: "Ek bilgi" > "Yine de çalıştır".
+INSTALL
+1. Extract the whole zip into a folder.
+2. Double-click "Install.bat".
+   - It copies the Steam game to C:\Games\GTASA_Coop and downgrades the copy to GTA SA 1.0 US.
+     Your Steam install is not changed, and every file is checked.
+   - It installs CoopAndreas, CoopTunnel and the shortcuts.
+   - To use another folder: Install.bat -GameDir D:\GTASA_Coop
+3. If Windows says "Windows protected your PC": click "More info", then "Run anyway".
 
-OYNAMA (sunucuyu host açar, sen ona bağlanırsın)
-1. Host sunucuyu ve tüneli açmış olmalı.
-2. Masaüstünden "CoopAndreas Tünel - Bağlan" > host'u kendisi bulur, pencere açık kalsın.
-3. Masaüstünden "CoopAndreas" > Start Game > Connect (127.0.0.1 : 6767 hazır gelir) > New Game.
-   Takma ad host'unkinden farklı olmalı.
-4. Oyun açılışta "Device Selection" penceresi gösterirse onayla.
+PLAY (the host runs the server, you connect to it)
+1. The host starts the server and the tunnel first.
+2. Start "CoopAndreas Tunnel - Join" on your desktop. It finds the host by itself; keep its window open.
+3. Start "CoopAndreas" on your desktop > Start Game > Connect (127.0.0.1 : 6767 is filled in) > New Game.
+   Your nickname must differ from the host's.
+4. If the game shows a "Device Selection" window at start, confirm it.
 
-NOTLAR
-- Eski kayıtlar CoopAndreas'ta yüklenemez; her zaman New Game.
-- Eşyaların (silah ve mermi, can, zırh, para, kıyafet, saç, dövme, beceriler) host kayıt alınca onun kaydının
-  yanında saklanır. Host o kaydı yükleyip sen New Game ile bağlanınca geri gelir. Takma adını değiştirme;
-  eşleşme takma adla yapılır.
-- Oyunun çökerse host'ta "bağlantın koptu" görünene kadar (30-60 sn) bekle, sonra New Game ile yeniden bağlan;
-  son durumun geri gelir.
-- Bir sorunu incelemek gerekirse oyunu oyun klasöründeki "CoopAndreas (tani)" kısayoluyla aç ve oradaki
-  CoopAndreas_ped_sync.log dosyasını host'a gönder.
-- Alt+Tab yapınca oyun duraklar ama bağlantı kopmaz. Host Alt+Tab'dayken görev de bekler.
-- Oyunun sol alt köşesinde sürüm yazar. İki tarafta aynı olmalı; "Version mismatch" görürsen
-  host'un gönderdiği son paketi kur.
-- Wi-Fi'da gecikme dalgalanıyorsa kablo kullan ya da güç tasarrufunu kapat.
-- Güncelleme gelince yeni paketi yine "Kur.bat" ile kur; oyun tekrar indirilmez, sadece mod dosyaları yenilenir.
-- KAYNAK klasörü: CoopAndreas GPL-3.0 lisanslı; bu derlemedeki değişikliklerin kaynağı orada.
+NOTES
+- Old saves can't be loaded in CoopAndreas; always start a New Game.
+- When the host saves, your own state (weapons and ammo, health, armour, money, clothes, hair, tattoos, skills)
+  is stored next to the host's save. It comes back when the host loads that save and you join with New Game.
+  Keep your nickname: your state is matched by it.
+- If your game crashes, wait until the host sees that you left (30-60 s), then join again with New Game;
+  your last state comes back.
+- To help find a problem, start the game with the "CoopAndreas (diagnostics)" shortcut in the game folder.
+  Then send the host the CoopAndreas_*.log files from that folder, and the files in CoopAndreas_crashes if any.
+- Alt+Tab pauses your game but keeps the connection. While the host is in Alt+Tab, the mission waits too.
+- The version is shown in the bottom-left corner of the game and must be the same for both players.
+  If you see "Version mismatch", install the latest package the host sent you.
+- If the ping jumps around on Wi-Fi, use a cable or turn off the adapter's power saving.
+- To update, run "Install.bat" from the new package. The game isn't copied again; only the mod files are
+  replaced, and shortcuts and files with the names older packages used are removed.
+- SOURCE folder: CoopAndreas is licensed under GPL-3.0; the source of the changes in this build is there.

@@ -47,7 +47,7 @@ sealed class HostSocket : SocketManager
         public readonly Connection Connection = connection;
         public readonly UdpClient Udp = udp;
         public readonly Stopwatch Age = Stopwatch.StartNew();
-        public string Name = "doğrulanmamış bağlantı";
+        public string Name = "unverified connection";
         public bool Verified;
         public long BytesIn, BytesOut;
     }
@@ -60,7 +60,7 @@ sealed class HostSocket : SocketManager
     public override void OnConnecting(Connection connection, ConnectionInfo info)
     {
         // the friend check happens on the hello message, see OnMessage
-        Console.WriteLine("Gelen bağlantı, kabul ediliyor...");
+        Console.WriteLine("Incoming connection, accepting...");
         base.OnConnecting(connection, info);
     }
 
@@ -80,7 +80,7 @@ sealed class HostSocket : SocketManager
         if (_peers.Remove(connection.Id, out var peer))
         {
             peer.Udp.Dispose();
-            Console.WriteLine($"Ayrıldı: {peer.Name} ({info.EndReason})");
+            Console.WriteLine($"Left: {peer.Name} ({info.EndReason})");
         }
     }
 
@@ -89,7 +89,7 @@ sealed class HostSocket : SocketManager
     {
         foreach (var peer in _peers.Values.Where(p => !p.Verified && p.Age.Elapsed.TotalSeconds > 10).ToList())
         {
-            Console.WriteLine("Merhaba mesajı gelmedi, bağlantı kapatılıyor.");
+            Console.WriteLine("No hello within 10 s, closing the connection.");
             peer.Connection.Close();
         }
     }
@@ -99,13 +99,13 @@ sealed class HostSocket : SocketManager
         var id = new SteamId { Value = BitConverter.ToUInt64(hello, 1) };
         if (!AllowAll && !new Friend(id).IsFriend)
         {
-            Console.WriteLine($"Reddedildi (Steam arkadaşın değil): {Wire.Name(id)}");
+            Console.WriteLine($"Refused (not your Steam friend): {Wire.Name(id)}");
             peer.Connection.Close();
             return;
         }
         peer.Verified = true;
         peer.Name = Wire.Name(id);
-        Console.WriteLine($"Bağlandı: {peer.Name} -> 127.0.0.1:{ServerPort}");
+        Console.WriteLine($"Connected: {peer.Name} -> 127.0.0.1:{ServerPort}");
     }
 
     public override void OnMessage(Connection connection, NetIdentity identity, IntPtr data, int size, long messageNum, long recvTime, int channel)
@@ -158,11 +158,11 @@ sealed class HostSocket : SocketManager
     {
         if (_peers.Count == 0)
         {
-            Console.WriteLine("Bekleniyor: henüz bağlanan arkadaş yok.");
+            Console.WriteLine("Waiting: no friend connected yet.");
         }
         foreach (var peer in _peers.Values)
         {
-            Console.WriteLine($"  {peer.Name}: sunucuya {peer.BytesIn / 1024} KB, sunucudan {peer.BytesOut / 1024} KB");
+            Console.WriteLine($"  {peer.Name}: {peer.BytesIn / 1024} KB to the server, {peer.BytesOut / 1024} KB from it");
         }
     }
 }
@@ -182,14 +182,14 @@ sealed class HostLink : ConnectionManager
         hello[0] = Wire.Hello;
         BitConverter.TryWriteBytes(hello.AsSpan(1), SteamClient.SteamId.Value);
         Connection.SendMessage(hello, SendType.Reliable);
-        Console.WriteLine($"Host'a bağlanıldı: {Wire.Name(Host)}");
+        Console.WriteLine($"Connected to the host: {Wire.Name(Host)}");
     }
 
     public override void OnDisconnected(ConnectionInfo info)
     {
         base.OnDisconnected(info);
         Closed = true;
-        Console.WriteLine($"Bağlantı kapandı ({info.EndReason}).");
+        Console.WriteLine($"Connection closed ({info.EndReason}).");
     }
 
     public override void OnMessage(IntPtr data, int size, long messageNum, long recvTime, int channel)
@@ -233,21 +233,24 @@ static class Program
 
     static int Main(string[] args)
     {
-        Console.OutputEncoding = System.Text.Encoding.UTF8;  // Turkish text on any console code page
+        Console.OutputEncoding = System.Text.Encoding.UTF8;  // Steam names in any language on any console code page
         timeBeginPeriod(1);
         if (args.Length == 2 && args[0] == "whois" && ulong.TryParse(args[1], out ulong whoisId))
         {
             // diagnostics: how this account sees another Steam account
             SteamClient.Init(SpacewarAppId, asyncCallbacks: false);
             var friend = new Friend(new SteamId { Value = whoisId });
-            Console.WriteLine($"{friend.Name}: ilişki={friend.Relationship}, IsFriend={friend.IsFriend}, " +
-                              $"Spacewar'da={friend.IsPlayingThisGame}, listede={SteamFriends.GetFriends().Any(f => f.Id.Value == whoisId)}");
+            Console.WriteLine($"{friend.Name}: relationship={friend.Relationship}, IsFriend={friend.IsFriend}, " +
+                              $"inSpacewar={friend.IsPlayingThisGame}, inFriendList={SteamFriends.GetFriends().Any(f => f.Id.Value == whoisId)}");
             SteamClient.Shutdown();
             return 0;
         }
         if (args.Length == 0 || args[0] is not ("host" or "join" or "test"))
         {
-            Console.WriteLine("Kullanım:\n  CoopTunnel host [--server-port 6767] [--allow-all]\n  CoopTunnel join [steamid64] [--port 6767]\n  CoopTunnel test [steamid64]");
+            Console.WriteLine("Usage:\n" +
+                              "  CoopTunnel host [--server-port 6767] [--allow-all]   on the PC that runs server.exe\n" +
+                              "  CoopTunnel join [steamid64] [--port 6767]           on a friend's PC; the game connects to 127.0.0.1\n" +
+                              "  CoopTunnel test [steamid64]                         20 pings to a running host, no game needed");
             return 1;
         }
         Console.CancelKeyPress += (_, e) => { e.Cancel = true; s_quit = true; };
@@ -260,13 +263,13 @@ static class Program
         }
         catch (Exception e)
         {
-            Console.WriteLine($"Steam başlatılamadı: {e.Message}\nSteam açık ve bir hesapla oturum açılmış olmalı.");
+            Console.WriteLine($"Could not start Steam: {e.Message}\nSteam must be running and signed in.");
             return 2;
         }
 
         try
         {
-            Console.WriteLine($"Steam hesabı: {SteamClient.Name} ({SteamClient.SteamId.Value}), AppID {SpacewarAppId} (Spacewar)");
+            Console.WriteLine($"Steam account: {SteamClient.Name} ({SteamClient.SteamId.Value}), AppID {SpacewarAppId} (Spacewar)");
             if (!WaitForRelayNetwork())
             {
                 return 3;
@@ -306,7 +309,7 @@ static class Program
             var status = SteamNetworkingUtils.Status;
             if (status != last)
             {
-                Console.WriteLine($"Steam relay ağı: {status}");
+                Console.WriteLine($"Steam relay network: {status}");
                 last = status;
             }
             if (status == SteamNetworkingAvailability.Current)
@@ -315,7 +318,7 @@ static class Program
             }
             Thread.Sleep(100);
         }
-        Console.WriteLine("Steam relay ağına 30 saniyede erişilemedi.");
+        Console.WriteLine("Could not reach the Steam relay network within 30 s.");
         return false;
     }
 
@@ -325,7 +328,7 @@ static class Program
         {
             return new SteamId { Value = explicitId };
         }
-        Console.WriteLine("Tüneli açmış (Spacewar'da görünen) Steam arkadaşı aranıyor...");
+        Console.WriteLine("Looking for a Steam friend who runs the tunnel (shown as playing Spacewar)...");
         var timer = Stopwatch.StartNew();
         while (!ShouldQuit() && timer.Elapsed.TotalSeconds < 60)
         {
@@ -333,7 +336,7 @@ static class Program
             var hosts = SteamFriends.GetFriends().Where(f => f.IsPlayingThisGame).ToList();
             if (hosts.Count == 1)
             {
-                Console.WriteLine($"Host bulundu: {hosts[0].Name} ({hosts[0].Id.Value})");
+                Console.WriteLine($"Host found: {hosts[0].Name} ({hosts[0].Id.Value})");
                 return hosts[0].Id;
             }
             if (hosts.Count > 1)
@@ -342,7 +345,7 @@ static class Program
                 {
                     Console.WriteLine($"  {i + 1}) {hosts[i].Name} ({hosts[i].Id.Value})");
                 }
-                Console.Write("Hangisine bağlanılsın? Numara: ");
+                Console.Write("Connect to which one? Number: ");
                 if (int.TryParse(Console.ReadLine(), out int pick) && pick >= 1 && pick <= hosts.Count)
                 {
                     return hosts[pick - 1].Id;
@@ -351,8 +354,8 @@ static class Program
             }
             Thread.Sleep(1000);
         }
-        Console.WriteLine("Spacewar'da görünen bir arkadaş bulunamadı. Host 'CoopTunnel host' çalıştırmış olmalı;\n" +
-                          "ya da host'un SteamID64'ünü ver: CoopTunnel join 7656119xxxxxxxxxx");
+        Console.WriteLine("No friend found playing Spacewar. The host must run 'CoopTunnel host' (1-Host.bat),\n" +
+                          "or give the host's SteamID64: CoopTunnel join 7656119xxxxxxxxxx");
         return null;
     }
 
@@ -367,7 +370,7 @@ static class Program
         catch (ArgumentException)
         {
             // Steam refused to even start the connection: a wrong SteamID, or our own
-            Console.WriteLine($"Steam bu bağlantıyı başlatmadı (SteamID yanlış ya da kendi hesabın): {host.Value}");
+            Console.WriteLine($"Steam refused to start this connection (wrong SteamID, or your own account): {host.Value}");
             return null;
         }
         var timer = Stopwatch.StartNew();
@@ -381,7 +384,7 @@ static class Program
         {
             return link;
         }
-        Console.WriteLine("Host'a bağlanılamadı. Host'un tüneli açık mı, Steam'de arkadaş mısınız?");
+        Console.WriteLine("Could not connect to the host. Is the host's tunnel running, and are you Steam friends?");
         link.Close();
         return null;
     }
@@ -391,9 +394,9 @@ static class Program
         var socket = SteamNetworkingSockets.CreateRelaySocket<HostSocket>(0);
         socket.ServerPort = serverPort;
         socket.AllowAll = allowAll;
-        Console.WriteLine($"Host hazır. SteamID64: {SteamClient.SteamId.Value}");
-        Console.WriteLine($"Arkadaşların 'CoopTunnel join' çalıştırsın; trafikleri 127.0.0.1:{serverPort} (server.exe) adresine gidecek.");
-        Console.WriteLine("Kapatmak için Ctrl+C.");
+        Console.WriteLine($"Host ready. SteamID64: {SteamClient.SteamId.Value}");
+        Console.WriteLine($"Friends run 'CoopTunnel join' (3-Join.bat); their traffic goes to 127.0.0.1:{serverPort} (server.exe).");
+        Console.WriteLine("Press Ctrl+C to stop.");
 
         var status = Stopwatch.StartNew();
         while (!ShouldQuit())
@@ -422,7 +425,7 @@ static class Program
         }
         catch (SocketException)
         {
-            Console.WriteLine($"127.0.0.1:{localPort} kullanımda. Bu bilgisayarda server.exe açıksa kapat ya da --port ile başka port seç.");
+            Console.WriteLine($"127.0.0.1:{localPort} is in use. Close server.exe if it runs on this PC, or pick another port with --port.");
             return 5;
         }
         Wire.IgnoreConnReset(udp);
@@ -446,7 +449,7 @@ static class Program
                 }
             };
             link.OnRtt = rtt => lastRtt = rtt;
-            Console.WriteLine($"Hazır. Oyunda bağlan ekranına IP 127.0.0.1, port {localPort} yaz (takma adın host'unkinden farklı olmalı).");
+            Console.WriteLine($"Ready. In the game's connect screen use IP 127.0.0.1, port {localPort} (your nickname must differ from the host's).");
 
             var ping = Stopwatch.StartNew();
             var status = Stopwatch.StartNew();
@@ -477,7 +480,7 @@ static class Program
                 }
                 if (status.Elapsed.TotalSeconds >= 15)
                 {
-                    Console.WriteLine($"Bağlı, gecikme {lastRtt:F0} ms{(game == null ? ", oyun henüz bağlanmadı" : "")}");
+                    Console.WriteLine($"Connected, ping {lastRtt:F0} ms{(game == null ? ", the game hasn't connected yet" : "")}");
                     status.Restart();
                 }
                 Thread.Sleep(1);
@@ -485,7 +488,7 @@ static class Program
             link.Close();
             if (!ShouldQuit())
             {
-                Console.WriteLine("Yeniden bağlanılıyor...");
+                Console.WriteLine("Reconnecting...");
                 Thread.Sleep(3000);
             }
         }
@@ -515,9 +518,9 @@ static class Program
             }
         }
         Console.WriteLine(rtts.Count == 0
-            ? "Hiç yanıt gelmedi."
-            : $"Ping: {rtts.Count}/{count} yanıt, en düşük {rtts.Min():F0} ms, ortalama {rtts.Average():F0} ms, en yüksek {rtts.Max():F0} ms");
-        Console.WriteLine("---- Steam bağlantı ayrıntısı (rota: doğrudan mı, relay mi) ----");
+            ? "No replies."
+            : $"Ping: {rtts.Count}/{count} replies, min {rtts.Min():F0} ms, average {rtts.Average():F0} ms, max {rtts.Max():F0} ms");
+        Console.WriteLine("---- Steam connection details (route: direct or relay) ----");
         Console.WriteLine(link.Connection.DetailedStatus());
         link.Close();
         return rtts.Count > 0 ? 0 : 7;

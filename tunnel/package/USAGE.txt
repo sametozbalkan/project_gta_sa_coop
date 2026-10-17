@@ -1,21 +1,22 @@
-﻿CoopTunnel: CoopAndreas trafiğini Steam (Spacewar, AppID 480) üzerinden taşır.
-Port yönlendirme gerekmez; CGNAT arkasında da çalışır.
+CoopTunnel carries CoopAndreas' traffic over Steam (Spacewar, AppID 480).
+No port forwarding needed; it works behind CGNAT too.
 
-GEREKENLER
-- Steam açık ve oturum açılmış olmalı.
-- İki taraf Steam'de arkadaş olmalı (host, arkadaş olmayanları kabul etmez).
+WHAT YOU NEED
+- Steam running and signed in.
+- The two players are Steam friends (the host refuses everyone else).
 
-1) BAĞLANTI TESTİ (oyun gerekmez)
-- Host (sunucuyu açan): "1-Host-ac.bat" çalıştırır, pencere açık kalır.
-- Arkadaş: "2-Baglanti-testi.bat" çalıştırır. Host kendiliğinden bulunur, 20 ping atılır;
-  gecikme ve bağlantı ayrıntısı (doğrudan mı, Valve relay'i üzerinden mi) yazılır.
+1) CONNECTION TEST (no game needed)
+- Host (the one who runs the server): starts "1-Host.bat" and keeps its window open.
+- Friend: starts "2-Test-connection.bat". It finds the host by itself, sends 20 pings and shows
+  the ping and the route (direct or through a Valve relay).
 
-2) OYUN
-- Host: CoopAndreas Server + "1-Host-ac.bat" + oyun. Bağlan ekranı: 127.0.0.1, port 6767.
-- Arkadaş: "3-Oyuna-baglan.bat" + oyun. Bağlan ekranı: 127.0.0.1, port 6767.
-  Takma adın host'unkinden farklı olmalı. İlk bağlanan oyuncu görevlerin host'u olur.
+2) PLAYING
+- Host: CoopAndreas Server + "1-Host.bat" + the game. Connect screen: 127.0.0.1, port 6767.
+- Friend: "3-Join.bat" + the game. Connect screen: 127.0.0.1, port 6767.
+  Your nickname must differ from the host's. The host connects first: the first player to connect
+  runs the missions, unless the server's server-config.ini names someone in story-host.
 
-NOTLAR
-- Steam'de "Spacewar oynuyor" görünürsünüz; bu normal.
-- Windows "bilgisayarınız korundu" derse: "Ek bilgi" > "Yine de çalıştır".
-- Güvenlik duvarı izin sorarsa "Özel ağlar"a izin ver.
+NOTES
+- Steam shows you as "playing Spacewar"; that's normal.
+- If Windows says "Windows protected your PC": click "More info", then "Run anyway".
+- If the firewall asks, allow "Private networks".
