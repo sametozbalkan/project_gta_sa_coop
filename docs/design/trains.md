@@ -710,8 +710,8 @@ snaps).
 
 ## 9. In-game test plan (two players)
 
-oyunda doğrulanmadı. For the user (host) and the friend, both starting with the `CoopAndreas (tani)` shortcut so
-`--coopdiag` writes the train log. The architect turns this into the Turkish test list.
+Not tested in game. For the user (host) and the friend, both starting with the `CoopAndreas (diagnostics)` shortcut
+so `--coopdiag` writes the train log. The architect turns this into the test plan (`docs/test-plan.md`).
 
 A. Free roam, after T1 and T2:
 
@@ -765,7 +765,7 @@ jobs.
 
 Docs after merging (architect): CLAUDE.md fork changes, `docs/mission-porting.md` (trains are entities; a blip on a
 train is an entity blip; ports don't wait for train network ids), `docs/missions.md` risks of the train missions,
-`docs/design/README.md` decisions, the Turkish test list.
+`docs/design/README.md` decisions, the test plan (`docs/test-plan.md`).
 
 ## 11. Decisions for the architect or the user
 

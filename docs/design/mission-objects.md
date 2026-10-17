@@ -732,8 +732,8 @@ average well under 1 KB/s, small next to the player, vehicle and ped sync, and f
 
 ## 9. In-game test plan (two players)
 
-**oyunda doğrulanmadı.** For the user (host) and the friend, with the package that has OB-0 to OB-3 and the group 2
-ports; both start with the `CoopAndreas (tani)` shortcut (`--coopdiag` writes `CoopAndreas_objects.log`).
+**Not tested in game.** For the user (host) and the friend, with the package that has OB-0 to OB-3 and the group 2
+ports; both start with the `CoopAndreas (diagnostics)` shortcut (`--coopdiag` writes `CoopAndreas_objects.log`).
 
 1. Both install the same package; the version in the bottom-left corner matches. The host loads the co-op save before
    #11; the friend connects.

@@ -440,9 +440,9 @@ reused (D2). Behaviour for the players does not change.
 
 ## 6. In-game test plan (two players)
 
-**oyunda doğrulanmadı.** For the user (host) and the friend, after the work packages of section 7, with the package
+**Not tested in game.** For the user (host) and the friend, after the work packages of section 7, with the package
 that contains them. Missions are played in story order; tests tied to a mission run when the story reaches it.
-Both start the game with the `CoopAndreas (tani)` shortcut so `--coopdiag` writes the registry log.
+Both start the game with the `CoopAndreas (diagnostics)` shortcut so `--coopdiag` writes the registry log.
 
 A. No mission needed (after WS-1, WS-3, WS-4):
 
@@ -502,7 +502,7 @@ Optional, only on a decision: blocking property purchases on the friend's game (
 | D1 | `CCityUnlockSync`: move into the registry, or keep it and wrap it | Move it (entry 0): one mechanism, the story guard covers it, no second packet |
 | D2 | Wire: one generic `WORLD_STATE` packet at `UPDATE_CITY_UNLOCKED`'s position, or one packet type per entry | Generic, reusing the position: one server handler, no renumbering, new entries without new types |
 | D3 | Gang wars: only the host's game runs them (the friend sees the territories and joins the fights), or both games | Host only: two games changing the same zones would need a second authority |
-| D4 | Properties: host-owned (the friend's purchases are not saved anywhere and their money is gone), per player, or blocked on the friend's game | Host-owned; tell the friend in the test notes not to buy; block on the friend's game later only if it happens |
+| D4 | Properties: host-owned (the friend's purchases are not saved anywhere and their money is gone), per player, or blocked on the friend's game | Host-owned; tell the friend in the test plan not to buy; block on the friend's game later only if it happens |
 | D5 | Owner of the engine's end-of-mission reset (traffic, military zones, wanted multiplier…) on the friend's game | The registry, by mirroring the host's live values (W12); the mirror layer clears what it draws |
 | D6 | Story reward pickups (spray can, Emmet's pistol, territory cash) | No entry for now; the friend gets mission weapons from the ports |
 | D7 | EnEx: keep upstream's packet and server cache and add the adapter, or replace them with a registry entry; mask bits 0x0008/0x2000 in `Receive` too | Keep and adapt; mask in `Receive` as well (a two-line change in an upstream file) |

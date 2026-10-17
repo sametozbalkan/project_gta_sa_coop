@@ -2,7 +2,8 @@
 
 Status (2026-10-16): both designs reviewed by the architect, decisions confirmed by the user (section 1). Implementation
 started the same day; the user then skipped the 0.3.103 test, so 0.1.0 goes straight to the two-player test with the
-0.3.103 checks in its test list (the tag `v0.3.103-alpha` keeps the 0.3.103 source). The designs:
+0.3.103 checks in its test plan (now `docs/test-plan.md`; the tag `v0.3.103-alpha` keeps the 0.3.103 source). The
+designs:
 
 - `mirror-layer.md`: everything the host's mission shows on screen reaches the other players (texts, blips, locate
   spheres and markers, timers and counters).
@@ -14,8 +15,8 @@ This file records the decisions and how the two designs fit together. Where it d
 
 ## 1. Decisions
 
-The user left the project decisions to the architect (2026-10-15). These were listed for the user in Turkish and
-confirmed on 2026-10-16 with two changes by the user: rewards are mirrored (M-D3) and the friend's kills count in the
+The user left the project decisions to the architect (2026-10-15). These were put to the user and confirmed on
+2026-10-16 with two changes by the user: rewards are mirrored (M-D3) and the friend's kills count in the
 host's gang wars (W-D3).
 
 Mirror layer (`mirror-layer.md` section 9):
@@ -41,7 +42,7 @@ World-state registry (`world-state.md` section 8):
 | W-D1 | `CCityUnlockSync` moves into the registry as entry 0. |
 | W-D2 | One generic `WORLD_STATE` packet at the enum position of `UPDATE_CITY_UNLOCKED`. |
 | W-D3 | Gang wars start only in the host's game; the friend sees the territories and fights alongside. The friend's kills must count in the host's war (the user's requirement): WS-5 checks it and forwards them if they don't. |
-| W-D4 | Properties belong to the host. The friend doesn't buy any (their purchase is saved nowhere); the test list says so. No blocking unless it becomes a problem. |
+| W-D4 | Properties belong to the host. The friend doesn't buy any (their purchase is saved nowhere); the test plan says so. No blocking unless it becomes a problem. |
 | W-D5 | The registry mirrors the host's end-of-mission engine settings (W12); the mirror layer clears only what it drew, plus the help box. |
 | W-D6 | No mirrored reward pickups; ports give the friend mission weapons. |
 | W-D7 | Upstream's EnEx sync stays; the registry adds the re-apply adapter, and upstream's `Receive` masks bits 0x0008 and 0x2000 too. |
@@ -90,7 +91,7 @@ All `gtasa-coder-high` unless noted, each in its own worktree from the then-curr
 | 3 | M2 blips, M3 areas, M4 timers and counters | merge in this order, packet types appended in the same order | mirror 8 |
 | 3 | WS-3 doors and garages, WS-4 mission settings | the friend's mod shops since #10, shops after a restart, traffic after a failed mission | world-state 7 |
 | 4 | C1 conversion of #1–#10 (`gtasa-coder`) | remove the display relays by `mirror-layer.md` 4.2, compile, bytes per mission | mirror 4 |
-| 4 | Docs (architect) | porting guide (`mirror-layer.md` section 5), `docs/missions.md`, CLAUDE.md fork changes, the Turkish test list (mirror section 7, world-state section 6 A) | – |
+| 4 | Docs (architect) | porting guide (`mirror-layer.md` section 5), `docs/missions.md`, CLAUDE.md fork changes, the test plan (mirror section 7, world-state section 6 A) | – |
 
 Then build, deploy and package 0.1.0-alpha, and wait for the user's test. Later, each before the batch that needs it:
 

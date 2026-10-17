@@ -16,9 +16,9 @@ column belong to MAIN and stay as they are.
 | Status | Meaning |
 |---|---|
 | **Adapted** | Upstream ported it with co-op commands; `CoopAndreas/README.md` lists it as checked. |
-| **Ported (test pending)** | Our fork ported and compiled it with the size/save checks passing. Two-player acceptance is still pending (`docs/test-grup-1.md`). |
+| **Ported (test pending)** | Our fork ported and compiled it with the size/save checks passing. Two-player acceptance is still pending (`docs/test-plan.md`). |
 | **…, tested** | Played through in one of our two-player tests (#1–#6: group 1 test on 0.3.102-alpha, 2026-10-15/16). |
-| **Converted (0.1.0, test pending)** | A port (upstream's or ours) moved onto the mission mirror layer for 0.1.0: its copies of the host's displays are gone, gameplay and friend-only displays stay (`docs/design/mirror-layer.md` 4.2). Tested again from a New Game (`docs/test-0.1.0.md`). |
+| **Converted (0.1.0, test pending)** | A port (upstream's or ours) moved onto the mission mirror layer for 0.1.0: its copies of the host's displays are gone, gameplay and friend-only displays stay (`docs/design/mirror-layer.md` 4.2). Tested again from a New Game (`docs/test-plan.md`). |
 | **Ported (retest pending)** | Our two-player test found a bug in or around the mission; the fix ships in the build named in the risks column and the mission is tested again. |
 | **Skipped** | Upstream replaced the mission body with the state the mission leaves behind (In the Beginning). |
 | **Warning** | Vanilla mission plus two `Coop.AddChatMessage` lines ("This mission is currently unsupported…") after `script_name`. The chat line shows only on the host (`1D00` is not synced). Otherwise mirrored only, like Untouched. |
@@ -31,6 +31,20 @@ Besides the missions marked here, upstream changed only MAIN (see the porting gu
 scripts: the shopkeeper scripts BARBER (`BARB.txt`), TATTOO (`TATTO.txt`), JUNKFUD (`JFUD.txt`) and
 FOODBRAINS (`PSHOP.txt`), which reuse a shopkeeper the other player's game already created, and HOTDOG
 (`HOTDOGV.txt`), which lost an unreachable `terminate_this_script`.
+
+## Test history
+
+Two-player tests so far; what is still open is in `docs/test-plan.md`.
+
+- **0.3.102-alpha** (2026-10-15/16, two players, from a New Game): #1–#6 passed, with no crash reported in #3's
+  restaurant scene, whose NPC crash 0.3.102 fixed. #7 failed: the host vanished from the friend's screen after the
+  opening cutscene, and the friend's game crashed at the Binco door (0x4D68BA). Fixed in 0.3.103, whose own test was
+  skipped; its checks moved to the next test.
+- **0.1.0-alpha** (2026-10-16, #2–#10 converted to the mirror layer): never tested by two players.
+- **0.1.1-alpha** (2026-10-17, three players): played up to #8 Drive-By, where both non-host games crashed when the
+  Ballas got out of their Voodoos (0x642067). Earlier in that session the host's game crashed while starting a story
+  mission (EIP 0x3F800000), probably with a player dead or arrested. Both are fixed in 0.1.2.
+- **0.1.2-alpha** (2026-10-18): not tested yet.
 
 ## Story order
 

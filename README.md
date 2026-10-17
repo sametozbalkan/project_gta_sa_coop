@@ -13,10 +13,13 @@ Play the whole GTA: San Andreas story together: two players, one save, every mis
 
 ## What it is
 
-A two-player co-op mod for the PC version 1.0 (US) of GTA: San Andreas. The host's game runs the story and its
-missions, and the other player takes part in every scene. Story missions are rebuilt for co-op one at a time,
-strictly in story order: missions unlock exactly as in the original game, and none is skipped. There is one save,
-the host's, and every release is checked so that it keeps loading.
+A two-player co-op mod for the PC version 1.0 (US) of GTA: San Andreas; the installer makes a 1.0 US copy of your
+Steam game. The host's game runs the story and its missions, and the other player takes part in every scene. Story
+missions are rebuilt for co-op one at a time, strictly in story order: missions unlock exactly as in the original
+game, and none is skipped. There is one save, the host's, and every release is checked so that it keeps loading.
+
+The project is in alpha, so expect bugs and crashes. The first ten missions are rebuilt and being tested, and
+anyone with the game can help test them (see [Testing and feedback](#testing-and-feedback)).
 
 ## Progress
 
@@ -33,9 +36,9 @@ the host's, and every release is checked so that it keeps loading.
 | **Total** | **103** | **–** | **10** | **7** | **86** |
 
 Missions ship in groups, and the next group starts only after the previous one has been tested. #1–#6 were
-played through on 0.3.102; in 0.1.0 all of #1–#10 moved to the mission mirror layer and are tested again from a
-New Game. Mission numbers
-follow [docs/missions.md](docs/missions.md), which also lists each mission's script and co-op risks.
+played through on 0.3.102; in 0.1.0 all of #1–#10 moved to the mission mirror layer, and they are being tested again
+from a New Game ([docs/test-plan.md](docs/test-plan.md)). Mission numbers follow [docs/missions.md](docs/missions.md),
+which also lists each mission's script, co-op risks and test history.
 
 <details>
 <summary><b>Los Santos</b> (#1–#28)</summary>
@@ -48,8 +51,8 @@ follow [docs/missions.md](docs/missions.md), which also lists each mission's scr
 | 4 | Tagging Up Turf | 🧪 | |
 | 5 | Cleaning The Hood | 🧪 | |
 | 6 | Drive-Thru | 🧪 | |
-| 7 | Nines And AK's | 🧪 | Retest in 0.1.0 (fix for the host vanishing on the other player's screen). |
-| 8 | Drive-By | 🧪 | |
+| 7 | Nines And AK's | 🧪 | Retest pending for the fix (0.3.103) of the host vanishing on the other player's screen. |
+| 8 | Drive-By | 🧪 | The other players' games crashed here in the 0.1.1 test; fixed in 0.1.2, retest pending. |
 | 9 | Sweet's Girl | 🧪 | |
 | 10 | Cesar Vialpando | 🧪 | |
 | 11 | OG Loc | 🛠️ | Group 2 |
@@ -188,6 +191,65 @@ follow [docs/missions.md](docs/missions.md), which also lists each mission's scr
 
 </details>
 
+## Installing and updating
+
+You need GTA: San Andreas bought on Steam (PC), about 7 GB of free disk space and, for the first install, an
+Internet connection: about 880 MB of downgrade patches are downloaded.
+
+1. On the [Releases](https://github.com/sametozbalkan/project_gta_sa_coop/releases) page, download
+   `CoopAndreas-Setup.zip` from the newest pre-release (`CoopAndreas-Kurulum.zip` in 0.1.2 and earlier). The
+   `.zip.sha256` file next to it holds the zip's SHA-256.
+2. Extract the whole zip into a folder and run `Install.bat` (`Kur.bat` in 0.1.2 and earlier). If Windows says it
+   protected your PC, choose More info, then Run anyway.
+3. The installer copies your Steam game to `C:\Games\GTASA_Coop` (`Install.bat -GameDir D:\GTASA_Coop` for another
+   folder), converts that copy to version 1.0 US with every file checked, and installs the mod, the Steam tunnel and
+   the shortcuts. Your Steam installation stays untouched. `README.txt` in the package (`OKU-BENI.txt` in 0.1.2 and
+   earlier) has the details.
+
+To update, run the new package's `Install.bat` the same way: on an existing install it only refreshes the mod files.
+Every player, the host included, needs the same release. The version shows in the bottom-left corner of the game,
+and players with different versions get "Version mismatch" when they connect.
+
+## Playing
+
+One player hosts: their PC runs the server and their game runs the story. Over the Internet everyone connects
+through the Steam tunnel, so Steam must be running on every PC and the other players must be the host's Steam
+friends.
+
+**The host**
+
+1. Start `CoopAndreas Server` in the game folder and `1-Host.bat` in its `CoopTunnel` folder (`1-Host-ac.bat` in
+   0.1.2 and earlier). Keep both windows open.
+2. Recommended, once: in `server\server-config.ini`, set `story-host = <your nickname>` so that you stay the host
+   even when someone else connects first (without it, the first player to connect is the host; in the nickname,
+   characters other than letters, digits, `_`, `[` and `]` become `_`). When you play only over the tunnel, also set
+   `bind = 127.0.0.1` so that nothing else on your network reaches the server. Restart the server after a change.
+3. Start the game with the `CoopAndreas` shortcut.
+
+**The other players**
+
+1. Start the desktop shortcut `CoopAndreas Tunnel - Join` (`CoopAndreas Tünel - Bağlan` in 0.1.2 and earlier) and
+   keep its window open; it finds the host by itself. To test the connection without the game, run
+   `2-Test-connection.bat` in the `CoopTunnel` folder (`2-Baglanti-testi.bat` in 0.1.2 and earlier).
+2. Start the game with the `CoopAndreas` shortcut.
+
+**Everyone:** in the game menu, Start Game opens "Connect to a server". The IP `127.0.0.1` and port `6767` are
+already filled in; use a nickname that differs from the other players' and keep it every session. Choose Connect,
+then start a **New Game**. Missions start at their usual markers, in story order, and only the host saves (at a
+safehouse, outside a mission). `USAGE.txt` in the `CoopTunnel` folder (`KULLANIM.txt` in 0.1.2 and earlier)
+explains the tunnel.
+
+## Testing and feedback
+
+Testers are welcome. [docs/test-plan.md](docs/test-plan.md) lists what to check in the current release, step by
+step and mission by mission, and which files to send; packages include a copy as `TEST-PLAN.md` (`TEST-LISTESI.md`,
+in Turkish, in 0.1.2 and earlier). Start the game with the `CoopAndreas (diagnostics)` shortcut in the game folder
+(`CoopAndreas (tani)` in 0.1.2 and earlier) so that it writes diagnostic logs.
+
+Report problems as [GitHub issues](https://github.com/sametozbalkan/project_gta_sa_coop/issues) with the bug report
+template: the version, whether you hosted, how many players took part, the mission, what happened, and the logs
+(after a crash, the crash log too). Leave out personal data such as Steam names and IP addresses.
+
 ## What works in co-op
 
 ### Synced between the two games
@@ -244,6 +306,27 @@ follow [docs/missions.md](docs/missions.md), which also lists each mission's scr
 No telemetry, no Discord integration, no crash-report upload and no serial key. Crash logs and diagnostic logs
 are written only to your own PC.
 
+## Known limitations
+
+- Saves from the single-player game don't load in co-op: start a New Game.
+- Only the host saves, at a safehouse and outside a mission: the story advances only in the host's game.
+- The other player's saved state is matched by nickname: keep the same nickname every session, different from the
+  host's.
+- Alt+Tab pauses that player's own game; if it is the host, the mission waits too. The other player sees the away
+  player, and the characters that player's game controls, frozen in place (a car they drive coasts on). The
+  connection stays up.
+- Some parts of a mission stay with the host: solo minigames (the other player watches), objects only the mission
+  script knows about (such as the bottle practice in Nines And AK's), and the mission's own wanted-level checks,
+  which read the host's stars.
+- Messages meant only for the host (such as "get back in the car") show on the other player's screen too.
+- Missions that aren't rebuilt yet run as the host's mission; the other player sees its texts, markers and timers
+  and can help, but without the cutscenes, seats and positions a rebuild adds.
+- A player who leaves during a mission and comes back sees its texts and markers but takes part again only from the
+  next mission. If the host's own connection drops during a mission, some missions can hang (a fix is planned).
+- Only the host should buy properties: another player's purchase isn't saved anywhere and the money is gone.
+- Not synced yet: trains, mission objects (crates, doors, gates), fire, gang wars and territories, trailers, RC
+  vehicles, parachutes and picking up the jetpack.
+
 ## How it works
 
 Both games connect to a small server that relays their traffic; over the Internet, the project's tunnel carries
@@ -260,6 +343,8 @@ host's normal save; a small side file also keeps the other players' state.
 - **Rest of Los Santos:** group 2 (#11–#17, Big Smoke's and Ryder's missions), group 3 (#18–#22, the music
   missions and Cesar) and group 4 (#23–#28, Burning Desire to The Green Sabre). Then, in story order, Badlands,
   San Fierro, the desert, Las Venturas and the return to Los Santos.
+- **Before group 2:** trains and mission objects (crates, doors, gates) for two players; the designs are in
+  `docs/design/`.
 - **Rest of the world state, before the missions that need it:** race checkpoints (#22), gang territories and
   wars (#25), the bridge barriers and roads (#28), map objects (#42), the riots (#99), and object sync for doors
   and gates that missions open (#60).
@@ -269,13 +354,7 @@ host's normal save; a small side file also keeps the other players' state.
 - **After the story:** side content (races, schools, vehicle side missions) and co-op pool, with the two players
   playing each other.
 
-## Playing
-
-Test builds are on the [Releases](https://github.com/sametozbalkan/project_gta_sa_coop/releases) page, marked
-as pre-releases: download `CoopAndreas-Kurulum.zip`, extract all of it and run `Kur.bat`; `OKU-BENI.txt` in the
-package explains the steps (in Turkish), and `TEST-LISTESI.md` lists what to check. Both players need the same
-release. The project is in alpha: expect bugs and crashes. Playing needs a legitimately bought copy of GTA: San
-Andreas on Steam (PC).
+The detailed work plan and the open issues are in [BACKLOG.md](BACKLOG.md).
 
 ## Building from source
 
@@ -303,33 +382,16 @@ describes what goes in it.
 Mission work: [docs/mission-porting.md](docs/mission-porting.md) explains how a mission is rebuilt for co-op,
 and [docs/missions.md](docs/missions.md) lists every mission with its status and risks.
 
-## Known limitations
-
-- Saves from the single-player game don't load in co-op: start a New Game.
-- Only the host saves, at a safehouse and outside a mission: the story advances only in the host's game.
-- From 0.3.103 the other player's saved state is matched by nickname: keep the same nickname every session,
-  different from the host's.
-- Alt+Tab pauses that player's own game; if it is the host, the mission waits too. The other player sees the
-  away player, and the characters that player's game controls, frozen in place; a key held down at that moment
-  keeps acting until they return. The connection stays up.
-- Some parts of a mission stay with the host: solo minigames (the other player watches), objects only the
-  mission script knows about (such as the bottle practice in Nines And AK's), and the mission's own wanted-level
-  checks, which read the host's stars.
-- Messages meant only for the host (such as "get back in the car") show on the other player's screen too.
-- Missions that aren't rebuilt yet run as the host's mission; the other player sees its texts, markers and
-  timers and can help, but without the cutscenes, seats and positions a rebuild adds.
-- Not synced yet: fire, gang wars and territories, trailers, RC vehicles, parachutes and picking up the jetpack.
-- If a player drops out in the middle of a mission, the host's game can crash.
-
 ## Repository layout
 
 - `CoopAndreas/` — the mod: client, server, proxy, launcher, mission scripts.
 - `tunnel/` — the Steam relay tunnel (C#, .NET 10) and its launchers.
-- `installer/` — the installer (Windows PowerShell 5.1; its messages are in Turkish).
+- `installer/` — the installer (Windows PowerShell 5.1).
 - `scripts/` — build, mission compile, deploy, tunnel publish and packaging scripts.
-- `tools/` — Python debugging helpers.
-- `docs/` — mission list, porting guide and test checklists.
-- Top level: `CLAUDE.md` (development notes and rules), `YAPILACAKLAR.md` (backlog, in Turkish), `LICENSE`.
+- `tools/` — Python debugging helpers and the Ghidra names pipeline.
+- `docs/` — the mission list, the porting guide, the test plan and the designs (`docs/design/`).
+- `.github/` — the bug report template.
+- Top level: `CLAUDE.md` (development notes and rules), `BACKLOG.md` (work plan and open issues), `LICENSE`.
 
 ## Legal
 
@@ -340,8 +402,8 @@ owners.
 
 ## License and credits
 
-Licensed under the GNU General Public License v3.0; see [LICENSE](LICENSE). Packages built from this repository
-include the matching source.
+Licensed under the GNU General Public License v3.0; see [LICENSE](LICENSE). Every package includes the matching
+source in its `SOURCE` folder (`KAYNAK` in 0.1.2 and earlier).
 
 Built on the open-source [CoopAndreas](https://github.com/Tornamic/CoopAndreas) networking core (GPL-3.0, by
 Tornamic and contributors) and developed independently since.

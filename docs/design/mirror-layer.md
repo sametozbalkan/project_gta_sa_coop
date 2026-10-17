@@ -577,10 +577,10 @@ For `docs/mission-porting.md` once the layer ships:
 
 ## 7. In-game test plan (two players)
 
-oyunda doğrulanmadı. The architect turns this into the Turkish test list.
+Not tested in game. The architect turns this into the test plan (`docs/test-plan.md`).
 
 1. Both install the same package; the version in the bottom-left corner matches. Both start with the
-   `CoopAndreas (tani)` shortcut. New Game; the host connects first.
+   `CoopAndreas (diagnostics)` shortcut. New Game; the host connects first.
 2. #1 to #10 in order (converted). In each mission the friend checks: the title, every objective text and subtitle
    exactly once, help boxes, the blips on Sweet, Smoke, Ryder, their cars and the targets (one icon each), the
    coordinate blips, the yellow markers where the host has them, the pickup blip in #9, the counters in #8 (vehicle
@@ -616,7 +616,7 @@ For `gtasa-coder-high` unless noted; each in its own worktree from the then-curr
 | D1 docs (architect) | Porting guide (section 5), `docs/missions.md`, CLAUDE.md fork changes | docs | M1–M4 | – |
 
 Order: M1, then M2, M3 and M4 in parallel (merge in that order and append their packet types in merge order), then C1
-and D1, build, package with the test list (section 7). M5 before the batch that reaches #22.
+and D1, build, package with the test plan (section 7). M5 before the batch that reaches #22.
 
 The policy test covers the pure logic without the game: the family predicate, the title rule, the mission exclusion,
 the blip difference, the area set with its grace time and thresholds, and the clock generation rule.

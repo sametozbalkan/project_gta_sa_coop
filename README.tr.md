@@ -14,10 +14,14 @@ görevler.
 
 ## Nedir?
 
-GTA: San Andreas'ın PC 1.0 (US) sürümü için iki kişilik bir co-op modu. Hikâyeyi ve görevleri host'un oyunu
-yürütür, diğer oyuncu da her sahnede yer alır. Hikâye görevleri co-op için tek tek ve kesinlikle hikâye sırasıyla
-uyarlanıyor: görevler orijinal oyundaki sırayla açılır ve hiçbiri atlanmaz. Tek bir kayıt vardır, o da host'un
-kaydıdır; her sürümde bu kaydın yüklenmeye devam ettiği denetlenir.
+GTA: San Andreas'ın PC 1.0 (US) sürümü için iki kişilik bir co-op modu; kurulum, Steam'deki oyununuzun 1.0 US bir
+kopyasını hazırlar. Hikâyeyi ve görevleri host'un oyunu yürütür, diğer oyuncu da her sahnede yer alır. Hikâye
+görevleri co-op için tek tek ve kesinlikle hikâye sırasıyla uyarlanıyor: görevler orijinal oyundaki sırayla açılır ve
+hiçbiri atlanmaz. Tek bir kayıt vardır, o da host'un kaydıdır; her sürümde bu kaydın yüklenmeye devam ettiği
+denetlenir.
+
+Proje alfa aşamasında: hata ve çökme bekleyin. İlk on görev uyarlandı ve test ediliyor; oyuna sahip herkes teste
+katılabilir (bkz. [Test ve geri bildirim](#test-ve-geri-bildirim)).
 
 ## İlerleme
 
@@ -34,9 +38,9 @@ kaydıdır; her sürümde bu kaydın yüklenmeye devam ettiği denetlenir.
 | **Toplam** | **103** | **–** | **10** | **7** | **86** |
 
 Görevler gruplar halinde gelir; sıradaki grup, bir önceki test edilmeden başlamaz. #1–#6 0.3.102 ile baştan sona
-oynandı; 0.1.0'da #1–#10'un tamamı görev yansıtma katmanına geçti ve New Game ile yeniden test ediliyor. Görev
-numaraları
-[docs/missions.md](docs/missions.md) dosyasını izler; her görevin betiği ve co-op riskleri de orada (İngilizce).
+oynandı; 0.1.0'da #1–#10'un tamamı görev yansıtma katmanına geçti ve New Game ile yeniden test ediliyor
+([docs/test-plan.md](docs/test-plan.md)). Görev numaraları [docs/missions.md](docs/missions.md) dosyasını izler; her
+görevin betiği, co-op riskleri ve test geçmişi de orada (İngilizce).
 
 <details>
 <summary><b>Los Santos</b> (#1–#28)</summary>
@@ -49,8 +53,8 @@ numaraları
 | 4 | Tagging Up Turf | 🧪 | |
 | 5 | Cleaning The Hood | 🧪 | |
 | 6 | Drive-Thru | 🧪 | |
-| 7 | Nines And AK's | 🧪 | 0.1.0 ile yeniden test edilecek (host'un diğer oyuncunun ekranında kaybolmasına yönelik düzeltme). |
-| 8 | Drive-By | 🧪 | |
+| 7 | Nines And AK's | 🧪 | Host'un diğer oyuncunun ekranında kaybolmasına yönelik düzeltme (0.3.103) yeniden test bekliyor. |
+| 8 | Drive-By | 🧪 | 0.1.1 testinde burada diğer oyuncuların oyunu çöktü; 0.1.2'de düzeltildi, yeniden test bekliyor. |
 | 9 | Sweet's Girl | 🧪 | |
 | 10 | Cesar Vialpando | 🧪 | |
 | 11 | OG Loc | 🛠️ | Grup 2 |
@@ -189,6 +193,64 @@ numaraları
 
 </details>
 
+## Kurulum ve güncelleme
+
+Gerekenler: Steam'den (PC) satın alınmış GTA: San Andreas, yaklaşık 7 GB boş disk alanı ve ilk kurulum için
+İnternet bağlantısı (yaklaşık 880 MB sürüm düşürme yaması indirilir).
+
+1. [Releases](https://github.com/sametozbalkan/project_gta_sa_coop/releases) sayfasındaki en yeni ön sürümden
+   (pre-release) `CoopAndreas-Setup.zip` dosyasını indirin (0.1.2 ve öncesinde `CoopAndreas-Kurulum.zip`). Yanındaki
+   `.zip.sha256` dosyasında ZIP'in SHA-256 özeti var.
+2. ZIP'in tamamını bir klasöre çıkarın ve `Install.bat` dosyasını çalıştırın (0.1.2 ve öncesinde `Kur.bat`). Windows
+   "bilgisayarınız korundu" derse "Ek bilgi"yi, sonra "Yine de çalıştır"ı seçin.
+3. Kurulum, Steam'deki oyununuzu `C:\Games\GTASA_Coop` klasörüne kopyalar (başka bir klasör için
+   `Install.bat -GameDir D:\GTASA_Coop`), bu kopyayı her dosyayı doğrulayarak 1.0 US sürümüne çevirir; modu, Steam
+   tünelini ve kısayolları kurar. Steam kurulumunuza dokunulmaz. Ayrıntılar paketteki `README.txt` dosyasında (0.1.2
+   ve öncesinde `OKU-BENI.txt`).
+
+Güncellemek için yeni paketin `Install.bat` dosyasını aynı şekilde çalıştırın: mevcut bir kurulumda yalnızca mod
+dosyaları yenilenir. Host dahil her oyuncuda aynı sürüm olmalı. Sürüm, oyunun sol alt köşesinde yazar; sürümleri
+farklı olan oyuncular bağlanırken "Version mismatch" uyarısı alır.
+
+## Oynamak
+
+Oyunculardan biri host olur: sunucu onun bilgisayarında, hikâye onun oyununda çalışır. İnternet üzerinden herkes
+Steam tüneliyle bağlanır; bu yüzden her bilgisayarda Steam açık olmalı ve diğer oyuncular host'un Steam arkadaşı
+olmalı.
+
+**Host**
+
+1. Oyun klasöründeki `CoopAndreas Server` kısayolunu ve oradaki `CoopTunnel` klasöründe `1-Host.bat` dosyasını
+   (0.1.2 ve öncesinde `1-Host-ac.bat`) açın. İki pencere de açık kalsın.
+2. Önerilen, bir kez: `server\server-config.ini` dosyasına `story-host = <takma adınız>` yazın; böylece başkası önce
+   bağlansa da host siz kalırsınız (bu ayar yoksa ilk bağlanan host olur; takma addaki harf, rakam, `_`, `[` ve `]`
+   dışındaki karakterler `_` olur). Yalnızca tünelle oynuyorsanız `bind = 127.0.0.1` de yazın; böylece ağınızdaki
+   başka hiçbir şey sunucuya ulaşamaz. Değişiklikten sonra sunucuyu yeniden başlatın.
+3. Oyunu `CoopAndreas` kısayoluyla açın.
+
+**Diğer oyuncular**
+
+1. Masaüstündeki `CoopAndreas Tunnel - Join` kısayolunu (0.1.2 ve öncesinde `CoopAndreas Tünel - Bağlan`) açın,
+   penceresi açık kalsın; host'u kendisi bulur. Bağlantıyı oyunu açmadan denemek için `CoopTunnel` klasöründeki
+   `2-Test-connection.bat` dosyasını (0.1.2 ve öncesinde `2-Baglanti-testi.bat`) çalıştırın.
+2. Oyunu `CoopAndreas` kısayoluyla açın.
+
+**Herkes:** oyun menüsünde Start Game, "Connect to a server" ekranını açar. IP `127.0.0.1` ve port `6767` hazır
+gelir; diğer oyunculardan farklı bir takma ad seçin ve her oturumda aynısını kullanın. Connect'i seçin, sonra
+**New Game** başlatın. Görevler her zamanki işaretlerinden, hikâye sırasıyla başlar; yalnızca host kaydeder (güvenli
+evde, görev dışındayken). Tüneli `CoopTunnel` klasöründeki `USAGE.txt` (0.1.2 ve öncesinde `KULLANIM.txt`) anlatır.
+
+## Test ve geri bildirim
+
+Test etmek isteyen herkes katılabilir. [docs/test-plan.md](docs/test-plan.md) güncel sürümde neyin kontrol
+edileceğini adım adım ve görev görev, hangi dosyaların gönderileceğini de anlatır (İngilizce); paketlerde kopyası
+`TEST-PLAN.md` adıyla bulunur (0.1.2 ve öncesinde Türkçe `TEST-LISTESI.md`). Oyunu oyun klasöründeki
+`CoopAndreas (diagnostics)` kısayoluyla (0.1.2 ve öncesinde `CoopAndreas (tani)`) açın ki tanı günlüklerini yazsın.
+
+Sorunları hata bildirimi şablonuyla [GitHub issue](https://github.com/sametozbalkan/project_gta_sa_coop/issues)
+olarak bildirin: sürüm, host'un siz olup olmadığınız, kaç oyuncu olduğunuz, görev, ne olduğu ve günlükler (çökmede
+çökme günlüğü de). Steam adları ve IP adresleri gibi kişisel bilgileri yazmayın.
+
 ## Co-op'ta neler çalışıyor
 
 ### İki oyun arasında senkronlananlar
@@ -247,6 +309,28 @@ numaraları
 Telemetri, Discord entegrasyonu, çökme raporu gönderimi ve seri anahtar yok. Çökme kayıtları ve tanı günlükleri
 yalnızca kendi bilgisayarınıza yazılır.
 
+## Bilinen sınırlamalar
+
+- Tek oyunculu oyunun kayıtları co-op'ta yüklenmez: New Game ile başlayın.
+- Yalnızca host kaydeder, güvenli evde ve görev dışındayken: hikâye yalnızca host'un oyununda ilerler.
+- Diğer oyuncunun kayıtlı durumu takma adıyla eşleştirilir: her oturumda aynı takma adı kullanın; host'unkinden
+  farklı olmalı.
+- Alt+Tab o oyuncunun kendi oyununu duraklatır; bu oyuncu host ise görev de bekler. Diğer oyuncu, uzaktaki
+  oyuncuyu ve onun oyununun yönettiği karakterleri yerinde donmuş görür (sürdüğü araba gazı kesilmiş gibi süzülür).
+  Bağlantı kopmaz.
+- Görevlerin bazı bölümleri host'ta kalır: tek kişilik mini oyunlar (diğer oyuncu izler), yalnızca görev
+  betiğinin bildiği nesneler (ör. Nines And AK's görevindeki şişe atış alıştırması) ve görevin kendi aranma
+  kontrolleri (bunlar host'un yıldızlarına bakar).
+- Yalnızca host'a yönelik mesajlar (ör. "araca dön") diğer oyuncunun ekranında da görünür.
+- Henüz uyarlanmamış görevler host'un görevi olarak çalışır; diğer oyuncu yazılarını, işaretlerini ve
+  zamanlayıcılarını görür ve yardım edebilir, ama uyarlamanın eklediği ara sahneler, koltuklar ve konumlar olmadan.
+- Görev sırasında ayrılıp geri gelen oyuncu görevin yazılarını ve işaretlerini görür, ama göreve ancak bir sonraki
+  görevde yeniden katılır. Host'un kendi bağlantısı görev sırasında koparsa bazı görevler takılabilir (düzeltmesi
+  planlandı).
+- Mülkleri yalnızca host satın almalı: diğer oyuncunun satın alması hiçbir kayda geçmez, parası gider.
+- Henüz senkronlanmayanlar: trenler, görev nesneleri (kasalar, kapılar, geçitler), yangın, çete savaşları ve
+  bölgeleri, römorklar, RC araçlar, paraşütler ve jetpack'i yerden almak.
+
 ## Nasıl çalışır
 
 İki oyun da trafiklerini aktaran küçük bir sunucuya bağlanır; İnternet üzerinde bu trafiği projenin tüneli Steam
@@ -263,6 +347,8 @@ ek olarak küçük bir dosya diğer oyuncuların durumunu tutar.
 - **Los Santos'un kalanı:** grup 2 (#11–#17, Big Smoke ve Ryder görevleri), grup 3 (#18–#22, müzik görevleri
   ve Cesar) ve grup 4 (#23–#28, Burning Desire'dan The Green Sabre'a). Ardından hikâye sırasıyla Badlands, San
   Fierro, çöl, Las Venturas ve Los Santos'a dönüş.
+- **Grup 2'den önce:** iki oyuncu için trenler ve görev nesneleri (kasalar, kapılar, geçitler); tasarımlar
+  `docs/design/` altında.
 - **Dünya durumunun kalanı, ihtiyaç duyan görevlerden önce:** yarış kontrol noktaları (#22), çete bölgeleri ve
   savaşları (#25), köprü bariyerleri ve yolları (#28), harita nesneleri (#42), ayaklanma (#99) ve görevlerin
   açtığı kapı ve geçitler için nesne senkronu (#60).
@@ -272,13 +358,7 @@ ek olarak küçük bir dosya diğer oyuncuların durumunu tutar.
 - **Hikâyeden sonra:** yan içerik (yarışlar, okullar, araç yan görevleri) ve iki oyuncunun birbirine karşı
   oynadığı co-op bilardo.
 
-## Oynamak
-
-Test sürümleri [Releases](https://github.com/sametozbalkan/project_gta_sa_coop/releases) sayfasında, ön sürüm
-(pre-release) olarak: `CoopAndreas-Kurulum.zip` dosyasını indirin, tamamını çıkarın ve `Kur.bat` dosyasını
-çalıştırın; paketteki `OKU-BENI.txt` adımları, `TEST-LISTESI.md` kontrol edilecekleri anlatır. İki oyuncuda da aynı
-sürüm olmalı. Proje alfa aşamasında: hata ve çökme bekleyin. Oynamak için GTA: San Andreas'ın Steam'den (PC) yasal
-olarak satın alınmış bir kopyası gerekir.
+Ayrıntılı iş planı ve açık sorunlar [BACKLOG.md](BACKLOG.md) dosyasında (İngilizce).
 
 ## Kaynaktan derleme
 
@@ -306,34 +386,18 @@ Betikler git'e alınmayan, yerel bir `.tools/` klasörü bekler (xmake, Sanny Bu
 Görev çalışması: [docs/mission-porting.md](docs/mission-porting.md) bir görevin co-op için nasıl uyarlandığını
 anlatır, [docs/missions.md](docs/missions.md) her görevi durumu ve riskleriyle listeler (ikisi de İngilizce).
 
-## Bilinen sınırlamalar
-
-- Tek oyunculu oyunun kayıtları co-op'ta yüklenmez: New Game ile başlayın.
-- Yalnızca host kaydeder, güvenli evde ve görev dışındayken: hikâye yalnızca host'un oyununda ilerler.
-- 0.3.103'ten itibaren diğer oyuncunun kayıtlı durumu takma adıyla eşleştirilir: her oturumda aynı takma adı
-  kullanın; host'unkinden farklı olmalı.
-- Alt+Tab o oyuncunun kendi oyununu duraklatır; bu oyuncu host ise görev de bekler. Diğer oyuncu, uzaktaki
-  oyuncuyu ve onun oyununun yönettiği karakterleri yerinde donmuş görür; o anda basılı tutulan bir tuş, oyuncu
-  dönene kadar etkisini sürdürür. Bağlantı kopmaz.
-- Görevlerin bazı bölümleri host'ta kalır: tek kişilik mini oyunlar (diğer oyuncu izler), yalnızca görev
-  betiğinin bildiği nesneler (ör. Nines And AK's görevindeki şişe atış alıştırması) ve görevin kendi aranma
-  kontrolleri (bunlar host'un yıldızlarına bakar).
-- Yalnızca host'a yönelik mesajlar (ör. "araca dön") diğer oyuncunun ekranında da görünür.
-- Henüz uyarlanmamış görevler host'un görevi olarak çalışır; diğer oyuncu yazılarını, işaretlerini ve
-  zamanlayıcılarını görür ve yardım edebilir, ama uyarlamanın eklediği ara sahneler, koltuklar ve konumlar olmadan.
-- Henüz senkronlanmayanlar: yangın, çete savaşları ve bölgeleri, römorklar, RC araçlar, paraşütler ve jetpack'i
-  yerden almak.
-- Görevin ortasında bir oyuncunun bağlantısı koparsa host'un oyunu çökebilir.
-
 ## Repo düzeni
 
 - `CoopAndreas/` — mod: istemci, sunucu, proxy, başlatıcı, görev betikleri.
 - `tunnel/` — Steam relay tüneli (C#, .NET 10) ve başlatıcı dosyaları.
-- `installer/` — kurulum (Windows PowerShell 5.1; mesajları Türkçe).
+- `installer/` — kurulum (Windows PowerShell 5.1).
 - `scripts/` — derleme, görev derleme, oyuna kurma, tünel yayını ve paketleme betikleri.
-- `tools/` — Python hata ayıklama yardımcıları.
-- `docs/` — görev listesi, uyarlama rehberi ve test listeleri.
-- Kök dizin: `CLAUDE.md` (geliştirme notları ve kurallar), `YAPILACAKLAR.md` (iş listesi, Türkçe), `LICENSE`.
+- `tools/` — Python hata ayıklama yardımcıları ve Ghidra ad hattı.
+- `docs/` — görev listesi, uyarlama rehberi, test planı ve tasarımlar (`docs/design/`).
+- `.github/` — hata bildirimi şablonu.
+- Kök dizin: `CLAUDE.md` (geliştirme notları ve kurallar), `BACKLOG.md` (iş planı ve açık sorunlar), `LICENSE`.
+
+Bu dosya dışında repodaki her şey İngilizcedir.
 
 ## Yasal uyarı
 
@@ -344,8 +408,8 @@ ticari markalar sahiplerine aittir.
 
 ## Lisans ve teşekkürler
 
-GNU General Public License v3.0 ile lisanslanmıştır; bkz. [LICENSE](LICENSE). Bu repodan hazırlanan paketler
-ilgili kaynak kodunu da içerir.
+GNU General Public License v3.0 ile lisanslanmıştır; bkz. [LICENSE](LICENSE). Her paket, ilgili kaynak kodunu
+`SOURCE` klasöründe içerir (0.1.2 ve öncesinde `KAYNAK`).
 
 Açık kaynaklı [CoopAndreas](https://github.com/Tornamic/CoopAndreas) ağ çekirdeğinin (GPL-3.0, Tornamic ve
 katkıda bulunanlar) üzerine kuruldu ve o zamandan beri bağımsız olarak geliştiriliyor.

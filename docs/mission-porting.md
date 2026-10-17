@@ -649,7 +649,8 @@ committed `main.scm` and `script.img` except the compiler signature in the objec
 
 ## In-game test (by the user and the friend)
 
-Mark it "oyunda doğrulanmadı" until the players have run it. The architect deploys the build; then:
+Mark it "not tested in game" until the players have run it. The architect deploys the build and adds these steps
+to `docs/test-plan.md`; then:
 
 1. The host starts `server.exe` (or the tunnel setup) and the game, the friend joins; load the co-op save
    from just before the mission (host only). The host is the player `story-host` names in the server's
