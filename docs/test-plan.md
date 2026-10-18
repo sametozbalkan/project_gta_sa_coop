@@ -39,7 +39,7 @@ Session: date `____` · number of players `____` · package SHA-256 `____` · co
 
 ## What changed
 
-### 0.1.3 (train review fixes, script explosions; not released)
+### 0.1.3 (train review fixes, script explosions, mission objects; not released)
 
 - **Train snapshots:** initial creation and reconnects carry the current carriage health and wreck state.
 - **Train identity:** delayed packets from a deleted train cannot move a different train that reused its slot.
@@ -50,8 +50,17 @@ Session: date `____` · number of players `____` · package SHA-256 `____` · co
 - **Script explosions:** explosions a host's story mission creates by script are shown, heard and felt on the guests'
   games too. No mission of #1–#10 uses them, so in this test the `explosions=` counters of the diagnostics `mirror:`
   line stay at 0 on every game (the first users are #14 and #17).
-- **Object blips:** the network format can carry a blip on a mission object; nothing uses it yet (object blips still
-  follow the host's position as before).
+- **Mission objects:** objects the host's mission creates (in group 1: the cigars in #3 and #5, the bottles in #7, the
+  beer in #8) appear on the guests' screens, move as on the host's, ride on the vehicles they are attached to, sit in
+  the hands of the character holding them and break when the host's break; a blip on an object sits on it. Guests
+  can't pick them up yet. If objects cause trouble, every player can switch them off with `mission-objects = false`
+  in `coopandreas.ini` (Documents\GTA San Andreas User Files) and say so in the report.
+  - [ ] **#3:** the guest sees Ryder's cigar in his hand during the cutscene and the drive, glowing.
+  - [ ] **#5:** the four cigars are in the characters' hands on the guest's screen.
+  - [ ] **#7:** the guest sees the bottles; when the host or the guest shoots one, it breaks on both screens.
+  - [ ] **#8:** the beer is in the character's hand on the guest's screen.
+  - [ ] **No trouble:** no crash, and no object stuck in the air or doubled on any screen; with `--coopdiag` the
+    `objects:` line of `CoopAndreas_diag.log` shows `copies` created on the guests.
 - The network format differs from 0.1.2. Every client and the server must update together; the story scripts and
   co-op save layout are unchanged. Software tests do not confirm the in-game checks below.
 
@@ -485,7 +494,8 @@ The plan stops at #10: the missions from #11 on aren't rebuilt for co-op yet.
 - A guest who starts getting into a car and gives up counts as sitting in that seat on the server for 10 s.
 - A task a mission gives a character at the moment it creates it doesn't play on the other screens (an old gap, no
   known effect in #1–#10).
-- Mission objects (crates, doors, barrels) aren't synced yet (`docs/design/mission-objects.md`). Standing on top of a
+- Mission objects are shown on the guests' screens since 0.1.3, but a guest can't carry or lift them yet (`OB-3`),
+  and story doors, gates and cabins that outlive their mission aren't synced yet (`OB-4`). Standing on top of a
   moving train without script attachment (`T3`, #74), race checkpoints (#22), gang territories and wars (#25) and the
   bridge barriers (#28) come in later packages.
 - Messages meant only for the host (such as "get in Sweet's car") show on the guests' screens too.

@@ -9,7 +9,8 @@ What is being worked on, what comes next and what is still open. The rules and t
 - **0.1.2-alpha** is the current release (GitHub pre-release, tag `v0.1.2-alpha`, 2026-10-18).
 - **0.1.3-alpha is on main, not released**: the train review follow-up (complete train snapshots, train
   incarnations against stale packets, surviving wagons after a partial deletion, attachments across restarts,
-  removals and reconnects, station-skip serialization). The wire format changed, so every player updates together.
+  removals and reconnects, station-skip serialization), script explosions (`EX-1`) and the mission object mirror
+  (`OB-1`, `OB-2`; it also shows group 1's cigars, bottles and beer). The wire format changed, so every player updates together.
   Reviewed twice by agents, all gates pass; in-game checks in `docs/test-plan.md` A5/A6. It ships with the next
   package.
 - **The 0.1.1 test** (2026-10-17, three players) reached #8 Drive-By:
@@ -47,7 +48,7 @@ to the next (`scripts/compile-scm.ps1` checks this).
 
 ## Next, in priority order
 
-1. **Group 2 infrastructure: mission objects (`OB-0`, `EX-1`, the `OB-2` plumbing and trains implemented; next `OB-1`).** The designs are in `docs/design/trains.md`
+1. **Group 2 infrastructure: mission objects (`OB-0`, `OB-1`, `OB-2`, `EX-1` and trains implemented; next `OB-3`).** The designs are in `docs/design/trains.md`
    and `docs/design/mission-objects.md`.
    - **Trains (`docs/design/trains.md`)**: decisions `T-D1`–`T-D9` confirmed (2026-10-18) and packages `T1a`, `T1b`,
      `T2`, `T4` and `T5` implemented (`CTrainSync`, carriage network vehicle identity, `ENTITY_ATTACH` for peds/players
@@ -55,9 +56,9 @@ to the next (`scripts/compile-scm.ps1` checks this).
      on-foot sync) is scheduled before #74 *Green Goo* (`T-D5`/`T-D7`).
    - **Mission objects (`docs/design/mission-objects.md`)**: **`OB-0` (`O-D9`, remote shots on objects) is Done**
      (`CBulletSyncPolicy.h`, `CNetworkEntitySerializer.cpp`, `Hooks/PlayerHooks.cpp`, `PacketHandlers/players.cpp`,
-     `tests/bullet_sync_test.cpp`); **`EX-1` (`O-D7` (b), script explosions) is Done**; `OB-2`'s wire and blip plumbing
-     is in, behind the `CMirrorObjects.h` placeholder that `OB-1` replaces; decisions `O-D1`–`O-D6`, `O-D8` and
-     `O-D10`–`O-D11` remain open (below) for `OB-1`–`OB-3`
+     `tests/bullet_sync_test.cpp`); **`EX-1` (`O-D7` (b), script explosions), `OB-1` (the object mirror, `O-D5` (a))
+     and `OB-2` (object blips) are Done**; decisions `O-D1`–`O-D4`, `O-D6`, `O-D8` and `O-D10`–`O-D11` remain open
+     (below) for `OB-3`
      before the group 2 ports (#15–#17). Persistent objects (`OB-4`: doors, gates, cabins) are first needed in #23.
 
 ### Mission Objects & Pickups
@@ -65,8 +66,8 @@ to the next (`scripts/compile-scm.ps1` checks this).
 | Package | Scope | Needed by | Status |
 |---|---|---|---|
 | `OB-0` (`O-D9`) | Remote shots on objects & un-networked entity serialization (`CBulletSyncPolicy.h`, `CNetworkEntitySerializer.cpp`, `Hooks/PlayerHooks.cpp`, `PacketHandlers/players.cpp`, `tests/bullet_sync_test.cpp`) | #7, #14, #17, #42 | **Done** |
-| `OB-1` | Mission object mirror core (`CMirrorObjects`, `MISSION_OBJECTS`, `MISSION_OBJECT_MOTION`) | Group 2 (#11–#17) | Design-ready |
-| `OB-2` | Object entity blips in `MISSION_MIRROR_BLIPS` | #15 | **Plumbing done** (wire `ENTITY_OBJECT`, capture and resolve; inert until OB-1 replaces the `CMirrorObjects.h` placeholder) |
+| `OB-1` | Mission object mirror core (`CMirrorObjects`, `CMirrorObjectCopies`, `MISSION_OBJECTS`, `MISSION_OBJECT_MOTION`, ini kill switch `mission-objects`) | Group 2 (#11–#17); also shows group 1's objects | **Done** (two agent reviews; not tested in game) |
+| `OB-2` | Object entity blips in `MISSION_MIRROR_BLIPS` | #15 | **Done** (with OB-1) |
 | `EX-1` (`O-D7` (b)) | Script explosions (`020C`, `0565`, `0948`) of the host's mission family mirrored | #14, #17 | **Done** |
 | `OB-3` | Interaction hand-over (carry in #15, forklift in #17, `MISSION_OBJECT_CLAIM`) | #15, #17 | Design-ready |
 | `OB-4` | Persistent script objects (doors, gates, cabins) | #23 (group 4) | Design-ready |
@@ -105,8 +106,8 @@ to the next (`scripts/compile-scm.ps1` checks this).
 
 ## Open decisions
 
-- **Mission objects** (`docs/design/mission-objects.md`, O-D1–O-D6, O-D8, O-D10–O-D11; `O-D9` / `OB-0` and `O-D7` / `EX-1`
-  confirmed and **Done**),
+- **Mission objects** (`docs/design/mission-objects.md`, O-D1–O-D4, O-D6, O-D8, O-D10–O-D11; `O-D9` / `OB-0`,
+  `O-D7` / `EX-1` and `O-D5` (a) / `OB-1` confirmed and **Done**),
   for the maintainer: whether the friend carries boxes and drives a forklift, persistent doors and gates,
   pickups from crates. (Train decisions `T-D1`–`T-D9` were confirmed on 2026-10-18 with the recommendations
   in `docs/design/trains.md`.)
@@ -133,6 +134,14 @@ to the next (`scripts/compile-scm.ps1` checks this).
     sends a change;
   - the codex review mentioned an inherited bullet surface/piece issue in the shot sync (`OB-0` area); not
     investigated yet.
+- **Mission objects** (from the OB-1 reviews, small):
+  - a family create into a persistent global (#27's advert, #42's cabins, #56's gate, #101's wall) is mirrored as a
+    plain mission object until `OB-4`, which doubles it on the guest: `OB-4` comes before the port of #23;
+  - a hold task given with an animation name carries no animation on the copy (the object sits at the bone);
+  - a replayed break never smashes (the script's second parameter isn't on the wire);
+  - a holder ped removed by the population code between the scripts and `CWorld::Process` takes the copy with it for
+    a moment (it is rebuilt);
+  - minigames in the mission block are mirrored too: pool's 16 balls send up to ~13 KB/s on the break (accepted).
 - **Task sequences** (from the 0.1.2 review):
   - a task a mission gives a character in the frame it creates it doesn't reach the other screens (from upstream; no
     known effect in #1–#10);

@@ -37,6 +37,7 @@
 #include <CPlayerStateSave.h>
 #include <CSessionLifecycle.h>
 #include <CTrainSync.h>
+#include <CMirrorObjects.h>
 
 unsigned int lastOnFootSyncTickRate = 0;
 unsigned int lastDriverSyncTickRate = 0;
@@ -127,6 +128,7 @@ public:
             CWorldStateRegistry::Process(); // private build: world-state registry (the city unlock is its entry 0)
             CPlayerStateSave::Process(); // private build: player state for co-op saves
             CTrainSync::Process(); // private build: train mirror
+            CMirrorObjects::ProcessMotion(); // private build: mission object mirror, motion after the physics
 
             if (/*CNetwork::m_bConnected*/ CNetwork::m_bAuthenticated)
             {

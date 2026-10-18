@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "CMirrorBlips.h"
 #include "CMirrorBlipsPolicy.h"
+#include "CMirrorObjectCopiesPolicy.h"
 #include "CMirrorObjects.h"
 #include "CMissionMirror.h"
 #include "CNetworkStaticBlip.h"
@@ -657,6 +658,33 @@ bool HasLocalTrace(const SMirroredBlip& blip)
     return blip.localHandle != -1 && CRadar::GetActualBlipArrayIndex(blip.localHandle) != -1;
 }
 
+// Where a FOLLOW blip shows: the host's position, or for the host's mission object without a copy here (yet) its record
+// (CMirrorObjects): the newest motion sample after its FULL, else the FULL. The record moves at the object's motion
+// rate, the host's blip position only at the entity rate.
+CVector FollowPosition(const SBlipState& host)
+{
+    if (host.entityKind == eEntityKind::OBJECT)
+    {
+        if (const MirrorObjectsPolicy::SObjectRecord* pRecord =
+                CMirrorObjects::FindRecord(MirrorObjectsWire::ID_MISSION, host.entityId))
+        {
+            const MirrorObjectsWire::SPosition& position = MirrorObjectCopiesPolicy::IsMotionActive(*pRecord) ?
+                pRecord->samples[0].position : pRecord->state.position;
+            return CVector(position.x, position.y, position.z);
+        }
+    }
+    return CVector(host.x, host.y, host.z);
+}
+
+// a FOLLOW blip's trace at FollowPosition
+void PlaceFollow(const SMirroredBlip& blip)
+{
+    if (blip.form == eLocalForm::FOLLOW && HasLocalTrace(blip))
+    {
+        CRadar::ms_RadarTrace[CRadar::GetActualBlipArrayIndex(blip.localHandle)].m_vecPos = FollowPosition(blip.host);
+    }
+}
+
 // the host's fields in this game's trace (CNetworkStaticBlip::Create writes them the same way)
 void ApplyFields(SMirroredBlip& blip)
 {
@@ -680,7 +708,7 @@ void ApplyFields(SMirroredBlip& blip)
 
     if (blip.form == eLocalForm::FOLLOW)
     {
-        trace.m_vecPos = CVector(host.x, host.y, host.z);
+        trace.m_vecPos = FollowPosition(host);
         CRadar::SetBlipEntryExit(blip.localHandle, nullptr);
     }
     else if (blip.form == eLocalForm::COORD)
@@ -844,7 +872,12 @@ void ProcessReceiver(uint32_t now)
     ms_nLastReconcile = now;
     for (int i = 0; i < ms_mirrored.Count(); i++)
     {
-        Reconcile(ms_mirrored.At(i), false);
+        SMirroredBlip& blip = ms_mirrored.At(i);
+        Reconcile(blip, false);
+        if (blip.host.entityKind == eEntityKind::OBJECT)
+        {
+            PlaceFollow(blip);  // an owned object's record moves faster than the host's position updates
+        }
     }
     CountForms();
 }
@@ -908,11 +941,7 @@ void ApplyEntry(const Packets::Mirror::SMirrorBlipEntry& entry)
             pBlip->host.x = entry.position.x;
             pBlip->host.y = entry.position.y;
             pBlip->host.z = entry.position.z;
-            if (pBlip->form == eLocalForm::FOLLOW && HasLocalTrace(*pBlip))
-            {
-                CRadar::ms_RadarTrace[CRadar::GetActualBlipArrayIndex(pBlip->localHandle)].m_vecPos =
-                    CVector(entry.position.x, entry.position.y, entry.position.z);
-            }
+            PlaceFollow(*pBlip);
             ++ms_counters.recvPosition;
             return;
         }

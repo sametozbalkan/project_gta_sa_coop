@@ -1,7 +1,7 @@
 <#
 .SYNOPSIS
-    Builds real train and mission mirror blips packet tests with the vendored SDK, then exchanges client/server wire
-    fixtures.
+    Builds real train, mission mirror blips and mission object packet tests with the vendored SDK, then exchanges
+    client/server wire fixtures.
 .DESCRIPTION
     Run from Windows PowerShell 5.1 or newer: powershell -File scripts/test-train-packets.ps1
     Requires the MSVC x86 C++ tools used by scripts/build.ps1. All outputs stay in ignored build/.
@@ -38,7 +38,7 @@ $includes = '/I"' + (Join-Path $root 'CoopAndreas\shared') + '" /external:W0 '
 foreach ($includeDir in $includeDirs) {
     $includes += '/external:I"' + (Join-Path $root $includeDir) + '" '
 }
-foreach ($test in @('train_packet', 'mirror_blips_packet')) {
+foreach ($test in @('train_packet', 'mirror_blips_packet', 'mirror_objects_packet')) {
 $source = Join-Path $root ('CoopAndreas\tests\network\' + $test + '_test.cpp')
 foreach ($mode in @('debug', 'release')) {
     $flags = '/Od /MTd /D_DEBUG'
@@ -68,4 +68,4 @@ foreach ($mode in @('debug', 'release')) {
     if ($LASTEXITCODE -ne 0) { throw "C2S decode failed: $test $mode" }
 }
 }
-Write-Host 'All train and mirror blips packet tests passed (Debug and Release, C2S and S2C).'
+Write-Host 'All train, mirror blips and mirror objects packet tests passed (Debug and Release, C2S and S2C).'

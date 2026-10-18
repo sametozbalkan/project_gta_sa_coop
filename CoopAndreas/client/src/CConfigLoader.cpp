@@ -82,6 +82,13 @@ void CConfigLoader::Load()
         CCrashReporter::ms_bReportingEnabled = _strnicmp(szReports, "true", 5) == 0;
     }
 
+    // private build: anything but "false" keeps the mission object mirror on
+    char szMissionObjects[6];
+    GetPrivateProfileString(CONFIG_SECTION.c_str(), "mission-objects", "true", szMissionObjects,
+        sizeof(szMissionObjects), ms_sDataPath.c_str());
+    szMissionObjects[5] = 0;
+    ms_bMissionObjects = _strnicmp(szMissionObjects, "false", 5) != 0;
+
 #if DEBUG
     logger::info("CConfigLoader::Load - Name %s Address %s Port %d ReportCrashlogs %s\n", CLocalPlayer::m_Name,
         CNetwork::m_IpAddress, CNetwork::m_nPort, CCrashReporter::ms_bReportingEnabled ? "true" : "false");
@@ -98,4 +105,6 @@ void CConfigLoader::Save()
         CONFIG_SECTION.c_str(), "port", std::to_string(CNetwork::m_nPort).c_str(), ms_sDataPath.c_str());
     WritePrivateProfileString(
         CONFIG_SECTION.c_str(), "report-crashlogs", CCrashReporter::ms_bReportingEnabled ? "true" : "false", ms_sDataPath.c_str());
+    WritePrivateProfileString(
+        CONFIG_SECTION.c_str(), "mission-objects", ms_bMissionObjects ? "true" : "false", ms_sDataPath.c_str());
 }

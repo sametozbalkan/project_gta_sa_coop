@@ -2,10 +2,26 @@
 
 Status: designed 2026-10-17 on main `f23b23c`; **`OB-0` (`O-D9`, remote shots on objects) is implemented** in the client
 (`CBulletSyncPolicy.h`, `CNetworkEntitySerializer.cpp`, `Hooks/PlayerHooks.cpp`, `PacketHandlers/players.cpp`) with
-policy tests in `tests/bullet_sync_test.cpp`; **`EX-1` (`O-D7` (b), script explosions) is implemented** and `OB-2`'s
-wire and blip plumbing is in place (inert until `OB-1`; 0.1.3), while `OB-1`, `OB-3` (and `OB-4`–`OB-5`) remain
-design-ready. Decisions `O-D1`–`O-D6`, `O-D8` and `O-D10`–`O-D11` are open (section 11; `O-D7` and `O-D9` confirmed
-and implemented); the architect takes them to the user. Where a decision is taken, `README.md` in this folder records it.
+policy tests in `tests/bullet_sync_test.cpp`; **`EX-1` (`O-D7` (b), script explosions), `OB-1` (the object mirror,
+`O-D5` (a)) and `OB-2` (object blips) are implemented** (0.1.3; CLAUDE.md, Fork changes, has the details), while `OB-3`
+(and `OB-4`–`OB-5`) remain design-ready. Decisions `O-D1`–`O-D4`, `O-D6`, `O-D8` and `O-D10`–`O-D11` are open
+(section 11; `O-D5`, `O-D7` and `O-D9` confirmed and implemented); the architect takes them to the user.
+
+Where OB-1 differs from this design (found while implementing; this note wins over the sections below):
+- 3.3 / 7: the Euler `AttachEntityToEntity` 0x54D570 (`0681`) zeroes the quaternion at +0x118, and
+  `PositionAttachedEntity` then uses the Euler angles at +0x10C, so the parent rotation on the wire has a form flag
+  (quaternion, or 3 × 16-bit Euler angles). Infinite-mass objects keep their own world rotation while attached; the
+  receiver gives the copy the FULL's rotation before attaching it.
+- 5.4: the static flag goes out in every FULL but isn't a change (the engine sets and clears it as objects rest or are
+  pushed); the hold task also carries `bAnimByName` (an anim-name hold has no usable anim id; the copy is held without
+  an animation) and disallow-drop (+0x36); scale is at +0x15C; a FULL also carries turn speed and owner/epoch.
+- 5.6 / 5.7: attached and held objects send world samples every 200 ms (50 ms above 5 m/s), used only by a receiver
+  that can't resolve the parent (instead of 20 Hz); stillness is judged over 100 ms windows.
+- 5.3: "missions 0–10" are mission ids, so every story mission from #2 on (ids 11 and up) is in the family: group 1's
+  cigars (#3, #5), bottles (#7) and beer (#8) are mirrored too, and so are minigames in the mission block (pool).
+- Additions: a `mission-objects` kill switch in `coopandreas.ini`; copies only while more than 10 object slots are free
+  and never while paused; an engine clone of the hold task (`FlushImmediately` 0x601640) is adopted; a copy a local
+  forklift auto-attaches is detached again; the hold's anim block is requested as `StartAnim` 0x692FF0 does. Where a decision is taken, `README.md` in this folder records it.
 
 The model stays as it is: missions run only on the host. Today an object the host's mission creates exists only on the
 host's game, so the other player sees no crates, gates, barrels or doors of the mission, and can't carry, lift or
@@ -780,8 +796,8 @@ policy test, `tools/audit_hooks.py` (no new site expected).
 | Package | Scope | Size | Needed by | Status |
 |---|---|---|---|---|
 | OB-0 Remote shots on objects | `CBulletSyncPolicy.h`, `CNetworkEntitySerializer.cpp` (`SetEntity` uses `BulletSyncPolicy::ResolveSerializedEntity` so only entities with a valid network ID `>= 0` serialize as `PLAYER`/`PED`/`VEHICLE`, keeping un-networked peds/vehicles, objects, buildings and dummies as `NETWORK_ENTITY_TYPE_NOTHING` so shots on un-networked peds never hit NPC 0; `GetEntity()` uses `GetLivePed()` / `GetLiveVehicle()`), `Hooks/PlayerHooks.cpp` (`CollectShotSnapshot` classifies impacts from `victim` via `BulletSyncPolicy::ClassifyShot`, setting `bHitSomething = (victim != nullptr)` and `bHitNetworkEntity` only when `hitEntity` resolved to a networked entity, and allowing minigun impacts on `ENTITY_TYPE_OBJECT`), `PacketHandlers/players.cpp` (`PLAYER_BULLET_SHOT` sets `CWorld::pIgnoreEntity = owner` during `CWorld::ProcessLineOfSight` and preserves the local raycast `victim` and `colPoint` when `!bHitNetworkEntity`, so remote players' bullets damage objects, breakable glass, explosive barrels and mission targets), `tests/bullet_sync_test.cpp` | 0.5 job (small) | #14, #17 (and #7's bottles) | **Implemented** |
-| OB-1 Object mirror core | 5.3–5.7 and 5.10–5.11: owned creates, capture, FULL/REMOVED/reset, motion, receiver copies (type 6, the host's flags, interpolation and corrections), attachments to vehicles, peds, players and objects, holders mirrored on ped copies, breaks, join snapshot, lifecycle, `--coopdiag` log and summary line, `MISSION_OBJECTS` and `MISSION_OBJECT_MOTION`, server relays, policy test | 2 jobs (host side and wire; receiver side), or one long one | group 2 | Design-ready |
-| OB-2 Object blips | entity kind OBJECT in `MISSION_MIRROR_BLIPS`, receiver entity blips on copies | 0.5 job (can ride with OB-1) | #15 | **Plumbing implemented** (0.1.3: wire `ENTITY_OBJECT`, id = the host's object pool handle up to `OBJECT_ID_MAX` 0x1FFFF, capture and resolve through `CMirrorObjects`, packet test `tests/network/mirror_blips_packet_test.cpp`); inert until OB-1 replaces the placeholder `client/src/CMirrorObjects.h` |
+| OB-1 Object mirror core | 5.3–5.7 and 5.10–5.11: owned creates, capture, FULL/REMOVED/reset, motion, receiver copies (type 6, the host's flags, interpolation and corrections), attachments to vehicles, peds, players and objects, holders mirrored on ped copies, breaks, join snapshot, lifecycle, `--coopdiag` log and summary line, `MISSION_OBJECTS` and `MISSION_OBJECT_MOTION`, server relays, policy test | 2 jobs (host side and wire; receiver side), or one long one | group 2 | **Implemented** (0.1.3; see the note at the top) |
+| OB-2 Object blips | entity kind OBJECT in `MISSION_MIRROR_BLIPS`, receiver entity blips on copies | 0.5 job (can ride with OB-1) | #15 | **Implemented** (0.1.3: wire `ENTITY_OBJECT`, id = the host's object pool handle up to `OBJECT_ID_MAX` 0x1FFFF, receivers' blips on the copies, packet test `tests/network/mirror_blips_packet_test.cpp`) |
 | OB-3 Hand-over | 5.8: claims, grants, epochs, release, revoke, departed players, carry and fork carry, the host's hold task on its copy of the friend's ped, `MISSION_OBJECT_CLAIM`; `COpCodeSync` object parameters for `070A`/`070B` | 1–2 jobs | #15, #17 | Design-ready |
 | OB-4 Persistent objects | 5.9: the table and its policy test, host capture, hidden-not-deleted, re-apply after the friend's restart | 1 job | #23 (group 4) | Design-ready |
 | OB-5 Vehicle-relative cargo | physics objects resting in a moving vehicle | 0.5 job | #72 | Design-ready |
@@ -814,7 +830,7 @@ For the architect to take to the user. Each says what the players get.
 | O-D2 | #16 Catalyst, the friend's part | (a) the friend fights in the train-yard shootout, then rides in the pickup's passenger seat and watches the host throw and Ryder catch (nobody attacks during the throws); (b) the friend also rides on the train and throws crates: needs two small co-op commands (the friend's button and camera direction, read on the host), a friend-only power bar, and the train side to put the friend on the caboose; (c) the friend catches crates in the pickup's bed in Ryder's place: a replayed catch task, but the catch stays automatic, so the friend still only watches | (a) for group 2; (b) as a later improvement if the user wants the throws shared |
 | O-D3 | #17 Robbing Uncle Sam, loading | (a) a second forklift for the friend: both load crates into the truck, six in total; (b) one forklift: the host loads, the friend guards the yard (there is little left to guard by then) | (a) |
 | O-D4 | #15 Home Invasion, the friend's boxes and noise | delivery: (a) a box counts when the friend reaches the van's back holding it; (b) the friend presses a key there (needs new client code). Noise: (c) only the host's noise fills the meter (the friend can be loud); (d) the friend's noise counts too (the colonel wakes up for either) | (a) and (d) |
-| O-D5 | Mission objects after a mission ends | (a) they stay on the friend's screen as long as on the host's (crates left lying around vanish when the host walks away); (b) they vanish on the friend's screen when the mission ends | (a) |
+| O-D5 | Mission objects after a mission ends | (a) they stay on the friend's screen as long as on the host's (crates left lying around vanish when the host walks away); (b) they vanish on the friend's screen when the mission ends | (a) (**confirmed by the architect 2026-10-19; implemented in OB-1**) |
 | O-D6 | Doors, gates and cabins of the story (persistent objects) | (a) the friend's world follows the host's for good: after #42 the cabins, after #56 the Chinatown gate are as on the host, also after the friend restarts; (b) only while the host's mission runs: afterwards the friend's world goes back to its own (gates come back, doors block); (c) in the world-state registry instead of this module (same effect as (a), two owners of the same objects) | (a), in this module, before group 4 |
 | O-D7 | Explosions | (a) as now: an exploding box or barrel just disappears on the friend's screen (no blast, no damage there); (b) a small package mirrors the explosions of the host's mission scripts (`Fx.AddExplosion` and its variants, used by #14 and #17): the friend sees and hears the blast, and it damages what is near on the friend's game; engine explosions (shot barrels, cars) stay as now | (b) (**confirmed by the architect 2026-10-18; implemented as EX-1**) |
 | O-D8 | Pickups from crates (#17 gives weapons, armour, health from shot crates) | (a) host only (W-D6): the friend sees the crate break but finds no pickup; (b) mirrored pickups (a new design) | (a) |

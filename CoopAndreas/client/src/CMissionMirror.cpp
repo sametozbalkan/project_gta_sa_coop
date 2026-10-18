@@ -4,6 +4,7 @@
 #include "CMirrorBlips.h"
 #include "CMirrorAreas.h"
 #include "CMirrorHud.h"
+#include "CMirrorObjects.h"
 #include "COpCodeSync.h"
 #include "CSessionLifecycle.h"
 #include <CTimer.h>
@@ -493,6 +494,7 @@ void CMissionMirror::OnCommandExecuted(CRunningScript* pScript, uint16_t opcode)
     {
         return;
     }
+    CMirrorObjects::OnCommandExecuted(pScript, opcode); // OB-1: the objects the host's mission family creates
     CMirrorBlips::OnCommandExecuted(pScript, opcode); // M2: the blips the host's mission family creates
     CMirrorHud::OnCommandExecuted(pScript, opcode); // M4: which timers and counters the host's mission added
 
@@ -630,6 +632,7 @@ void CMissionMirror::OnScriptsProcessed()
     }
 
     UpdateMission();
+    CMirrorObjects::Process(); // OB-1: the host's objects, before the blips so a blip finds its object
     CMirrorBlips::Process(); // M2: the host sends its mission's blips, the others keep their copies in line
     CMirrorAreas::Process(ms_mission.IsMirrored()); // the host's locate spheres and markers (package M3)
     CMirrorHud::Process(); // M4: the host's timers and counters out, the mirrored ones on the other games
@@ -744,4 +747,5 @@ void CMissionMirror::WriteDiagSummary(FILE* file)
     CMirrorBlips::WriteDiagSummary(file); // M2
     CMirrorAreas::WriteDiagSummary(file);
     CMirrorHud::WriteDiagSummary(file); // M4
+    CMirrorObjects::WriteDiagSummary(file); // OB-1
 }
