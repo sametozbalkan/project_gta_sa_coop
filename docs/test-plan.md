@@ -1,6 +1,6 @@
 # Test plan
 
-For **0.1.3-alpha**, the current release. Use the same build on every PC. Anyone can test: you need two or more PCs, each with GTA: San Andreas from
+For **0.1.3-alpha** with the **0.1.3.1** server, the current release. Use the same build on every PC. Anyone can test: you need two or more PCs, each with GTA: San Andreas from
 Steam, and Steam accounts that are friends with each other. Tick a box only after you have seen it on at least two
 PCs. Nothing in this plan is confirmed in game yet unless the results table says so; anything else you notice is
 welcome too (see [Reporting](#reporting)).
@@ -37,6 +37,19 @@ the first player to connect. Every other player is a **guest**.
 Session: date `____` · number of players `____` · package SHA-256 `____` · commit in `manifest.json` `____`.
 
 ## What changed
+
+### 0.1.3.1 (server only)
+
+- **Reconnecting after a crash:** a player whose game crashed, froze or was closed from the Task Manager can connect
+  again with the same nickname about 5 s later; before, the server answered "nickname already taken" for 30–60 s.
+  A player who is still connected (also one in Alt+Tab) can't be pushed out by someone using their nickname. Only the
+  host needs this package's `server.exe`; games on 0.1.3 keep working with it (the version in game stays
+  `0.1.3-alpha`).
+  - [ ] **Guest:** kill the guest's `gta_sa.exe` in the Task Manager and reconnect after 5 s with the same nickname:
+    the guest gets in, the host's game shows the guest leave and come back, the server window prints
+    `reconnected; dropped its stale session`.
+  - [ ] **Story host:** the same with the host's game: the host is the host again after reconnecting.
+  - [ ] **Live player:** while a guest plays (or is in Alt+Tab), a second game with the same nickname is refused.
 
 ### 0.1.3 (train review fixes, script explosions, mission objects)
 
@@ -503,7 +516,8 @@ The plan stops at #10: the missions from #11 on aren't rebuilt for co-op yet.
 - A guest's gym texts can disappear while the host's mission shows texts.
 - Guests shouldn't buy properties: their purchase isn't saved anywhere and the money is gone.
 - Alt+Tab pauses that player's game; if it is the host, the mission waits too.
-- A player whose game crashed can connect again only after the server has dropped the old connection (30–60 s).
+- A player whose game crashed can connect again with the same nickname about 5 s after the crash (0.1.3.1 server);
+  with an older server only after it has dropped the old connection (30–60 s).
 
 ## Reporting
 
