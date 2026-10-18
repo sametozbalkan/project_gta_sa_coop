@@ -2,6 +2,7 @@
 #include "CHostManager.h"
 #include "CRTTBroadcastManager.h"
 #include "CPacketFactory.h"
+#include "CReconnectPolicy.h"
 #include "logger.h"
 #include "network/packet.h"
 #include "network/packets/system.h"
@@ -11,6 +12,7 @@
 #include <network/packets/peds.h>
 #include <network/packets/train.h>
 #include <network/packets/scripts.h>
+#include <enet/time.h>
 
 bool CNetwork::Init(unsigned short port)
 {
@@ -114,6 +116,13 @@ void CNetwork::HandlePlayerDisconnected(ENetEvent& event)
         return;
     }
 
+    RemovePlayer(pNetworkPlayer);
+}
+
+// private build: everything a player who leaves undoes (the ENet DISCONNECT event, or HandlePlayerConnected replacing a
+// stale session with the same nickname); the CNetworkPlayer object stays allocated, as it always did
+void CNetwork::RemovePlayer(CNetworkPlayer* pNetworkPlayer)
+{
     // SYSTEM leave/rejoin notifications bypass the clients' event buffers. Fence this
     // player identity on the reliable EVENT stream before it can be recycled, so an
     // already queued attachment cannot survive into the next player with the same ID.
@@ -168,10 +177,22 @@ void CNetwork::HandlePlayerDisconnected(ENetEvent& event)
 void CNetwork::HandlePlayerConnected(ENetPeer* pENetPeer, Packets::System::PlayerConnected& playerConnected)
 {
 #ifndef _DEBUG
+    CNetworkPlayer* pStalePlayer = nullptr;
+    uint32_t staleSilentMs = 0;
     for (auto* pNetworkPlayer : CNetworkPlayerManager::m_pPlayers)
     {
         if (strncmp(pNetworkPlayer->m_Name, playerConnected.payload.name, sizeof(pNetworkPlayer->m_Name)) == 0)
         {
+            // private build: a crashed game sends no disconnect; its session is replaced once its peer has been silent
+            // for a while (CReconnectPolicy.h). lastReceiveTime is stamped from the host's enet_time_get() clock.
+            const uint32_t silentMs = ENET_TIME_DIFFERENCE(enet_time_get(), pNetworkPlayer->m_pPeer->lastReceiveTime);
+            if (ReconnectPolicy::IsSessionStale(silentMs))
+            {
+                pStalePlayer = pNetworkPlayer;
+                staleSilentMs = silentMs;
+                break;
+            }
+
             Packets::System::PlayerDisconnected playerDisconnected{};
             playerDisconnected.payload.playerid = -1;
             playerDisconnected.payload.reason = Packets::System::PlayerDisconnected::DISCONNECTION_REASON_NAME_TAKEN;
@@ -199,6 +220,20 @@ void CNetwork::HandlePlayerConnected(ENetPeer* pENetPeer, Packets::System::Playe
         enet_peer_disconnect_later(pENetPeer, packedVersion);
         return;
     }
+
+#ifndef _DEBUG
+    if (pStalePlayer != nullptr)
+    {
+        // a normal leave first (host, peds, vehicles, seats), then the old peer goes without a word: enet_peer_reset sends
+        // nothing and raises no DISCONNECT event. Not enet_peer_disconnect*: over CoopTunnel the old and the new
+        // connection share an address and port, so a disconnect command could reach the new game.
+        printf("[Game] : %s reconnected; dropped its stale session (id %d, silent %u ms)\n",
+            pStalePlayer->GetName().c_str(), pStalePlayer->m_iPlayerId, staleSilentMs);
+        ENetPeer* pStalePeer = pStalePlayer->m_pPeer;
+        RemovePlayer(pStalePlayer);
+        enet_peer_reset(pStalePeer);
+    }
+#endif
 
     int freeId = CNetworkPlayerManager::GetFreeID();
     CNetworkPlayer* pNewNetworkPlayer = new CNetworkPlayer(pENetPeer, freeId);
