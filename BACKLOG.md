@@ -42,19 +42,35 @@ to the next (`scripts/compile-scm.ps1` checks this).
 
 ## Next, in priority order
 
-1. **Group 2 infrastructure: trains and mission objects.** The designs are ready (2026-10-17):
-   `docs/design/trains.md` and `docs/design/mission-objects.md`; their decisions are open (below).
-   - Effort: about 10–11 agent jobs for the full plan, then 4–5 for the group 2 ports; about 4–5 (+3) the lean way.
-     To be decided after the group 1 test.
-   - Persistent objects (doors, gates, cabins) are first needed in #23; `docs/design/README.md` (W-D11) says #60 and
-     is corrected when that decision is recorded.
+1. **Group 2 infrastructure: mission objects (`OB-0` and trains implemented).** The designs are in `docs/design/trains.md`
+   and `docs/design/mission-objects.md`.
+   - **Trains (`docs/design/trains.md`)**: decisions `T-D1`–`T-D9` confirmed (2026-10-18) and packages `T1a`, `T1b`,
+     `T2`, `T4` and `T5` implemented (`CTrainSync`, carriage network vehicle identity, `ENTITY_ATTACH` for peds/players
+     attached to vehicles, passenger station-skip forwarding and derailment/driving support); `T3` (vehicle-relative
+     on-foot sync) is scheduled before #74 *Green Goo* (`T-D5`/`T-D7`).
+   - **Mission objects (`docs/design/mission-objects.md`)**: **`OB-0` (`O-D9`, remote shots on objects) is Done**
+     (`CBulletSyncPolicy.h`, `CNetworkEntitySerializer.cpp`, `Hooks/PlayerHooks.cpp`, `PacketHandlers/players.cpp`,
+     `tests/bullet_sync_test.cpp`); decisions `O-D1`–`O-D8` and `O-D10`–`O-D11` remain open (below) for `OB-1`–`OB-3`
+     before the group 2 ports (#15–#17). Persistent objects (`OB-4`: doors, gates, cabins) are first needed in #23.
+
+### Mission Objects & Pickups
+
+| Package | Scope | Needed by | Status |
+|---|---|---|---|
+| `OB-0` (`O-D9`) | Remote shots on objects & un-networked entity serialization (`CBulletSyncPolicy.h`, `CNetworkEntitySerializer.cpp`, `Hooks/PlayerHooks.cpp`, `PacketHandlers/players.cpp`, `tests/bullet_sync_test.cpp`) | #7, #14, #17, #42 | **Done** |
+| `OB-1` | Mission object mirror core (`CMirrorObjects`, `MISSION_OBJECTS`, `MISSION_OBJECT_MOTION`) | Group 2 (#11–#17) | Design-ready |
+| `OB-2` | Object entity blips in `MISSION_MIRROR_BLIPS` | #15 | Design-ready |
+| `OB-3` | Interaction hand-over (carry in #15, forklift in #17, `MISSION_OBJECT_CLAIM`) | #15, #17 | Design-ready |
+| `OB-4` | Persistent script objects (doors, gates, cabins) | #23 (group 4) | Design-ready |
+| `OB-5` | Vehicle-relative cargo | #72 | Design-ready |
+
 2. **The host's own connection drops mid-mission:** the network-id wait loops in INTRO1, INTRO2, SWEET1, SWEET1B and
    SWEET2 have no timeout, so the mission can hang on the host. They get SWEET3's 2-second timeout (a small change
    inside each mission).
 3. **Infrastructure before the missions that need it** (`docs/design/README.md`, section 4): M5 race checkpoints and
    script spheres (#22, group 3); WS-5 gang territories and wars, with the friend's kills counting in the host's war
-   (#25, group 4); WS-2 bridge barriers and roads (#28, group 4); WS-6 map objects (#42); the object-sync design
-   (#60); WS-7 riots (#99).
+   (#25, group 4); WS-2 bridge barriers and roads (#28, group 4); WS-6 map objects (#42); T3 vehicle-relative on-foot
+   sync (#74); WS-7 riots (#99).
 4. **Client features later missions need**, when they come up: fire (#23), gang wars (#25, #98), trailers (#31), RC
    vehicles (#44–#46), parachutes (#72, #81, #89), the jetpack (#73).
 5. **Mission port checker:** a script under `tools/` that checks the leaving-player rules (check and use in the same
@@ -81,21 +97,19 @@ to the next (`scripts/compile-scm.ps1` checks this).
 
 ## Open decisions
 
-- **Trains** (`docs/design/trains.md`, T-D1–T-D9) and **mission objects** (`docs/design/mission-objects.md`,
-  O-D1–O-D11), for the maintainer: random trains only on the host's game, the friend's place in #16 Catalyst, whether
-  the friend carries boxes and drives a forklift, persistent doors and gates, mission explosions, pickups from crates.
+- **Mission objects** (`docs/design/mission-objects.md`, O-D1–O-D8, O-D10–O-D11; `O-D9` / `OB-0` confirmed and **Done**),
+  for the maintainer: whether the friend carries boxes and drives a forklift, persistent doors and gates, mission
+  explosions, pickups from crates. (Train decisions `T-D1`–`T-D9` were confirmed on 2026-10-18 with the recommendations
+  in `docs/design/trains.md`.)
 - **At the port of the mission:** #26 Los Sepulcros sets the host's respect to 200 (`0629`) during the mission, and
   #103 End Of The Line (3) pays $250,000 frames before its pass; the mirror layer passes on neither.
 
 ## Open issues
 
-- **Found by the group 2 designs** (their packages fix them):
-  - the friend's bullets don't hit objects on the host, and a hit on a pedestrian without a network id can go to
-    NPC 0 (OB-0; small, with the object core or on its own);
-  - every game makes its own random trains: in #11, #13 and #16 the friend's game keeps its train although the host's
-    mission deletes all trains;
-  - a player riding a train stands frozen where they boarded on the other screen;
-  - a replayed command with a train handle goes to vehicle 0.
+- **Found by the group 2 designs**:
+  - **Done (`OB-0` / `O-D9`)**: the friend's bullets now hit objects, glass and buildings on every game, and a shot at an
+    un-networked ped or vehicle stays `NETWORK_ENTITY_TYPE_NOTHING` instead of targeting NPC 0 (`CBulletSyncPolicy.h`,
+    `CNetworkEntitySerializer.cpp`, `Hooks/PlayerHooks.cpp`, `PacketHandlers/players.cpp`, `tests/bullet_sync_test.cpp`).
 - **Vehicle sync** (small, rare):
   - when all 255 vehicle ids are taken the server doesn't answer a vehicle spawn (the creator's slot comes back after
     30 s);

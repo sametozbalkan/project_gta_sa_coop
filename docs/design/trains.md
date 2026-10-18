@@ -1,8 +1,9 @@
 # Trains for two players (design)
 
-Status: designed 2026-10-17 on main `f23b23c`, not implemented. For the architect to review and take to the user; the
-decisions are in section 11. Group 2 (#11–#17) needs packages T1 and T2 before #13 Wrong Side of the Tracks and #16
-Catalyst can be ported (section 10).
+Status: designed 2026-10-17 on main `f23b23c`; decisions `T-D1`–`T-D9` confirmed with the recommendations in section 11
+(2026-10-18); packages `T1a`, `T1b`, `T2`, `T4` and `T5` implemented (section 10), with `T3` scheduled before #74
+*Green Goo* per `T-D5`/`T-D7`. Group 2 (#11–#17) train and attachment infrastructure for #13 *Wrong Side of the Tracks*
+and #16 *Catalyst* is ready.
 
 The model stays as it is: missions run only on the host, the other players see their reflection. Today the other players
 never see a train of the host: their game has no copy of it, a blip on it is a dot that follows the host's position, and
@@ -749,27 +750,26 @@ All `gtasa-coder-high`, each in its own worktree from the then-current `main`. G
 `tools/audit_hooks.py` where hook sites change, `tests/train_sync_test.cpp` (new, `/W4 /WX` like the other policy
 tests), `tests/vehicle_sync_test.cpp` for the carriage rules. Each is a protocol change for the next package.
 
-| WP | Content | Size | Needed by |
-|---|---|---|---|
-| T1a Carriage identity | the shared train-model list; server: no syncer change for carriages from driver or passenger updates (`VehicleSeatPolicy`, tests); client: no idle updates for carriages that haven't derailed, the handlers don't move a carriage, `ApplyAssignment` for carriages, chain removal hook in `OnRemovePacket`, the binding API for `CTrainSync` | 1 agent job | #13, #16 |
-| T1b Train mirror | `CTrainSync` (host scan, carriage records, `TRAIN_STATE`/`TRAIN_EVENT` SPAWN, REMOVE, CARRIAGES, SNAPSHOT; receivers' copies, override in `CVehicle__ProcessControl_Hook`, correction, lost copies, lifecycle, gate), the 0x43426D wrapper (no generation on followers, random trains kept near network players), follower clean-up, mirror blips' train exception, derailed trains removed on receivers, diagnostics, policy header and test, server relays | 2 agent jobs (one large) | #11 (no friend's trains), #13, #16 |
-| T2 Attach mirror | `ENTITY_ATTACH` for players and peds attached to network vehicles (cars included), owner polling, receiver attach without the camera branch, on-foot positions ignored while attached, reconnect and recreation | 1 agent job | #13 (Vagos), #16 (CJ, Ryder) |
-| T3 Vehicle-relative on foot | `SVehiclePoint` in player and ped on-foot updates while standing on a moving network vehicle (the entity at +0x568, 3.5), sticky for jumps | 1 agent job | #16 only if T-D5 puts the friend on the train; #74; also #80 Stowaway (inside the moving plane) and boats |
-| T4 Riding inside | the 0x47B6DC redirect and `REQUEST` (TRAINS skip for the friend), entering stopped carriages checked, the streak coaches | 1 agent job | free roam; #52 |
-| T5 Derailment and driving | derailed copies following idle updates, a player driving a copy (forced status, keys), the freight side mission for the friend | 1 agent job | free roam; the freight mission after #61 |
+| WP | Content | Size | Needed by | Status |
+|---|---|---|---|---|
+| T1a Carriage identity | the shared train-model list; server: no syncer change for carriages from driver or passenger updates (`VehicleSeatPolicy`, tests); client: no idle updates for carriages that haven't derailed, the handlers don't move a carriage, `ApplyAssignment` for carriages, chain removal hook in `OnRemovePacket`, the binding API for `CTrainSync` | 1 agent job | #13, #16 | **Implemented** |
+| T1b Train mirror | `CTrainSync` (host scan, carriage records, `TRAIN_STATE`/`TRAIN_EVENT` SPAWN, REMOVE, CARRIAGES, SNAPSHOT; receivers' copies, override in `CVehicle__ProcessControl_Hook`, correction, lost copies, lifecycle, gate), the 0x43426D wrapper (no generation on followers, random trains kept near network players), follower clean-up, mirror blips' train exception, derailed trains removed on receivers, diagnostics, policy header and test, server relays | 2 agent jobs (one large) | #11 (no friend's trains), #13, #16 | **Implemented** |
+| T2 Attach mirror | `ENTITY_ATTACH` for players and peds attached to network vehicles (cars included), owner polling, receiver attach without the camera branch, on-foot positions ignored while attached, reconnect and recreation | 1 agent job | #13 (Vagos), #16 (CJ, Ryder) | **Implemented** |
+| T3 Vehicle-relative on foot | `SVehiclePoint` in player and ped on-foot updates while standing on a moving network vehicle (the entity at +0x568, 3.5), sticky for jumps | 1 agent job | #74; also #72 Stowaway (inside the moving plane) and boats | Scheduled before #74 (`T-D5`/`T-D7`) |
+| T4 Riding inside | the 0x47B6DC redirect and `REQUEST` (TRAINS skip for the friend), entering stopped carriages checked, the streak coaches | 1 agent job | free roam; #52 | **Implemented** |
+| T5 Derailment and driving | derailed copies following idle updates, a player driving a copy (forced status, keys), the freight side mission for the friend | 1 agent job | free roam; the freight mission after #61 | **Implemented** |
 
-Order: T1a, then T1b; T2 can start after T1a (it works on cars from the start); then the #13 and #16 ports
-(`gtasa-coder`, gameplay only: the friend's bike in #13, the friend's place in #16). T3 before #74 (or with group 2 if
-T-D5 says so), T4 before #52, T5 before the freight mission is played. For group 2: T1a + T1b + T2, about four agent
-jobs.
+Order: `T1a`, `T1b`, `T2`, `T4` and `T5` are implemented. Next for trains: the #13 and #16 ports (`gtasa-coder`,
+gameplay only: the friend's bike in #13, the friend in Ryder's Picador in #16 per `T-D5`), and `T3` before #74 *Green
+Goo* (`T-D7`).
 
-Docs after merging (architect): CLAUDE.md fork changes, `docs/mission-porting.md` (trains are entities; a blip on a
-train is an entity blip; ports don't wait for train network ids), `docs/missions.md` risks of the train missions,
-`docs/design/README.md` decisions, the test plan (`docs/test-plan.md`).
+Docs updated with the implementation: `CLAUDE.md` fork changes, `docs/mission-porting.md` (trains are entities; a blip on
+a train is an entity blip; ports don't wait for train network ids), `docs/missions.md` risks of the train missions,
+`docs/design/README.md` decisions, and the test plan (`docs/test-plan.md`).
 
-## 11. Decisions for the architect or the user
+## 11. Decisions (confirmed 2026-10-18 with the recommendations)
 
-| # | Decision | Options and what the players get | Recommendation |
+| # | Decision | Options and what the players get | Recommendation (confirmed) |
 |---|---|---|---|
 | T-D1 | How trains reach the friend | **Track mirror** (A): the friend's train is a real train on the same track at the host's position, smooth, can be ridden. **Vehicle copies** (B): the carriages are pushed around like cars, they wobble on curves and can tip over. **Replay** (C): only in ported missions, drifts apart | track mirror |
 | T-D2 | Random (ambient) trains | **Only the host's game makes them**: both see the same train near the host and can ride it together; a friend alone in another city sees no ambient trains. **Each game makes its own** (today): each sees trains the other doesn't, they can't ride one together, and a train can hit you that the other never sees. **None in co-op**: no ambient trains at all, and the freight side mission can't start (it needs one) | only the host's |

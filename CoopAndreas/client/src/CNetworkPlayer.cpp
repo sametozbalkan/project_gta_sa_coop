@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include "CTrainSyncPolicy.h"
 #include <CTaskSimpleCarSetPedOut.h>
 #include <CCarEnterExit.h>
 #include <CTaskSimpleCarSetPedInAsPassenger.h>
@@ -312,7 +313,10 @@ void CNetworkPlayer::HandleTask(Packets::Players::SetPlayerTask& packet)
     CChat::AddMessage("HandleTask %d toggle %d", packet.taskType, packet.toggle);
 #endif
 
-    m_pPed->SetPosn(packet.vecPos);
+    if (TrainSyncPolicy::ShouldApplyOnFootPosition(m_pPed->m_pAttachedTo != nullptr))
+    {
+        m_pPed->SetPosn(packet.vecPos);
+    }
     m_pPed->m_fCurrentRotation = packet.currentRotation.m_angle;
     m_pPed->m_fAimingRotation = packet.aimingRotation.m_angle;
 

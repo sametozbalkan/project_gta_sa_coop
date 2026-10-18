@@ -59,4 +59,23 @@ inline float HeadingFromForward(float forwardX, float forwardY)
     }
     return std::atan2(-forwardX, forwardY);
 }
+
+// The six train and tram models in data\vehicles.ide (449 tram, 537 freight, 538 streak, 569 freiflat, 570 streakc,
+// 590 freibox), shared so the server (without CModelInfo) and the policy tests can identify train carriages (T1a).
+constexpr bool IsTrainModelId(int modelId) noexcept
+{
+    switch (modelId)
+    {
+        case 449:
+        case 537:
+        case 538:
+        case 569:
+        case 570:
+        case 590:
+            return true;
+        default:
+            return false;
+    }
+}
 }  // namespace VehicleSync
+

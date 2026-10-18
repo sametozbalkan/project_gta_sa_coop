@@ -4,6 +4,7 @@
 #include "CDiscordRPC.h"
 #include <COpCodeSync.h>
 #include <CMissionMirror.h>
+#include <CTrainSync.h>
 #include <CCustomMenuManager.h>
 #include <winuser.h>
 #include <CLaunchManager.h>
@@ -83,6 +84,7 @@ void CCore::Init()
     CDiscordRPC::Init();
     COpCodeSync::Init();
     CMissionMirror::Init(); // private build: mission mirror layer
+    CTrainSync::Init(); // private build: train mirror
     Events::initGameEvent.after += []
     {
         CPatch::TemporaryPatches();

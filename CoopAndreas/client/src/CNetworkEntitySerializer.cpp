@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "network/CNetworkEntitySerializer.h"
+#include "CBulletSyncPolicy.h"
 
 CEntity* CNetworkEntitySerializer::GetEntity()
 {
@@ -7,7 +8,7 @@ CEntity* CNetworkEntitySerializer::GetEntity()
 	{
 		if (auto networkPed = CNetworkPedManager::GetPed(entityId))
 		{
-			if (auto ped = networkPed->m_pPed)
+			if (auto ped = networkPed->GetLivePed())
 			{
 				return ped;
 			}
@@ -17,7 +18,7 @@ CEntity* CNetworkEntitySerializer::GetEntity()
 	{
 		if (auto networkVehicle = CNetworkVehicleManager::GetVehicle(entityId))
 		{
-			if (auto vehicle = networkVehicle->m_pVehicle)
+			if (auto vehicle = networkVehicle->GetLiveVehicle())
 			{
 				return vehicle;
 			}
@@ -44,42 +45,43 @@ CEntity* CNetworkEntitySerializer::GetEntity()
 void CNetworkEntitySerializer::SetEntity(CEntity* entity)
 {
 	entityType = NETWORK_ENTITY_TYPE_NOTHING;
+	entityId = 0;
 
-	if (entity == nullptr)
+	int lookupId = -1;
+	bool isPlayerPed = false;
+
+	if (entity != nullptr)
 	{
-		return;
-	}
-
-	if (entity->m_nType == ENTITY_TYPE_PED)
-	{
-		if (((CPed*)entity)->IsPlayer())
+		if (entity->m_nType == ENTITY_TYPE_PED)
 		{
-			entityType = NETWORK_ENTITY_TYPE_PLAYER;
-			if (entity == FindPlayerPed(0))
+			isPlayerPed = ((CPed*)entity)->IsPlayer();
+			if (isPlayerPed)
 			{
-				entityId = CNetworkPlayerManager::m_nMyId;
+				if (entity == FindPlayerPed(0))
+				{
+					lookupId = CNetworkPlayerManager::m_nMyId;
+				}
+				else if (auto networkPlayer = CNetworkPlayerManager::GetPlayer(entity))
+				{
+					lookupId = networkPlayer->m_iPlayerId;
+				}
 			}
-
-			if (auto networkPlayer = CNetworkPlayerManager::GetPlayer(entity))
+			else if (auto networkPed = CNetworkPedManager::GetPed(entity))
 			{
-				entityId = networkPlayer->m_iPlayerId;
-			}
-		}
-		else
-		{
-			entityType = NETWORK_ENTITY_TYPE_PED;
-			if (auto networkPed = CNetworkPedManager::GetPed(entity))
-			{
-				entityId = networkPed->m_nPedId;
+				lookupId = networkPed->m_nPedId;
 			}
 		}
-	}
-	else if (entity->m_nType == ENTITY_TYPE_VEHICLE)
-	{
-		entityType = NETWORK_ENTITY_TYPE_VEHICLE;
-		if (auto networkVehicle = CNetworkVehicleManager::GetVehicle(entity))
+		else if (entity->m_nType == ENTITY_TYPE_VEHICLE)
 		{
-			entityId = networkVehicle->m_nVehicleId;
+			if (auto networkVehicle = CNetworkVehicleManager::GetVehicle(entity))
+			{
+				lookupId = networkVehicle->m_nVehicleId;
+			}
 		}
 	}
+
+	const auto resolved = BulletSyncPolicy::ResolveSerializedEntity(
+		entity != nullptr, entity ? entity->m_nType : 0, isPlayerPed, lookupId);
+	entityType = static_cast<eNetworkEntityType>(resolved.entityType);
+	entityId = resolved.entityId;
 }

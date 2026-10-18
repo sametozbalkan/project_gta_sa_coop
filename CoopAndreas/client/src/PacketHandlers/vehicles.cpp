@@ -4,6 +4,7 @@
 #include <CCarEnterExit.h>
 #include <CTaskSimpleCarSetPedOut.h>
 #include "CRadioSync.h"
+#include "CTrainSyncPolicy.h"
 
 // private build: a passenger seat the vehicle has. The packets allow -1..7; m_apPassengers has 8 entries (index -1
 // is m_pDriver) and most vehicles have fewer seats (m_nMaxPassengers).
@@ -59,40 +60,55 @@ PACKET_HANDLER(ePacketType::VEHICLE_IDLE_UPDATE, Packets::Vehicles::VehicleIdleU
     // private build (vehicle sync protocol): the syncer's state, and a copy this game lost comes back where it is
     pNetworkVehicle->RememberState(pVehicleIdleUpdate->pos, pVehicleIdleUpdate->roll, pVehicleIdleUpdate->rot,
         pVehicleIdleUpdate->color1, pVehicleIdleUpdate->color2);
-    if (!pNetworkVehicle->GetLiveVehicle() &&
-        !CNetworkVehicleManager::RecreateLostCopy(pNetworkVehicle, pVehicleIdleUpdate->pos, pVehicleIdleUpdate->roll,
-            pVehicleIdleUpdate->rot, pVehicleIdleUpdate->color1, pVehicleIdleUpdate->color2))
-        return;
-
-    if (pNetworkVehicle->m_pVehicle->m_matrix == nullptr)
-        return;
-
-    pNetworkVehicle->m_pVehicle->m_matrix->pos = pVehicleIdleUpdate->pos;
-
-    // if (CUtil::IsPositionUpdateNeeded(pNetworkVehicle->m_pVehicle->m_matrix->right, pVehicleIdleUpdate->roll, 1))
-    pNetworkVehicle->m_pVehicle->m_matrix->right = pVehicleIdleUpdate->roll;
-
-    // if (CUtil::IsPositionUpdateNeeded(pNetworkVehicle->m_pVehicle->m_matrix->up, pVehicleIdleUpdate->rot, 1))
-    pNetworkVehicle->m_pVehicle->m_matrix->up = pVehicleIdleUpdate->rot;
-
-    pNetworkVehicle->m_pVehicle->m_vecMoveSpeed = pVehicleIdleUpdate->velocity;
-    pNetworkVehicle->m_pVehicle->m_vecTurnSpeed = pVehicleIdleUpdate->turnSpeed;
-
-    pNetworkVehicle->m_pVehicle->m_nPrimaryColor = pVehicleIdleUpdate->color1;
-    pNetworkVehicle->m_pVehicle->m_nSecondaryColor = pVehicleIdleUpdate->color2;
-    pNetworkVehicle->m_pVehicle->m_fHealth = pVehicleIdleUpdate->health;
-
-    if (pNetworkVehicle->m_pVehicle->GetRemapIndex() != pVehicleIdleUpdate->paintjob)
-        pNetworkVehicle->m_pVehicle->SetRemap(pVehicleIdleUpdate->paintjob);
-
-    if (CUtil::GetVehicleType(pNetworkVehicle->m_pVehicle) == eVehicleType::VEHICLE_PLANE)
+    CVehicle* pVehicle = pNetworkVehicle->GetLiveVehicle();
+    if (pVehicle == nullptr)
     {
-        CPlane* pPlane = (CPlane*)pNetworkVehicle->m_pVehicle;
+        if (!CNetworkVehicle::IsTrainModel(pNetworkVehicle->m_nModelId))
+        {
+            pVehicle = CNetworkVehicleManager::RecreateLostCopy(pNetworkVehicle, pVehicleIdleUpdate->pos,
+                pVehicleIdleUpdate->roll, pVehicleIdleUpdate->rot, pVehicleIdleUpdate->color1,
+                pVehicleIdleUpdate->color2);
+        }
+        if (pVehicle == nullptr)
+            return;
+    }
+
+    if (!VehicleSyncPolicy::ShouldApplyCarriageKinematics(
+            pNetworkVehicle->m_nModelId, CNetworkVehicle::IsDerailedTrain(pVehicle)))
+        return;
+
+    if (pVehicle->m_matrix == nullptr)
+        return;
+
+    if (TrainSyncPolicy::ShouldApplyOnFootPosition(pVehicle->m_pAttachedTo != nullptr))
+    {
+        pVehicle->m_matrix->pos = pVehicleIdleUpdate->pos;
+
+        // if (CUtil::IsPositionUpdateNeeded(pNetworkVehicle->m_pVehicle->m_matrix->right, pVehicleIdleUpdate->roll, 1))
+        pVehicle->m_matrix->right = pVehicleIdleUpdate->roll;
+
+        // if (CUtil::IsPositionUpdateNeeded(pNetworkVehicle->m_pVehicle->m_matrix->up, pVehicleIdleUpdate->rot, 1))
+        pVehicle->m_matrix->up = pVehicleIdleUpdate->rot;
+
+        pVehicle->m_vecMoveSpeed = pVehicleIdleUpdate->velocity;
+        pVehicle->m_vecTurnSpeed = pVehicleIdleUpdate->turnSpeed;
+    }
+
+    pVehicle->m_nPrimaryColor = pVehicleIdleUpdate->color1;
+    pVehicle->m_nSecondaryColor = pVehicleIdleUpdate->color2;
+    pVehicle->m_fHealth = pVehicleIdleUpdate->health;
+
+    if (pVehicle->GetRemapIndex() != pVehicleIdleUpdate->paintjob)
+        pVehicle->SetRemap(pVehicleIdleUpdate->paintjob);
+
+    if (CUtil::GetVehicleType(pVehicle) == eVehicleType::VEHICLE_PLANE)
+    {
+        CPlane* pPlane = (CPlane*)pVehicle;
 
         pPlane->m_fLandingGearStatus = pVehicleIdleUpdate->planeGearState;
     }
 
-    pNetworkVehicle->m_pVehicle->m_eDoorLock = pVehicleIdleUpdate->locked;
+    pVehicle->m_eDoorLock = pVehicleIdleUpdate->locked;
 }
 
 PACKET_HANDLER(ePacketType::VEHICLE_DRIVER_UPDATE, Packets::Vehicles::VehicleDriverUpdate* pVehicleDriverUpdate)
@@ -109,6 +125,7 @@ PACKET_HANDLER(ePacketType::VEHICLE_DRIVER_UPDATE, Packets::Vehicles::VehicleDri
     pNetworkPlayer->m_oldControllerState = pVehicleDriverUpdate->playerKeys.oldControllerState;
     pNetworkPlayer->m_newControllerState = pVehicleDriverUpdate->playerKeys.newControllerState;
     pNetworkPlayer->m_onFootSnapshotInterpolated.healthSnapshot = pVehicleDriverUpdate->playerHealth;
+    pNetworkVehicle->m_playerDriverSnapshot = *pVehicleDriverUpdate;
 
     // private build (vehicle sync protocol): the driver's state, and a copy this game lost comes back where the driver
     // has it (upstream read a NULL or freed vehicle here)
@@ -118,9 +135,12 @@ PACKET_HANDLER(ePacketType::VEHICLE_DRIVER_UPDATE, Packets::Vehicles::VehicleDri
     CVehicle* pVehicle = pNetworkVehicle->GetLiveVehicle();
     if (pVehicle == nullptr)
     {
-        pVehicle = CNetworkVehicleManager::RecreateLostCopy(pNetworkVehicle, pVehicleDriverUpdate->pos,
-            pVehicleDriverUpdate->roll, pVehicleDriverUpdate->rot, pVehicleDriverUpdate->color1,
-            pVehicleDriverUpdate->color2);
+        if (!CNetworkVehicle::IsTrainModel(pNetworkVehicle->m_nModelId))
+        {
+            pVehicle = CNetworkVehicleManager::RecreateLostCopy(pNetworkVehicle, pVehicleDriverUpdate->pos,
+                pVehicleDriverUpdate->roll, pVehicleDriverUpdate->rot, pVehicleDriverUpdate->color1,
+                pVehicleDriverUpdate->color2);
+        }
         if (pVehicle == nullptr)
             return;
     }
@@ -134,18 +154,25 @@ PACKET_HANDLER(ePacketType::VEHICLE_DRIVER_UPDATE, Packets::Vehicles::VehicleDri
     CPlayerPed* pRecoveredPed = pNetworkPlayer->GetOrRecoverPed(&vecPos);
     if (!CNetworkVehicleManager::StillHolds(vehicleid, pNetworkVehicle, pVehicle))
         return;
-    if (pRecoveredPed != nullptr && (pRecoveredPed->m_pVehicle != pVehicle || !pRecoveredPed->m_nPedFlags.bInVehicle))
+    if (pRecoveredPed != nullptr &&
+        (pRecoveredPed->m_pVehicle != pVehicle || !pRecoveredPed->m_nPedFlags.bInVehicle ||
+            pVehicle->m_pDriver != pRecoveredPed))
     {
         pNetworkPlayer->WarpIntoVehicleDriver(pVehicle);
         if (!CNetworkVehicleManager::StillHolds(vehicleid, pNetworkVehicle, pVehicle))
             return;
     }
 
-    pVehicle->m_matrix->pos = pVehicleDriverUpdate->pos;
-    pVehicle->m_matrix->right = pVehicleDriverUpdate->roll;
-    pVehicle->m_matrix->up = pVehicleDriverUpdate->rot;
-    pVehicle->m_vecMoveSpeed = pVehicleDriverUpdate->velocity;
-    pVehicle->m_vecTurnSpeed = pVehicleDriverUpdate->turnSpeed;
+    if (VehicleSyncPolicy::ShouldApplyCarriageKinematics(
+            pNetworkVehicle->m_nModelId, CNetworkVehicle::IsDerailedTrain(pVehicle)) &&
+        pVehicle->m_matrix != nullptr)
+    {
+        pVehicle->m_matrix->pos = pVehicleDriverUpdate->pos;
+        pVehicle->m_matrix->right = pVehicleDriverUpdate->roll;
+        pVehicle->m_matrix->up = pVehicleDriverUpdate->rot;
+        pVehicle->m_vecMoveSpeed = pVehicleDriverUpdate->velocity;
+        pVehicle->m_vecTurnSpeed = pVehicleDriverUpdate->turnSpeed;
+    }
 
     // private build: the weapon's model may load here (CStreaming::LoadAllRequestedModels)
     pNetworkPlayer->ApplyWeaponSnapshot(pVehicleDriverUpdate->playerWeapon);
@@ -157,34 +184,38 @@ PACKET_HANDLER(ePacketType::VEHICLE_DRIVER_UPDATE, Packets::Vehicles::VehicleDri
         pPlayerPed->m_fArmour = pVehicleDriverUpdate->playerHealth.iArmour;
     }
 
-    pVehicle->m_nPrimaryColor = pVehicleDriverUpdate->color1;
-    pVehicle->m_nSecondaryColor = pVehicleDriverUpdate->color2;
-
-    pVehicle->m_fHealth = pVehicleDriverUpdate->health;
-
-    if (pVehicle->GetRemapIndex() != pVehicleDriverUpdate->paintjob)
-        pVehicle->SetRemap(pVehicleDriverUpdate->paintjob);
-
-    if (pVehicle->m_nVehicleType == VEHICLE_AUTOMOBILE)
+    if (VehicleSyncPolicy::ShouldApplyCarriageKinematics(
+            pNetworkVehicle->m_nModelId, CNetworkVehicle::IsDerailedTrain(pVehicle)))
     {
-        CAutomobile* pAutomobile = (CAutomobile*)pVehicle;
-        pAutomobile->m_wMiscComponentAngle = pVehicleDriverUpdate->miscComponentAngle;
+        pVehicle->m_nPrimaryColor = pVehicleDriverUpdate->color1;
+        pVehicle->m_nSecondaryColor = pVehicleDriverUpdate->color2;
+
+        pVehicle->m_fHealth = pVehicleDriverUpdate->health;
+
+        if (pVehicle->GetRemapIndex() != pVehicleDriverUpdate->paintjob)
+            pVehicle->SetRemap(pVehicleDriverUpdate->paintjob);
+
+        if (pVehicle->m_nVehicleType == VEHICLE_AUTOMOBILE)
+        {
+            CAutomobile* pAutomobile = (CAutomobile*)pVehicle;
+            pAutomobile->m_wMiscComponentAngle = pVehicleDriverUpdate->miscComponentAngle;
+        }
+
+        if (pVehicle->m_nVehicleType == VEHICLE_BIKE)
+        {
+            CBike* pBike = (CBike*)pVehicle;
+            pBike->m_rideAnimData.m_fDesiredLeanAngle = pVehicleDriverUpdate->bikeLean;
+        }
+
+        if (pVehicle->m_nVehicleSubType == VEHICLE_PLANE)
+        {
+            CPlane* pPlane = (CPlane*)pVehicle;
+
+            pPlane->m_fLandingGearStatus = pVehicleDriverUpdate->planeGearState;
+        }
+
+        pVehicle->m_eDoorLock = pVehicleDriverUpdate->locked;
     }
-
-    if (pVehicle->m_nVehicleType == VEHICLE_BIKE)
-    {
-        CBike* pBike = (CBike*)pVehicle;
-        pBike->m_rideAnimData.m_fDesiredLeanAngle = pVehicleDriverUpdate->bikeLean;
-    }
-
-    if (pVehicle->m_nVehicleSubType == VEHICLE_PLANE)
-    {
-        CPlane* pPlane = (CPlane*)pVehicle;
-
-        pPlane->m_fLandingGearStatus = pVehicleDriverUpdate->planeGearState;
-    }
-
-    pVehicle->m_eDoorLock = pVehicleDriverUpdate->locked;
     pNetworkVehicle->m_playerDriverSnapshot = *pVehicleDriverUpdate;
 }
 

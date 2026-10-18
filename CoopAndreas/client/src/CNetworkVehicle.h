@@ -47,9 +47,13 @@ public:
 	void RememberState(const CVector& position, const CVector& right, const CVector& forward, uint8_t color1, uint8_t color2);
 	// players (local and network) out of the vehicle before it is deleted for the network; how many it took out
 	static unsigned int TakePlayersOut(CVehicle* pVehicle, int vehicleid);
-	// a train model: no game makes a copy of a train (CreateVehicle)
+	// a train model: no game makes a standalone copy of a train (CreateVehicle); CTrainSync builds and binds the chain
 	static bool IsTrainModel(int modelid);
+	static bool IsDerailedTrain(const CVehicle* pVehicle);
+	void BindTrainCarriage(CTrain* pCarriage);
+	void UnbindTrainCarriage();
 
 	static CNetworkVehicle* CreateHosted(CVehicle* vehicle);
 };
+
 

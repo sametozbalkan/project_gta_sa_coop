@@ -306,6 +306,7 @@ struct ServerVehicle
     Player* syncer = nullptr;
     bool bMission = false;
     bool bUsedByPed = false;
+    uint16_t m_nModelId = 400;
 };
 
 struct FakeServer
@@ -329,8 +330,10 @@ struct FakeServer
     }
     void DriverUpdate(Player& player, int vehicleid)
     {
-        VehicleSeatPolicy::SetOccupant(*Find(vehicleid), VehicleSeatPolicy::DRIVER_SEAT, &player, Finder());
-        Find(vehicleid)->syncer = &player;
+        ServerVehicle& vehicle = *Find(vehicleid);
+        VehicleSeatPolicy::SetOccupant(vehicle, VehicleSeatPolicy::DRIVER_SEAT, &player, Finder());
+        if (VehicleSeatPolicy::ShouldDriverBecomeSyncer(vehicle.m_nModelId))
+            vehicle.syncer = &player;
     }
     void PassengerUpdate(Player& player, int vehicleid, int seatid)
     {
@@ -339,7 +342,8 @@ struct FakeServer
         if (seat < 0)
             return;
         VehicleSeatPolicy::SetOccupant(vehicle, seat, &player, Finder());
-        if (Player* syncer = VehicleSeatPolicy::ChoosePassengerSyncer<Player>(vehicle, vehicle.bMission, vehicle.bUsedByPed))
+        if (Player* syncer = VehicleSeatPolicy::ChoosePassengerSyncer<Player>(
+                vehicle, vehicle.bMission, vehicle.bUsedByPed, vehicle.m_nModelId))
             vehicle.syncer = syncer;
     }
     void Exit(Player& player) { VehicleSeatPolicy::LeaveSeat<ServerVehicle>(&player, Finder()); }
@@ -815,6 +819,60 @@ void SeatsOnFoot()
     CHECK(!ShouldFreeSeatOnFoot(true, 500, beforeWrap));  // 601 ms across the wrap
 }
 
+void TrainCarriages()
+{
+    const int trainModels[] = {449, 537, 538, 569, 570, 590};
+    const int regularModels[] = {400, 411, 522, 0, 448, 450, 536, 539, 568, 571, 589, 591};
+
+    for (int model : trainModels)
+    {
+        CHECK(VehicleSync::IsTrainModelId(model));
+        CHECK(!VehicleSeatPolicy::ShouldDriverBecomeSyncer(static_cast<uint16_t>(model)));
+        CHECK(!VehicleSyncPolicy::ShouldSpawnStandaloneCarriage(model));
+        CHECK(!VehicleSyncPolicy::ShouldSendCarriageIdleUpdate(model, false));
+        CHECK(VehicleSyncPolicy::ShouldSendCarriageIdleUpdate(model, true));
+        CHECK(!VehicleSyncPolicy::ShouldApplyCarriageKinematics(model, false));
+        CHECK(VehicleSyncPolicy::ShouldApplyCarriageKinematics(model, true));
+    }
+
+    for (int model : regularModels)
+    {
+        CHECK(!VehicleSync::IsTrainModelId(model));
+        CHECK(VehicleSeatPolicy::ShouldDriverBecomeSyncer(static_cast<uint16_t>(model)));
+        CHECK(VehicleSyncPolicy::ShouldSpawnStandaloneCarriage(model));
+        CHECK(VehicleSyncPolicy::ShouldSendCarriageIdleUpdate(model, false));
+        CHECK(VehicleSyncPolicy::ShouldSendCarriageIdleUpdate(model, true));
+        CHECK(VehicleSyncPolicy::ShouldApplyCarriageKinematics(model, false));
+        CHECK(VehicleSyncPolicy::ShouldApplyCarriageKinematics(model, true));
+    }
+    CHECK(!VehicleSync::IsTrainModelId(-1));
+
+    // T-D4: the host always remains the syncer of train carriages even when the friend drives or rides as a passenger
+    Player host{0}, friendPlayer{1};
+    for (int model : trainModels)
+    {
+        FakeServer server;
+        ServerVehicle carriage{10};
+        carriage.syncer = &host;
+        carriage.m_nModelId = static_cast<uint16_t>(model);
+        server.vehicles.push_back(carriage);
+
+        server.Enter(friendPlayer, 10, true, 0);
+        server.PassengerUpdate(friendPlayer, 10, 0);
+        CHECK(server.Find(10)->m_pPlayers[1] == &friendPlayer);
+        CHECK(server.Find(10)->syncer == &host);
+        CHECK(VehicleSeatPolicy::ChoosePassengerSyncer<Player>(
+                  *server.Find(10), false, false, static_cast<uint16_t>(model)) == nullptr);
+
+        server.Enter(friendPlayer, 10, false, 0);
+        server.DriverUpdate(friendPlayer, 10);
+        CHECK(server.Find(10)->m_pPlayers[0] == &friendPlayer);
+        CHECK(server.Find(10)->syncer == &host);
+        server.CheckConsistent({&host, &friendPlayer});
+        server.Exit(friendPlayer);
+    }
+}
+
 int main()
 {
     AssignmentsAreStated();
@@ -839,5 +897,6 @@ int main()
     PedDrivers();
     LocalExits();
     Headings();
+    TrainCarriages();
     std::puts("vehicle_sync: all checks passed");
 }

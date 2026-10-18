@@ -5,6 +5,7 @@
 #include "CNetworkStaticBlip.h"
 #include "CServerTime.h"
 #include "CSessionLifecycle.h"
+#include "CTrainSync.h"
 #include "network/packets/mirror_blips.h"
 #include <CEntryExit.h>
 #include <CEntryExitManager.h>
@@ -287,7 +288,7 @@ bool CaptureBlip(int index, SBlipState& state)
                 return false;
             }
             SetPosition(state, pVehicle->GetPosition());
-            if (pVehicle->m_nVehicleSubType != static_cast<unsigned int>(VEHICLE_TRAIN))
+            if (pVehicle->m_nVehicleSubType != static_cast<unsigned int>(VEHICLE_TRAIN) || CTrainSync::IsEnabled())
             {
                 if (CNetworkVehicle* pNetworkVehicle = CNetworkVehicleManager::GetVehicle(pVehicle))
                 {

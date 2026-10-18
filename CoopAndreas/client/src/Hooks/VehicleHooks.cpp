@@ -4,6 +4,7 @@
 #include "CAimSync.h"
 #include "CNetworkVehicle.h"
 #include "CNetworkPed.h"
+#include "CTrainSync.h"
 #include <CCarGenerator.h>
 #include <CPopCycle.h>
 #include <CServerTime.h>
@@ -40,6 +41,18 @@ void __fastcall CVehicle__ProcessControl_Hook()
         call_addr = 0x6CDCC0;
     else if (vtbl == 0x872370)  // CTrain
         call_addr = 0x6F86A0;
+
+    if (vtbl == 0x872370)
+    {
+        if (CTrainSync::ProcessControlCopy(reinterpret_cast<CTrain*>(vehicle)))
+        {
+            return;
+        }
+        if (vehicle->m_pDriver == nullptr && vehicle->m_nStatus == STATUS_PLAYER)
+        {
+            vehicle->m_nStatus = static_cast<unsigned char>(STATUS_ABANDONED);
+        }
+    }
 
     if (vehicle->m_pDriver == FindPlayerPed(0))
     {
@@ -95,6 +108,10 @@ void __fastcall CVehicle__ProcessControl_Hook()
     CWorld::PlayerInFocus = playerNum;
 
     player->m_pPed->m_nPedType = PED_TYPE_PLAYER1;
+    if (vtbl == 0x872370)
+    {
+        vehicle->m_nStatus = static_cast<unsigned char>(STATUS_PLAYER);
+    }
 
     bool savedLookingLeft = *(bool*)0xB6F1A4;
     bool savedLookingRight = *(bool*)0xB6F1A5;
@@ -388,6 +405,20 @@ static void __cdecl CWorld__ClearForRestart_Hook()
     plugin::Call<WORLD_CLEAR_FOR_RESTART>();
     CNetworkVehicleManager::SetRestartClear(false);
     CNetworkPedManager::OnGameRestartCleared(); // private build (vehicle sync protocol review 2)
+    CTrainSync::OnGameRestartCleared();
+}
+
+static void __cdecl CTrain__DoTrainGenerationAndRemoval_Hook()
+{
+    CTrainSync::OnDoTrainGenerationAndRemoval();
+}
+
+static void __cdecl CTrain__SkipToNextAllowedStation_Hook(CTrain* pTrain)
+{
+    if (!CTrainSync::OnSkipToNextAllowedStation(pTrain))
+    {
+        CTrain::SkipToNextAllowedStation(pTrain);
+    }
 }
 
 static void InjectVehicleDestructorHooks()
@@ -421,6 +452,23 @@ static void InjectVehicleDestructorHooks()
         }
     }
     CNetworkVehicleManager::OnRestartHookInstalled(bRestartHooked);
+
+    bool bTrainGenHooked = false;
+    if (patch::GetUChar(0x43426D, false) == 0xE8 &&
+        0x43426D + 5 + static_cast<uintptr_t>(patch::GetInt(0x43426D + 1, false)) == 0x6F7900)
+    {
+        patch::RedirectCall(0x43426D, CTrain__DoTrainGenerationAndRemoval_Hook);
+        bTrainGenHooked = true;
+    }
+
+    bool bTrainSkipHooked = false;
+    if (patch::GetUChar(0x47B6DC, false) == 0xE8 &&
+        0x47B6DC + 5 + static_cast<uintptr_t>(patch::GetInt(0x47B6DC + 1, false)) == 0x6F72F0)
+    {
+        patch::RedirectCall(0x47B6DC, CTrain__SkipToNextAllowedStation_Hook);
+        bTrainSkipHooked = true;
+    }
+    CTrainSync::OnHooksInstalled(bTrainGenHooked, bTrainSkipHooked);
 }
 
 CPed* BmxFix_FindPlayerPed_Hook(CVehicle* vehicle)

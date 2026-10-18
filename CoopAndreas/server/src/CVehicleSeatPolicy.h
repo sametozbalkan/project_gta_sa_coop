@@ -111,12 +111,19 @@ void ClearSeats(Vehicle& vehicle)
     }
 }
 
-// After a passenger update: the passenger who becomes the syncer of a vehicle without a driver (upstream's rule, now on
-// the corrected seats); nullptr = the syncer stays. A mission vehicle and one a ped drives keep theirs.
-template <class Player, class Vehicle>
-Player* ChoosePassengerSyncer(const Vehicle& vehicle, bool bMissionVehicle, bool bUsedByPed)
+// Under T-D4, the host always remains the syncer of train carriages even when another player enters the driver or
+// passenger seat.
+inline bool ShouldDriverBecomeSyncer(uint16_t modelId) noexcept
 {
-    if (bMissionVehicle || bUsedByPed || vehicle.m_pPlayers[DRIVER_SEAT] != nullptr)
+    return !VehicleSync::IsTrainModelId(static_cast<int>(modelId));
+}
+
+// After a passenger update: the passenger who becomes the syncer of a vehicle without a driver (upstream's rule, now on
+// the corrected seats); nullptr = the syncer stays. A mission vehicle, a train carriage and one a ped drives keep theirs.
+template <class Player, class Vehicle>
+Player* ChoosePassengerSyncer(const Vehicle& vehicle, bool bMissionVehicle, bool bUsedByPed, uint16_t modelId = 0)
+{
+    if (bMissionVehicle || bUsedByPed || !ShouldDriverBecomeSyncer(modelId) || vehicle.m_pPlayers[DRIVER_SEAT] != nullptr)
     {
         return nullptr;
     }

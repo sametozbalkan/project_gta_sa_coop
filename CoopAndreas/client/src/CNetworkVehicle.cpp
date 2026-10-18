@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "CNetworkVehicle.h"
+#include "CTrain.h"
 #include <CTaskSimpleCarSetPedOut.h>
 
 // private build (remote player ped recovery): a vehicle deleted for the network takes no player with it.
@@ -112,12 +113,35 @@ CNetworkVehicle::CNetworkVehicle(int vehicleid, int modelid, CVector pos, float 
 
 bool CNetworkVehicle::IsTrainModel(int modelid)
 {
-    const auto* pModelInfo = static_cast<CVehicleModelInfo*>(CModelInfo::ms_modelInfoPtrs[modelid]);
-    return pModelInfo != nullptr && pModelInfo->m_nVehicleType == VEHICLE_TRAIN;
+    return VehicleSync::IsTrainModelId(modelid);
+}
+
+bool CNetworkVehicle::IsDerailedTrain(const CVehicle* pVehicle)
+{
+    return pVehicle != nullptr && IsTrainModel(pVehicle->m_nModelIndex) &&
+        static_cast<const CTrain*>(pVehicle)->m_nTrainFlags.bNotOnARailRoad != 0;
+}
+
+void CNetworkVehicle::BindTrainCarriage(CTrain* pCarriage)
+{
+    m_pVehicle = pCarriage;
+    m_poolReference.Capture(CPools::ms_pVehiclePool, static_cast<CVehicle*>(pCarriage));
+    m_bCopyLost = false;
+    m_bLostWreck = false;
+    m_bHostMissionDelete = false;
+}
+
+void CNetworkVehicle::UnbindTrainCarriage()
+{
+    m_pVehicle = nullptr;
+    m_poolReference.Clear();
 }
 
 bool CNetworkVehicle::CreateVehicle(int vehicleid, int modelid, CVector pos, float rotation, unsigned char color1, unsigned char color2)
 {
+    if (!VehicleSyncPolicy::ShouldSpawnStandaloneCarriage(modelid))
+        return false;
+
     unsigned char oldFlags = CStreaming::ms_aInfoForModel[modelid].m_nFlags;
     CStreaming::RequestModel(modelid, GAME_REQUIRED);
     CStreaming::LoadAllRequestedModels(false);

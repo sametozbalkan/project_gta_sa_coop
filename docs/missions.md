@@ -66,17 +66,17 @@ to be confirmed when the mission comes up in order.
 | 4 | Tagging Up Turf | `SWEET1` | 13 | 19,237 (49,763) | **Converted (0.1.0, test pending)** | SWEET =0 | Tag counting relies on our fork's tag sync. Two players ride in Sweet's car, a third in Ryder's. |
 | 5 | Cleaning The Hood | `SWEET1B` | 14 | 20,478 (48,522) | **Converted (0.1.0, test pending)** | SWEET =1 | Uses `TeleportPlayersToHostSafely`. |
 | 6 | Drive-Thru | `SWEET3` | 15 | 19,039 (49,961) | **Converted (0.1.0, test pending)** | SWEET =2 | Friend gets a separate Greenwood and joins the chase; all seats in Sweet's car remain occupied by the original cast. Arrivals mainly follow the host. |
-| 7 | Nines And AK's | `SWEET2` | 16 | 24,663 (44,337) | **Converted (0.1.0, test pending)** | SWEET =3 | Friend rides in the rear and joins the gas-tank shot. Bottle practice remains host-only (script objects aren't synced). Group 1 test (0.3.102): the host vanished on the friend's screen after the opening cutscene and the friend crashed at the Binco door (0x4D68BA): a vehicle deleted on the friend's side had destroyed the host's ped there. Fixed in 0.3.103 (players are taken out before a vehicle is deleted, a lost remote player ped is recreated); retest pending. |
+| 7 | Nines And AK's | `SWEET2` | 16 | 24,663 (44,337) | **Converted (0.1.0, test pending)** | SWEET =3 | Friend rides in the rear and joins the gas-tank shot. Remote bullet impact on objects (`OB-0`) is implemented; bottle practice objects remain host-only until `OB-1` mirrors host script objects. Group 1 test (0.3.102): the host vanished on the friend's screen after the opening cutscene and the friend crashed at the Binco door (0x4D68BA): a vehicle deleted on the friend's side had destroyed the host's ped there. Fixed in 0.3.103 (players are taken out before a vehicle is deleted, a lost remote player ped is recreated); retest pending. |
 | 8 | Drive-By | `SWEET4` | 17 | 25,768 (43,232) | **Converted (0.1.0, test pending)** | SWEET =4 | Separate Greenwood and Tec-9 for the friend; departure/arrival gates include them. The vehicle-health counter is mirrored (M4); wanted checks read the host. 0.1.1 test (2026-10-17, three players): both other games crashed when the Ballas left their Voodoos (0x642067; the sequences' `Task.LeaveCar` went out before the cars had network ids). Fixed in 0.1.2; retest pending. |
 | 9 | Sweet's Girl | `HOODS5` | 18 | 16,719 (52,281) | **Converted (0.1.0, test pending)** | SWEET =5 | Friend helps clear attackers, then uses rear-right seat in a four-door rescue car. Sweet's health counter is mirrored (M4). |
 | 10 | Cesar Vialpando | `SWEET6` | 19 | 37,796 (31,204) | **Converted (0.1.0, test pending)** | SWEET =6 | Mod shop, betting and lowrider rhythm game remain host-only; friend rides along or watches, and receives the shared outcome. |
-| 11 | OG Loc | `TWAR7` | 27 | 32,711 (36,289) | Untouched | SMOKE =0 | Chase Freddy on a bike; carries the lost SMOKE2 warning. Probably layer + registration, with the friend in their own vehicle. |
+| 11 | OG Loc | `TWAR7` | 27 | 32,711 (36,289) | Untouched | SMOKE =0 | Chase Freddy on a bike; carries the lost SMOKE2 warning. Random trains are suppressed on followers (`T1b`, `0x43426D`). Probably layer + registration, with the friend in their own vehicle. |
 | 12 | Running Dog | `SMOKE2` | 28 | 12,075 (56,925) | **Warning (lost)** | SMOKE =1 | Chase with Smoke in the car; carries the lost SMOKE3 warning. Probably layer + registration, with the friend in their own vehicle. |
-| 13 | Wrong Side of the Tracks | `SMOKE3` | 29 | 20,874 (48,126) | **Warning (lost)** | SMOKE =2 | Bike + train chase, Smoke shoots from the back seat: the bike's two seats are taken. |
-| 14 | Just Business | `DRUGS1` | 30 | 52,907 (16,093) | Untouched | SMOKE =3 | Bike chase with Smoke shooting; long; large. |
+| 13 | Wrong Side of the Tracks | `SMOKE3` | 29 | 20,874 (48,126) | **Warning (lost)** | SMOKE =2 | Bike + train chase, Smoke shoots from the back seat: the bike's two seats are taken. Train + Vagos roof attachment mirror (`T1a`+`T1b`+`T2`) is implemented; port gives the friend a second Sanchez. |
+| 14 | Just Business | `DRUGS1` | 30 | 52,907 (16,093) | Untouched | SMOKE =3 | Bike chase with Smoke shooting; long; large. Remote bullet impact on objects (`OB-0`, storm drain cover and explosive barrels) is implemented; host object creation/health mirror waits for `OB-1`. |
 | 15 | Home Invasion | `GUNS1` | 24 | 41,369 (27,631) | Untouched | RYDER =0 | Stealth (noise meter), crates into a truck; carries the lost RYDER3 warning. |
-| 16 | Catalyst | `RYDER3` | 25 | 20,419 (48,581) | **Warning (lost)** | RYDER =1 | Catch crates on a moving train; carries the lost RYDER2 warning. |
-| 17 | Robbing Uncle Sam | `RYDER2` | 26 | 42,276 (26,724) | **Warning (lost)** | RYDER =2 | Forklift crate loading (single-seat vehicle), truck escape. |
+| 16 | Catalyst | `RYDER3` | 25 | 20,419 (48,581) | **Warning (lost)** | RYDER =1 | Catch crates on a moving train; carries the lost RYDER2 warning. Train + CJ/Ryder attachment mirror (`T1a`+`T1b`+`T2`) is implemented; friend rides in Ryder's Picador (`T-D5`); crate objects wait for `mission-objects.md`. |
+| 17 | Robbing Uncle Sam | `RYDER2` | 26 | 42,276 (26,724) | **Warning (lost)** | RYDER =2 | Forklift crate loading (single-seat vehicle), truck escape. Remote bullet impact on objects (`OB-0`, keypads and crates) is implemented; host object creation/health mirror and forklift hand-over wait for `OB-1`/`OB-3`. |
 | 18 | Life's a Beach | `MUSIC1` | 31 | 15,958 (53,042) | Untouched | STRAP =0 | Dance minigame (solo rhythm game). |
 | 19 | Madd Dogg's Rhymes | `MUSIC2` | 32 | 10,815 (58,185) | Untouched | STRAP =1 | Stealth burglary (noise meter). |
 | 20 | Management Issues | `MUSIC3` | 33 | 26,942 (42,058) | Untouched | STRAP =2 | Limo chauffeur, chase. |
@@ -86,7 +86,7 @@ to be confirmed when the mission comes up in order.
 | 24 | Gray Imports | `DRUGS3` | 23 | 19,960 (49,040) | Untouched | CRASH =1 | Shootout at the docks. Likely layer + registration. |
 | 25 | Doberman | `CRASH4` | 21 | 6,916 (62,084) | Untouched | SWEET =7 | Gang war to take a territory: gang wars and zones aren't synced. |
 | 26 | Los Sepulcros | `SWEET7` | 20 | 32,992 (36,008) | Untouched | SWEET =8 | Full car of homies, cemetery hit. Raises the host's respect (stat 68) during the mission: `0623` adds 35 for each of three Ballas that die, `0629` sets it to 200 if it is still below 100. The mirror sends only the pass frame's `0109`/`0998`, so the friend's respect doesn't follow: decide at the port. |
-| 27 | Reuniting The Families | `DRUGS4` | 37 | 68,439 (**561**) | Untouched | LA1FIN =0 (FLOW starts LA1FIN after all LS strands) | **Size**: no room for an upstream-style adaptation, but with the mirror layer a minimal port fits (registration 2 bytes, collecting the players 11, a teleport 11; see below). Motel shootout, SWAT helicopter, chase with Sweet shooting. |
+| 27 | Reuniting The Families | `DRUGS4` | 37 | 68,439 (**561**) | Untouched | LA1FIN =0 (FLOW starts LA1FIN after all LS strands) | **Size**: no room for an upstream-style adaptation, but with the mirror layer a minimal port fits (registration 2 bytes, collecting the players 11, a teleport 11; see below). Motel shootout, SWAT helicopter, chase with Sweet shooting; scripted train in the escape is mirrored by `CTrainSync`. |
 | 28 | The Green Sabre | `LA1FIN2` | 38 | 22,329 (46,671) | Untouched | LA1FIN =1 | Heavy cutscenes; ends Los Santos (CJ taken out of town). |
 
 ### Badlands
@@ -111,7 +111,7 @@ to be confirmed when the mission comes up in order.
 |---|---|---|---|---|---|---|---|
 | 40 | Wear Flowers In Your Hair | `GARAG1` | 49 | 25,053 (43,947) | Untouched | GARAGE =0 | Drive around picking up guests (seats). |
 | 41 | 555 WE TIP | `SCRASH3` | 51 | 18,656 (50,344) | Untouched | SCRASH =0 | Plant a car, valet uniform. |
-| 42 | Deconstruction | `DECON` | 50 | 21,314 (47,686) | Untouched | GARAGE =1 | Bulldozer and site (single-seat vehicles). |
+| 42 | Deconstruction | `DECON` | 50 | 21,314 (47,686) | Untouched | GARAGE =1 | Bulldozer and site (single-seat vehicles). Remote bullet impact on objects (`OB-0`, explosive barrels) is implemented; host object creation/health mirror (`OB-1`/`OB-2`), persistent cabins (`OB-4`) and map swap (`WS-6`) wait for their packages. |
 | 43 | Back to School | `DSKOOL` | 71 | 46,648 (22,352) | Untouched | TRACE (garage counter > 0) | **Driving school**: timed solo tests with medals; its `$driving_test_passed` is read by `MOB_SF` phone calls. Large. |
 | 44 | Air Raid | `ZERO1` | 72 | 17,958 (51,042) | Untouched | ZERO =0 | RC minigame (RC vehicles not synced). |
 | 45 | Supply Lines... | `ZERO2` | 73 | 9,678 (59,322) | Untouched | ZERO =1 | RC plane, fuel timer. |
@@ -121,7 +121,7 @@ to be confirmed when the mission comes up in order.
 | 49 | T-Bone Mendez | `DRIV2` | 65 | 13,337 (55,663) | Untouched | SYND =3 | Bike chase with a passenger shooter (two seats). |
 | 50 | Mike Toreno | `DRIV3` | 66 | 16,343 (52,657) | Untouched | SYND =4 | Car chase and rescue. |
 | 51 | Outrider | `SYN3` | 60 | 19,634 (49,366) | Untouched | SYND =5 | Bike, escort. |
-| 52 | Snail Trail | `SCRASH2` | 52 | 21,841 (47,159) | Untouched | SCRASH =1 (SYND =6) | Follow a train, photos, kill. |
+| 52 | Snail Trail | `SCRASH2` | 52 | 21,841 (47,159) | Untouched | SCRASH =1 (SYND =6) | Follow a train, photos, kill. Train mirror, entity blip on the train and passenger carriage doors (`T1b`+`T4`) are implemented. |
 | 53 | Ice Cold Killa | `SYND4` | 61 | 13,784 (55,216) | Untouched | SYND =6 (SCRASH =2) | Stealth infiltration. |
 | 54 | Pier 69 | `SYN5` | 64 | 33,714 (35,286) | Untouched | SYND =7 | Sniper, boat chase. |
 | 55 | Toreno's Last Flight | `SYN6` | 62 | 9,351 (59,649) | Untouched | SYND =8 | Rocket launcher vs. helicopter. |
@@ -132,7 +132,7 @@ to be confirmed when the mission comes up in order.
 | 60 | The Da Nang Thang | `WUZI5` | 57 | 28,705 (40,295) | Untouched | WUZI =4 | Helicopter gunner, ship assault. |
 | 61 | Yay Ka-Boom-Boom | `SYN7` | 63 | 17,060 (51,940) | Untouched | SYND =9 (WUZI =5) | Car bomb via the mod garage. |
 | 62 | Zeroing In | `STEAL1` | 67 | 9,716 (59,284) | Untouched | STEAL =0 (after buying Wang Cars, `BUYPRO1`) | Chase with a tracker. |
-| 63 | Test Drive | `STEAL2` | 68 | 32,513 (36,487) | Untouched | STEAL =1 | Steal cars, drive with a passenger. |
+| 63 | Test Drive | `STEAL2` | 68 | 32,513 (36,487) | Untouched | STEAL =1 | Steal cars, drive with a passenger; scripted tram is mirrored (`CTrainSync`). |
 | 64 | Customs Fast Track | `STEAL4` | 69 | 35,971 (33,029) | Untouched | STEAL =2 | Steal cars from a ship. |
 | 65 | Puncture Wounds | `STEAL5` | 70 | 9,262 (59,738) | Untouched | STEAL =3 | Spikes chase. |
 
@@ -143,12 +143,12 @@ to be confirmed when the mission comes up in order.
 | 66 | Monster | `TORENO1` | 75 | 14,623 (54,377) | Untouched | DESERT =0 | Monster truck race. |
 | 67 | Highjack | `TORENO2` | 76 | 16,854 (52,146) | Untouched | DESERT =1 | Jump from a car onto a moving truck (special mechanic). |
 | 68 | Interdiction | `DES3` | 77 | 27,316 (41,684) | Untouched | DESERT =2 | Helicopter, protect a drop. |
-| 69 | Verdant Meadows | `DESERT4` | 78 | 445 (68,555) | Untouched | DESERT =3 | Airstrip purchase (property purchase via `BUYPRO1` starts `PSCH`). Likely layer + registration. |
+| 69 | Verdant Meadows | `DESERT4` | 78 | 445 (68,555) | Untouched | DESERT =3 | Airstrip purchase (property purchase via `BUYPRO1` starts `PSCH`). Likely layer + registration (`OB-0` remote bullet impacts on objects implemented; `OB-1`/`OB-2` cover host object creation/blips where applicable). |
 | 70 | Learning to Fly | `DESERT5` | 83 | 30,641 (38,359) | Untouched | PSCH (desert counter > 3) | **Flight school**: timed solo tests; `$pilot_test_passed` gates N.O.E. |
 | 71 | N.O.E. | `DESERT6` | 79 | 10,814 (58,186) | Untouched | DESERT =5, pilot test passed | Fly under radar (single-seat plane). |
 | 72 | Stowaway | `DESERT9` | 80 | 22,689 (46,311) | Untouched | DESERT =6 | Parachute into a flying plane's hold. |
 | 73 | Black Project | `MAF4` | 81 | 30,721 (38,279) | Untouched | DESERT =7 | Area 69 stealth, jetpack (jetpack pickup sync is open upstream). |
-| 74 | Green Goo | `DES10` | 82 | 4,603 (64,397) | Untouched | DESERT =8 | Jetpack onto a train. |
+| 74 | Green Goo | `DES10` | 82 | 4,603 (64,397) | Untouched | DESERT =8 | Jetpack onto a train. Train and guard attachment mirror (`T1b`+`T2`) are implemented; needs `T3` (vehicle-relative on-foot sync) and mission objects (`mission-objects.md`) for the crates. |
 
 ### Las Venturas
 
@@ -179,15 +179,15 @@ to be confirmed when the mission comes up in order.
 |---|---|---|---|---|---|---|---|
 | 93 | A Home In The Hills | `MANSIO1` | 102 | 39,453 (29,547) | Untouched | MANSION =0 | Mansion assault. |
 | 94 | Vertical Bird | `MANSIO2` | 103 | 53,511 (15,489) | Untouched | MANSION =1 | Harrier jet (single seat). Large. |
-| 95 | Home Coming | `MANSIO3` | 104 | 7,916 (61,084) | Untouched | MANSION =2 | Short; cutscenes. |
+| 95 | Home Coming | `MANSIO3` | 104 | 7,916 (61,084) | Untouched | MANSION =2 | Short; cutscenes (`OB-0` remote bullet impacts on objects implemented; `OB-1`/`OB-2` cover host object creation/blips where applicable). |
 | 96 | Cut Throat Business | `MANSON5` | 105 | 13,845 (55,155) | Untouched | MANSION =3 | Chase, boat. |
 | 97 | Beat Down on B Dup | `GROVE1` | 106 | 21,475 (47,525) | Untouched | GROVE =0 | Crack den fight. |
 | 98 | Grove 4 Life | `GROVE2` | 107 | 5,486 (63,514) | Untouched | GROVE =1 | Gang war for territories (not synced). |
 | 99 | Riot | `RIOT1` | 108 | 5,963 (63,037) | Untouched | RIOT =0 (FLOW starts RIOT) | Cutscene, riot ambience. |
 | 100 | Los Desperados | `RIOT2` | 109 | 43,554 (25,446) | Untouched | RIOT =1 | Defend Cesar's turf, fights. |
 | 101 | End Of The Line (1) | `FINALEA` | 110 | 33,286 (35,714) | Untouched | RIOT =2 | Crack palace assault. |
-| 102 | End Of The Line (2) | `FINALEB` | 111 | 18,915 (50,085) | Untouched | RIOT =3 | Fight Big Smoke. |
-| 103 | End Of The Line (3) | `FINALEC` | 112 | 57,946 (11,054) | Untouched | RIOT =4 | Fire-truck ladder chase with Sweet hanging on; ending. Large. Pays $250,000 (`0109`) frames before its pass block, so the mirror doesn't send it (the 150 respect of the pass frame reaches both): decide at the port. |
+| 102 | End Of The Line (2) | `FINALEB` | 111 | 18,915 (50,085) | Untouched | RIOT =3 | Fight Big Smoke (`OB-0` remote bullet impacts on objects implemented; `OB-1`/`OB-2` cover host object creation/health mirror where applicable). |
+| 103 | End Of The Line (3) | `FINALEC` | 112 | 57,946 (11,054) | Untouched | RIOT =4 | Fire-truck ladder chase with Sweet hanging on (`T2` attachment mirror); scripted train in the chase is mirrored (`CTrainSync`); ending. Large. Pays $250,000 (`0109`) frames before its pass block, so the mirror doesn't send it (the 150 respect of the pass frame reaches both): decide at the port. |
 
 Story-relevant helpers that are not missions of their own: `BUYPRO1` (mission 134, property purchases;
 buying Wang Cars starts `STEAL`, buying the Verdant Meadows airstrip starts `PSCH`) and `CPRACE`

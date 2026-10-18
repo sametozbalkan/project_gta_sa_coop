@@ -58,6 +58,10 @@ public:
     static int GetIdForLog(const CVehicle* pVehicle);
     // a copy (a vehicle another game syncs) stays MISSION_VEHICLE and is never "no longer needed"
     static void GuardCopy(CVehicle* pVehicle);
+    static void ForgetCopy(CVehicle* pVehicle);
+    // train carriage copies built by CTrain::CreateMissionTrain in CTrainSync (T1a)
+    static bool BindTrainCopy(int vehicleid, uint16_t expectedModel, CTrain* pCarriage);
+    static void UnbindTrainCopy(CTrain* pCarriage);
     // a lost copy comes back where the syncer's update puts it (nullptr when it isn't recreated now)
     static CVehicle* RecreateLostCopy(CNetworkVehicle* pNetworkVehicle, const CVector& position, const CVector& right,
         const CVector& forward, uint8_t color1, uint8_t color2);

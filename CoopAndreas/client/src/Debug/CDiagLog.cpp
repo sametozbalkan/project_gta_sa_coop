@@ -4,6 +4,7 @@
 #include "CSessionLifecycle.h"
 #include "CWorldStateRegistry.h"
 #include "CMissionMirror.h"
+#include "CTrainSync.h"
 #include "CServerTime.h"
 #include "CPacketBuffer.h"
 #include <CCamera.h>
@@ -37,6 +38,7 @@ static void WriteSnapshot(FILE* file)
     CMissionMirror::WriteDiagSummary(file); // private build: mission mirror layer
     CNetworkVehicleManager::WriteDiagSummary(file); // private build: vehicle sync protocol
     CNetworkPedManager::WriteDiagSummary(file); // private build: vehicle sync protocol, peds
+    CTrainSync::WriteDiagSummary(file); // private build: train mirror
     // private build (vehicle sync protocol): the server clock (CServerTimePolicy.h); plain values the game thread writes
     const uint32_t requestTick = CServerTime::m_requestTick;
     fprintf(file, "  clock: synced=%d offset=%d target=%d request-age=%d answers=%u ignored=%u restamped=%u\n",

@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "CNetworkPed.h"
+#include "CTrainSyncPolicy.h"
 #include <CTaskSimpleCarSetPedInAsPassenger.h>
 #include <CCarEnterExit.h>
 #include <CTaskSimpleCarSetPedOut.h>
@@ -387,7 +388,10 @@ void CNetworkPed::ReceiveOnFoot(const Packets::Peds::PedOnFoot& snapshot)
     if (!ped) return;
 
     // These fields do not need a RenderWare object or intelligence tasks.
-    ped->SetPosn(snapshot.pos);
+    if (TrainSyncPolicy::ShouldApplyOnFootPosition(ped->m_pAttachedTo != nullptr))
+    {
+        ped->SetPosn(snapshot.pos);
+    }
     m_fCurrentRotation = ped->m_fCurrentRotation = snapshot.currentRotation.m_angle;
     m_fAimingRotation = ped->m_fAimingRotation = snapshot.aimingRotation.m_angle;
     m_fLookDirection = ped->m_fLookDirection = snapshot.lookDirection.m_angle;
@@ -436,7 +440,10 @@ bool CNetworkPed::ApplyOnFootVisual(const OnFootVisualSnapshot& snapshot)
     if (!IsModelReady()) return false;
     // Vehicle exit tasks can overwrite the immediately synced position. Keep
     // the latest onfoot location for immediate application and deferred retries.
-    m_pPed->SetPosn(snapshot.position);
+    if (TrainSyncPolicy::ShouldApplyOnFootPosition(m_pPed->m_pAttachedTo != nullptr))
+    {
+        m_pPed->SetPosn(snapshot.position);
+    }
     if (!ApplyWeaponSnapshot(snapshot.weapon) || !IsModelReady()) return false;
     if (CUtil::IsDucked(m_pPed) != snapshot.ducked)
     {

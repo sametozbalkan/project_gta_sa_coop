@@ -115,9 +115,9 @@ screen reaches the other players by itself, with no lines in the mission script,
 - **Blips** the mission creates, on vehicles, characters, objects, pickups and coordinates, with every
   colour, scale, display, sprite, friendly and interior-entrance change and their removal, for as long as
   the host keeps them (also after the mission). On the other games an entity blip sits on their copy of the
-  network entity; objects, pickups, searchlights, trains and entities without a network id yet show as
-  radar-only coordinate blips at the host's position; a blip on the other player's own ped doesn't show
-  there.
+  network entity (train carriages included once bound by `CTrainSync`); objects, pickups, searchlights and
+  entities (or train carriages) without a bound copy yet show as radar-only coordinate blips at the host's
+  position; a blip on the other player's own ped doesn't show there.
 - **Locate spheres** (the yellow mission markers) and **`draw_sphere` markers**, drawn for a player in the
   same area code (interior) as the host.
 - **Timers and counters**: the on-screen clock and counters (the bars for a vehicle's or an ally's health,
@@ -175,7 +175,7 @@ other opcode it receives.
 | Population | `01EB` car density, `03DE` ped density, `0395` clear_area, `09D2` ambient crime, `06D0` emergency services, `014C` switch_car_generator |
 | Camera | `015F` set_fixed_camera_position, `0160` point_camera_at_point, `02EB` restore_camera_jumpcut, `0373` set_camera_behind_player, `0920`, `0925`, `092F`, `0930`, `0936` (vector move/track), `0A0B` load_scene_in_direction, `052C` set_player_drunkenness |
 | Scenes | `016A` do_fade, `02A3` switch_widescreen, `02E4` load_cutscene, `02E7` start_cutscene (deferred until loaded), `02EA` clear_cutscene |
-| World, interiors | `0703` set_tag_status_in_area, `04BB` set_area_visible, `084D` activate_interior_peds |
+| World, interiors | `0703` set_tag_status_in_area, `04BB` set_area_visible, `0860` set_char_area_visible, `084D` activate_interior_peds |
 | Mission wanted commands | `010D`, `010E`, `0110`, `01F7`, `01F0`, `03C7`, `0A24` (fork 0.3.101); PLAYER means the receiver's local player. Mission wanted checks still read the host. |
 | Weapons | `06AB` hide_char_weapon_for_scripted_cutscene, `07A7` task_jetpack, `01B2` give_weapon_to_char, `01B9` set_current_char_weapon, `0555` remove_weapon_from_char |
 | Tasks | `05C0` look_at_vehicle, `05CA`/`05CB` enter car as passenger/driver, `0603` go_to_coord_any_means, `0634`, `0673`, `0713` drive_by, `0792` clear_char_tasks_immediately, `0967`/`0968` facial talk |
@@ -212,12 +212,25 @@ forced weather. Ports don't handle those: no lines for the other player, also no
 Garage doors aren't mirrored; each game opens them for its own player.
 
 Not covered yet, each coming with its package before the first mission that needs it
-(`docs/design/README.md`): the bridge barriers and road switches (before #28), gang zones and gang wars
-(before #25), building swaps and hidden map objects (before #42), and the riots (before #99). Doors, gates
-and other persistent objects a mission opens, moves or deletes need the object-sync design (before #60). A
-port that depends on one of these before its package exists stops and reports (rule 3). Story reward
-pickups (the spray can, Emmet's pistol, the territory cash) exist in each game separately, so a port gives
-the other player the mission's weapons itself. Properties belong to the host.
+(`docs/design/README.md`): mission objects (`docs/design/mission-objects.md`, before #15–#17, persistent
+objects before #23), the bridge barriers and road switches (before #28), gang zones and gang wars (before
+#25), building swaps and hidden map objects (before #42), vehicle-relative on-foot sync (`T3`, before #74),
+and the riots (before #99). A port that depends on one of these before its package exists stops and reports
+(rule 3). Story reward pickups (the spray can, Emmet's pistol, the territory cash) exist in each game
+separately, so a port gives the other player the mission's weapons itself. Properties belong to the host.
+
+### Trains and entity attachments
+
+`client/src/CTrainSync.*`; design `docs/design/trains.md`. Every train on the host (mission trains created
+with `06D8` and ambient trains) is mirrored on the other games as a track-space `CTrain` chain, with each
+carriage registered in `CNetworkVehicleManager` and bound on the receivers (`BindTrainCopy`). Followers do
+not generate ambient trains of their own (`0x43426D`). Peds and players attached to a network vehicle with
+`0681`/`0464` (`AttachPedToEntity`, such as the Vagos on the train roof in #13 or CJ on the caboose and
+Ryder in the Picador's bed in #16) are mirrored automatically via `ENTITY_ATTACH` (`T2`), without altering
+the receiver's camera mode. Ports don't need to wait for train network ids before host-side train opcodes or
+blips (`CTrainSync` binds the carriages as their `VEHICLE_CONFIRM`s arrive and sends `CARRIAGES`), and
+ports only add the other player's gameplay (such as their own bike in #13 or their place in Ryder's Picador
+in #16).
 
 ## Co-op commands (opcodes 0x1D00–0x1D1C)
 

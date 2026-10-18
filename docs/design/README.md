@@ -10,14 +10,17 @@ designs:
 - `world-state.md`: the state that sets the rules of the host's world (city unlock, maximum wanted level, IPL groups
   and roads, garages and doors, zones and gang wars, mission settings, map objects, riots) reaches the other players
   and stays as the host has it.
+- `trains.md`: track-space train synchronization (`CTrainSync`) and entity attachment mirror (`ENTITY_ATTACH`) so the
+  host's mission and ambient trains, their carriages, and attached peds/players appear on every game.
 
-This file records the decisions and how the two designs fit together. Where it differs from a design, this file wins.
+This file records the decisions and how the designs fit together. Where it differs from a design, this file wins.
 
 ## 1. Decisions
 
 The user left the project decisions to the architect (2026-10-15). These were put to the user and confirmed on
 2026-10-16 with two changes by the user: rewards are mirrored (M-D3) and the friend's kills count in the
-host's gang wars (W-D3).
+host's gang wars (W-D3). The train decisions (`T-D1`–`T-D9`) were confirmed on 2026-10-18 with the design's
+recommendations.
 
 Mirror layer (`mirror-layer.md` section 9):
 
@@ -50,6 +53,20 @@ World-state registry (`world-state.md` section 8):
 | W-D9 | The barriers are tested when the story reaches #28 (story order); before that only the policy test and logs. |
 | W-D10 | Map exploration stays per player. |
 | W-D11 | Persistent script objects (doors, gates, cabins) get their own object-sync design before the batch with #60. |
+
+Trains (`trains.md` section 11, confirmed 2026-10-18):
+
+| # | Decision |
+|---|---|
+| T-D1 | **Track mirror**: the friend's train is a real `CTrain` chain on the same track at the host's rail distance and speed, with each carriage bound to its `CNetworkVehicle` id. |
+| T-D2 | **Ambient trains only on the host**: `CTrain::DoTrainGenerationAndRemoval` (`0x43426D`) is skipped on followers, so only the host generates random trains and both players see the same ones. |
+| T-D3 | **Random trains kept near network players**: on the host, the generation/removal wrapper temporarily moves any random engine within 320 m of a valid network player out of the removal range and restores it afterwards. |
+| T-D4 | **Host always simulates trains**: `CVehicleSeatPolicy::OnDriverUpdate`/`OnPassengerUpdate` never reassigns syncer ownership for train models (`537`, `538`, `569`, `570`, `590`); when the friend drives a locomotive, the host applies the friend's keys to its engine (`T5`). |
+| T-D5 | **The friend rides in Ryder's Picador in #16 Catalyst** for group 2 (passenger seat or bed), watching CJ and the crates on the train. |
+| T-D6 | **Friend's own side-mission trains stay local**: trains created by a follower's own side mission (e.g. quarry) are left untouched on the follower's screen (`!IsCopyTrain`). |
+| T-D7 | **Vehicle-relative on-foot sync (`T3`) before #74 Green Goo**: since `T-D5` puts the friend in the Picador for #16, `T3` is scheduled before #74 when the friend lands on a moving train. |
+| T-D8 | **Skip-station button forwarded to the host (`T4`)**: `0x47B6DC` (`CTrain::SkipToNextAllowedStation` in `TRAINS`) sends `TRAIN_EVENT` (`REQUEST`) from a follower to the host instead of moving the copy locally. |
+| T-D9 | **Copy trains disappear when the host leaves**: on `HOST_CHANGED` or `DISCONNECTED`, all copy trains on receivers are removed after warping any local player out. |
 
 ## 2. How the two designs fit together
 
@@ -93,15 +110,22 @@ All `gtasa-coder-high` unless noted, each in its own worktree from the then-curr
 | 4 | C1 conversion of #1–#10 (`gtasa-coder`) | remove the display relays by `mirror-layer.md` 4.2, compile, bytes per mission | mirror 4 |
 | 4 | Docs (architect) | porting guide (`mirror-layer.md` section 5), `docs/missions.md`, CLAUDE.md fork changes, the test plan (mirror section 7, world-state section 6 A) | – |
 
-Then build, deploy and package 0.1.0-alpha, and wait for the user's test. Later, each before the batch that needs it:
+Then build, deploy and package 0.1.0-alpha, and wait for the user's test.
+
+Train packages (`trains.md` section 10): `T1a` (carriage identity), `T1b` (train mirror `CTrainSync`), `T2` (entity
+attachment mirror `ENTITY_ATTACH`), `T4` (skip-station forwarding) and `T5` (derailment and guest train driving) are
+implemented.
+
+Later, each before the batch that needs it:
 
 | Package | Needed by |
 |---|---|
+| Object-sync packages (`mission-objects.md`) | #15–#17 (group 2), persistent objects before #23 |
 | M5 race checkpoints and script spheres | #22 (group 3) |
 | WS-2 barriers and roads | #28 (group 4); earlier if a batch has room |
 | WS-5 gangs | #25 (group 4) |
 | WS-6 map objects | #42 |
-| Object-sync design (W-D11) | #60 |
+| T3 vehicle-relative on-foot sync (`trains.md`) | #74 |
 | WS-7 riots and relationships | #99 |
 
 ## 5. Gates

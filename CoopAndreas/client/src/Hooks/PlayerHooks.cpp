@@ -9,6 +9,7 @@
 #include <CSessionLifecycle.h>
 #include <COpCodeSync.h>
 #include <CStoryStartPolicy.h>
+#include "CBulletSyncPolicy.h"
 
 static void __fastcall CPlayerPed__ProcessControl_Hook(CPlayerPed* This)
 {
@@ -84,9 +85,10 @@ static void __fastcall CPlayerPed__ProcessControl_Hook(CPlayerPed* This)
 static void CollectShotSnapshot(Packets::Players::PlayerBulletShot& packet, CEntity* owner, CVector* startPoint,
     CVector* endPoint, CColPoint* colPoint, CEntity* victim, int incrementalHit, eWeaponType weaponType)
 {
+    (void)owner;
     packet.iWeaponType = weaponType;
     packet.startPos = *startPoint;
-    if (victim)
+    if (victim && colPoint)
     {
         packet.endPos = colPoint->m_vecPoint;
     }
@@ -94,32 +96,20 @@ static void CollectShotSnapshot(Packets::Players::PlayerBulletShot& packet, CEnt
     {
         packet.endPos = *endPoint;
     }
-    if (!owner)
+
+    packet.hitEntity.SetEntity(victim);
+    const auto shot = BulletSyncPolicy::ClassifyShot(
+        victim != nullptr,
+        victim ? victim->m_nType : 0,
+        static_cast<int>(packet.hitEntity.entityType),
+        packet.hitEntity.entityId,
+        colPoint ? colPoint->m_nSurfaceTypeB : 0);
+
+    packet.bHitSomething = shot.bHitSomething;
+    packet.bHitNetworkEntity = shot.bHitNetworkEntity;
+    if (shot.bHasPedPiece)
     {
-        packet.bHitSomething = false;
-        packet.bHitNetworkEntity = false;
-    }
-    else
-    {
-        packet.bHitSomething = true;
-        switch (owner->m_nType)
-        {
-            case ENTITY_TYPE_VEHICLE:
-            case ENTITY_TYPE_PED:
-                packet.bHitNetworkEntity = true;
-                break;
-            default:
-                packet.bHitNetworkEntity = false;
-                break;
-        }
-    }
-    if (packet.bHitNetworkEntity)
-    {
-        packet.hitEntity.SetEntity(victim);
-        if (owner->m_nType == ENTITY_TYPE_PED)
-        {
-            packet.pedPiece = (ePedPieceTypes)colPoint->m_nSurfaceTypeB;
-        }
+        packet.pedPiece = static_cast<ePedPieceTypes>(shot.pedPiece);
     }
 
     packet.incrementalHit = incrementalHit;
@@ -130,7 +120,7 @@ static void __fastcall CWeapon__DoBulletImpact_Hook(CWeapon* weapon, SKIP_EDX, C
 {
     if (owner == FindPlayerPed(0))
     {
-        if ((!victim || (victim->m_nType != ENTITY_TYPE_PED && victim->m_nType != ENTITY_TYPE_VEHICLE)) && weapon->m_eWeaponType == WEAPON_MINIGUN)
+        if (!BulletSyncPolicy::ShouldSendMinigunShot(victim != nullptr, victim ? victim->m_nType : 0) && weapon->m_eWeaponType == WEAPON_MINIGUN)
         {
             weapon->DoBulletImpact(owner, victim, startPoint, endPoint, colPoint, incrementalHit);
             return;

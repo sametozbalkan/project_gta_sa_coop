@@ -105,6 +105,12 @@ PACKET_HANDLER(ePacketType::PED_ONFOOT, Packets::Peds::PedOnFoot* pPedOnFoot)
 static void ApplyDriverUpdateToVehicle(
     CNetworkVehicle* pNetworkVehicle, CVehicle* pVehicle, const Packets::Peds::PedDriverUpdate* pPedDriverUpdate)
 {
+    if (!VehicleSyncPolicy::ShouldApplyCarriageKinematics(
+            pNetworkVehicle->m_nModelId, CNetworkVehicle::IsDerailedTrain(pVehicle)))
+    {
+        return;
+    }
+
     pVehicle->m_matrix->pos = pPedDriverUpdate->pos;
     pVehicle->m_matrix->right = pPedDriverUpdate->roll;
     pVehicle->m_matrix->up = pPedDriverUpdate->rot;
@@ -190,8 +196,11 @@ PACKET_HANDLER(ePacketType::PED_DRIVER_UPDATE, Packets::Peds::PedDriverUpdate* p
             return;
 
         case VehicleSyncPolicy::ePedDriverVehicle::RECREATE:
-            pVehicle = CNetworkVehicleManager::RecreateLostCopy(pNetworkVehicle, pPedDriverUpdate->pos,
-                pPedDriverUpdate->roll, pPedDriverUpdate->rot, pPedDriverUpdate->color1, pPedDriverUpdate->color2);
+            if (!CNetworkVehicle::IsTrainModel(pNetworkVehicle->m_nModelId))
+            {
+                pVehicle = CNetworkVehicleManager::RecreateLostCopy(pNetworkVehicle, pPedDriverUpdate->pos,
+                    pPedDriverUpdate->roll, pPedDriverUpdate->rot, pPedDriverUpdate->color1, pPedDriverUpdate->color2);
+            }
             break;
 
         case VehicleSyncPolicy::ePedDriverVehicle::SEAT_AND_APPLY:

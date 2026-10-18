@@ -139,6 +139,23 @@ Session: date `____` · number of players `____` · package SHA-256 `____` · co
 - [ ] **Side activities:** on their own, the guest buys clothes at Binco or gets a haircut at Reece's, starts the
   taxi side mission (key 2 in a taxi) and, if it is open, works out at the Ganton gym. All of it works.
 
+### A5. Trains
+
+- [ ] **Same train at Unity Station:** wait together at Unity Station until a train arrives. Both screens show the same
+  train (Brown Streak or Freight) with the same number of carriages, stopping at the platform and leaving together.
+- [ ] **Riding as a passenger:** when a Brown Streak stops at Unity Station, a guest gets into a passenger carriage with
+  G, then the host gets into the locomotive or another carriage. Both ride to Market Station and get out there; neither
+  player stands frozen at Unity Station on the other screen.
+- [ ] **Skip to the next station:** while a guest rides inside a passenger carriage, they press the skip button shown in
+  the help box: the train skips to the next station for everyone aboard.
+- [ ] **A guest drives a train:** a guest takes the driver's seat of a locomotive and drives it along the track (and
+  can start the Freight side mission with key 2); the host sees the train move and stop smoothly. When the host drives a
+  freight train too fast into a curve until it derails, the guest sees the carriages derail too.
+- [ ] **A guest rides a train far from the host:** while the host stays at Grove Street, a guest boards a train at
+  Unity Station and rides it past Market Station (> 300 m from the host): the train doesn't vanish under the guest.
+- [ ] **Reconnecting while a train is nearby:** while a train stands or moves near the host, a guest disconnects and
+  reconnects: the train appears on the guest's screen.
+
 ## B. In missions
 
 When a guest leaves during a mission, the host's `CoopAndreas_ped_sync.log` shows `stand-in=kept`, and when the
@@ -423,9 +440,9 @@ The plan stops at #10: the missions from #11 on aren't rebuilt for co-op yet.
 - A guest who starts getting into a car and gives up counts as sitting in that seat on the server for 10 s.
 - A task a mission gives a character at the moment it creates it doesn't play on the other screens (an old gap, no
   known effect in #1–#10).
-- Trains and mission objects (crates, doors, barrels) aren't synced yet; their designs are ready
-  (`docs/design/trains.md`, `docs/design/mission-objects.md`). Race checkpoints (#22), gang territories and wars
-  (#25) and the bridge barriers (#28) come in later packages.
+- Mission objects (crates, doors, barrels) aren't synced yet (`docs/design/mission-objects.md`). Standing on top of a
+  moving train without script attachment (`T3`, #74), race checkpoints (#22), gang territories and wars (#25) and the
+  bridge barriers (#28) come in later packages.
 - Messages meant only for the host (such as "get in Sweet's car") show on the guests' screens too.
 - A guest's gym texts can disappear while the host's mission shows texts.
 - Guests shouldn't buy properties: their purchase isn't saved anywhere and the money is gone.
@@ -451,6 +468,7 @@ problem per issue. Give:
   - `CoopAndreas_world_state.log`: the host's world (city unlock, garages, shop doors, mission settings);
   - `CoopAndreas_ped_sync.log`: characters and players (kept, recreated, removed);
   - `CoopAndreas_vehicle_sync.log`: vehicles (which game drives them, removals, exits);
+  - `CoopAndreas_train_sync.log`: trains and vehicle attachments (carriages, copies, derailments, attachments);
 - after a crash, the newest file in `CoopAndreas_crashes\` in the game folder (it is written with every shortcut);
 - the last lines of the host's server window around the problem.
 
@@ -465,6 +483,7 @@ often Steam names, so replace them with "host", "guest 1" and so on before you p
 | A2 Alt+Tab | | |
 | A3 Restarting during a session | | |
 | A4 Story markers, side activities | | |
+| A5 Trains | | |
 | B1 #3 barber | | |
 | B2 #3, #4 taken out of the car | | |
 | B3 #4 quitting from the menu | | |

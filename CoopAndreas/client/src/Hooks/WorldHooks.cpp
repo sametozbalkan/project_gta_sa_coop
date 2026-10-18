@@ -96,7 +96,10 @@ static void __cdecl CWorld__Add_Hook(CEntity* entity)
             }
             if (pRecord == nullptr)
             {
-                CNetworkVehicle::CreateHosted(vehicle);
+                if (!CNetworkVehicle::IsTrainModel(vehicle->m_nModelIndex))
+                {
+                    CNetworkVehicle::CreateHosted(vehicle);
+                }
             }
             else if (vehicle->m_pCollisionList != nullptr)
             {

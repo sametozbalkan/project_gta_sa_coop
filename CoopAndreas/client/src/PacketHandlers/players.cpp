@@ -4,6 +4,8 @@
 #include <CAimSync.h>
 #include <CEntryExitTransitionSync.h>
 #include <CProjectileInfo.h>
+#include "CTrainSyncPolicy.h"
+#include "CBulletSyncPolicy.h"
 
 PACKET_HANDLER(ePacketType::PLAYER_ONFOOT_UPDATE, Packets::Players::OnFootUpdate* pOnFootUpdate)
 {
@@ -36,8 +38,11 @@ PACKET_HANDLER(ePacketType::PLAYER_ONFOOT_UPDATE, Packets::Players::OnFootUpdate
         }
     }
 
-    pPlayerPed->SetPosn(pOnFootUpdate->vecPos);
-    pPlayerPed->m_vecMoveSpeed = pOnFootUpdate->vecMoveSpeed;
+    if (TrainSyncPolicy::ShouldApplyOnFootPosition(pPlayerPed->m_pAttachedTo != nullptr))
+    {
+        pPlayerPed->SetPosn(pOnFootUpdate->vecPos);
+        pPlayerPed->m_vecMoveSpeed = pOnFootUpdate->vecMoveSpeed;
+    }
 
     pNetworkPlayer->ApplyWeaponSnapshot(pOnFootUpdate->weaponSnapshot);
     if ((pPlayerPed = pNetworkPlayer->GetReadyPed()) == nullptr)
@@ -187,17 +192,24 @@ PACKET_HANDLER(ePacketType::PLAYER_BULLET_SHOT, Packets::Players::PlayerBulletSh
         endPosCalced.Normalise();
         endPosCalced = endPoint + endPosCalced * 10.0f;
         endPoint = endPosCalced;
+        CWorld::pIgnoreEntity = owner;
         CWorld::ProcessLineOfSight(startPoint, endPoint, colPoint, victim, 1, 1, 1, 1, 1, 0, 0, 1);
-        colPoint.m_vecPoint = pPlayerBulletShot->endPos;
+        CWorld::pIgnoreEntity = nullptr;
 
-        if (pPlayerBulletShot->bHitNetworkEntity)
+        if (BulletSyncPolicy::ShouldOverrideRaycastVictimWithNetworkEntity(
+                pPlayerBulletShot->bHitSomething, pPlayerBulletShot->bHitNetworkEntity))
         {
+            colPoint.m_vecPoint = pPlayerBulletShot->endPos;
             victim = pPlayerBulletShot->hitEntity.GetEntity();
             if (pPlayerBulletShot->hitEntity.entityType == NETWORK_ENTITY_TYPE_PLAYER ||
                 pPlayerBulletShot->hitEntity.entityType == NETWORK_ENTITY_TYPE_PED)
             {
                 colPoint.m_nSurfaceTypeB = pPlayerBulletShot->pedPiece;
             }
+        }
+        else if (victim == nullptr)
+        {
+            colPoint.m_vecPoint = pPlayerBulletShot->endPos;
         }
     }
     else

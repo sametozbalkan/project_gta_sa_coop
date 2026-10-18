@@ -174,7 +174,10 @@ PACKET_HANDLER(ePacketType::VEHICLE_DRIVER_UPDATE, Packets::Vehicles::VehicleDri
         pNetworkVehicle->m_vecPosition = pVehicleDriverUpdate->pos;
         pNetworkVehicle->m_vecRotation = pVehicleDriverUpdate->rot;
         pNetworkVehicle->m_bUsedByPed = false;
-        pNetworkVehicle->ReassignSyncer(pNetworkPlayer);
+        if (VehicleSeatPolicy::ShouldDriverBecomeSyncer(pNetworkVehicle->m_nModelId))
+        {
+            pNetworkVehicle->ReassignSyncer(pNetworkPlayer);
+        }
 
         pVehicleDriverUpdate->playerid = pNetworkPlayer->m_iPlayerId;
         GetPacketFactory().SendToAll(*pVehicleDriverUpdate, pNetworkPlayer);
@@ -311,9 +314,10 @@ PACKET_HANDLER(ePacketType::VEHICLE_PASSENGER_UPDATE,
         }
         pNetworkVehicle->SetOccupant(static_cast<int8_t>(seat), pNetworkPlayer);
 
-        // no driver: a passenger becomes the syncer (not of a mission vehicle, nor of one a ped drives)
+        // no driver: a passenger becomes the syncer (not of a mission vehicle, a train carriage, nor of one a ped drives)
         if (auto pNewSyncer = VehicleSeatPolicy::ChoosePassengerSyncer<CNetworkPlayer>(*pNetworkVehicle,
-                pNetworkVehicle->m_nCreatedBy == MISSION_VEHICLE, pNetworkVehicle->m_bUsedByPed))
+                pNetworkVehicle->m_nCreatedBy == MISSION_VEHICLE, pNetworkVehicle->m_bUsedByPed,
+                pNetworkVehicle->m_nModelId))
         {
             pNetworkVehicle->ReassignSyncer(pNewSyncer);
         }

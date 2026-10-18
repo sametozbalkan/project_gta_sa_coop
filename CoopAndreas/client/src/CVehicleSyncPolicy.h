@@ -28,6 +28,7 @@ class CVehiclePoolReference
 public:
     int GetRef() const { return m_ref; }
     void Reset() { m_ref = -1; }
+    void Clear() { Reset(); }
 
     template <class Pool, class Vehicle> bool Capture(Pool* pool, Vehicle* vehicle)
     {
@@ -461,4 +462,22 @@ private:
     bool m_bWasInVehicle = false;
     bool m_bAnnounced = false;
 };
+
+// Train carriage identity rules (T1a, docs/design/trains.md 6.1): standalone CNetworkVehicle constructors never create
+// a train carriage (CTrain::CreateMissionTrain builds the chain in CTrainSync), and on-rail carriages neither send nor
+// apply generic vehicle idle/driver kinematics; derailed carriages fall back to generic vehicle physics (T5).
+constexpr bool ShouldSpawnStandaloneCarriage(int modelId) noexcept
+{
+    return !VehicleSync::IsTrainModelId(modelId);
+}
+
+constexpr bool ShouldSendCarriageIdleUpdate(int modelId, bool isDerailed) noexcept
+{
+    return !VehicleSync::IsTrainModelId(modelId) || isDerailed;
+}
+
+constexpr bool ShouldApplyCarriageKinematics(int modelId, bool isDerailed) noexcept
+{
+    return !VehicleSync::IsTrainModelId(modelId) || isDerailed;
+}
 }  // namespace VehicleSyncPolicy

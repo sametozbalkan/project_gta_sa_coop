@@ -103,6 +103,7 @@ using namespace plugin;
 #include <network/packets/peds.h>
 #include <network/packets/scripts.h>
 #include <network/packets/blips.h>
+#include "network/packets/train.h"
 #include "network/packet_types.h"
 #include "CCore.h"
 #include "CUnicode.h"

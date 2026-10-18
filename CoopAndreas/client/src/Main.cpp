@@ -1,4 +1,4 @@
-﻿#include "CLocalPlayer.h"
+#include "CLocalPlayer.h"
 #include "CNetworkPlayerManager.h"
 #include "CPacketBuffer.h"
 #include "CServerTime.h"
@@ -36,6 +36,7 @@
 #include <CWorldStateRegistry.h>
 #include <CPlayerStateSave.h>
 #include <CSessionLifecycle.h>
+#include <CTrainSync.h>
 
 unsigned int lastOnFootSyncTickRate = 0;
 unsigned int lastDriverSyncTickRate = 0;
@@ -125,6 +126,7 @@ public:
             CSessionLifecycle::Process(); // private build: session lifecycle, before the modules that ask it
             CWorldStateRegistry::Process(); // private build: world-state registry (the city unlock is its entry 0)
             CPlayerStateSave::Process(); // private build: player state for co-op saves
+            CTrainSync::Process(); // private build: train mirror
 
             if (/*CNetwork::m_bConnected*/ CNetwork::m_bAuthenticated)
             {

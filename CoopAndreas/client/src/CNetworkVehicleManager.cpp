@@ -4,6 +4,7 @@
 #include "CNetworkVehicleManager.h"
 #include "COpCodeSync.h"
 #include "CMissionMirror.h"
+#include "CTrainSync.h"
 #include <CTimer.h>
 #include <cmath>
 #include <cstdarg>
@@ -131,7 +132,8 @@ const SRemoveSite removeSiteClasses[] = {
     {0x6C7B9A, "police-heli"},         // CHeli::UpdateHelis 0x6C79A0: its own police helis
     {0x6CCCB2, "ambient-planes"},      // CPlane::SwitchAmbientPlanes 0x6CCC50: RANDOM_VEHICLE only
     {0x6D22D7, "crusher"},             // DestroyVehicleAndDriverAndPassengers (CGarage::Update 0x44B99B), copies too
-    {0x6F5DD7, "train"},               // CTrain::RemoveOneMissionTrain (trains never become copies)
+    {0x6F5DD7, "train"},               // CTrain::RemoveOneMissionTrain (train carriages have CNetworkVehicle identity
+                                       // alongside CTrainSync, which controls copy chain lifetime)
     {0x6F6A7B, "train"},               // CTrain::RemoveMissionTrains
     {0x6F6B31, "train"},               // CTrain::RemoveAllTrains
     {0x6F7ACA, "train"},               // CTrain::DoTrainGenerationAndRemoval
@@ -312,6 +314,13 @@ bool ApplyAssignment(CNetworkVehicle* pNetworkVehicle, bool bSyncing, const char
     pNetworkVehicle->m_bSyncing = bSyncing;
     CVehicle* pVehicle = pNetworkVehicle->GetLiveVehicle();
 
+    if (CNetworkVehicle::IsTrainModel(pNetworkVehicle->m_nModelId))
+    {
+        CNetworkVehicleManager::LogEvent("assignment-applied", vehicleid, "syncing=%d source=%s vehicle=%d train=1",
+            bSyncing, source, pVehicle != nullptr);
+        return true;
+    }
+
     if (!bSyncing)
     {
         if (pVehicle != nullptr)
@@ -473,6 +482,10 @@ void CNetworkVehicleManager::UpdateIdle()
 	{
 		CVehicle* pVehicle = pNetworkVehicle->GetLiveVehicle(); // private build
 		if (pVehicle == nullptr)
+			continue;
+
+		if (!VehicleSyncPolicy::ShouldSendCarriageIdleUpdate(
+				pNetworkVehicle->m_nModelId, CNetworkVehicle::IsDerailedTrain(pVehicle)))
 			continue;
 
 		// private build (vehicle sync protocol): also while the local player driving it gets out, who sends no driver
@@ -824,6 +837,10 @@ void CNetworkVehicleManager::OnRemovePacket(int vehicleid, uint8_t reason)
     }
     if (CNetworkVehicle* pNetworkVehicle = GetVehicle(vehicleid))
     {
+        if (!pNetworkVehicle->m_bSyncing && CNetworkVehicle::IsTrainModel(pNetworkVehicle->m_nModelId))
+        {
+            CTrainSync::OnCarriageRemovePacket(vehicleid, pNetworkVehicle->GetLiveVehicle());
+        }
         RemoveForNetwork(pNetworkVehicle, "remove-packet", reason);
     }
     else
@@ -1032,6 +1049,8 @@ void CNetworkVehicleManager::OnVehicleDestroyed(CVehicle* pVehicle)
     ms_pDestroyingVehicle = pVehicle;
     ms_nDestroyingVehicleId = -1;
 
+    CTrainSync::OnVehicleDestroyed(pVehicle);
+
     // ours, not confirmed yet: the slot stays taken, VEHICLE_CONFIRM removes it everywhere (REMOVE_UNCONFIRMED)
     for (CNetworkVehicle* pTemp : m_apTempVehicles)
     {
@@ -1225,6 +1244,48 @@ void CNetworkVehicleManager::GuardCopy(CVehicle* pVehicle)
         pVehicle->SetVehicleCreatedBy(MISSION_VEHICLE);
     }
     pVehicle->m_nTimeTillWeNeedThisCar = COPY_KEEP_TIME;
+}
+
+void CNetworkVehicleManager::ForgetCopy(CVehicle* pVehicle)
+{
+    if (pVehicle != nullptr && pVehicle == ms_pLastRemovedVehicle)
+    {
+        ms_pLastRemovedVehicle = nullptr;
+        ms_nLastRemoveSite = 0;
+    }
+}
+
+bool CNetworkVehicleManager::BindTrainCopy(int vehicleid, uint16_t expectedModel, CTrain* pCarriage)
+{
+    if (pCarriage == nullptr)
+    {
+        return false;
+    }
+    CNetworkVehicle* pNetworkVehicle = GetVehicle(vehicleid);
+    if (pNetworkVehicle == nullptr || pNetworkVehicle->m_bSyncing ||
+        pNetworkVehicle->m_nModelId != static_cast<int>(expectedModel))
+    {
+        return false;
+    }
+    pNetworkVehicle->BindTrainCarriage(pCarriage);
+    GuardCopy(reinterpret_cast<CVehicle*>(pCarriage));
+    return true;
+}
+
+void CNetworkVehicleManager::UnbindTrainCopy(CTrain* pCarriage)
+{
+    if (pCarriage == nullptr)
+    {
+        return;
+    }
+    ForgetCopy(reinterpret_cast<CVehicle*>(pCarriage));
+    for (CNetworkVehicle* pNetworkVehicle : m_pVehicles)
+    {
+        if (pNetworkVehicle != nullptr && pNetworkVehicle->m_pVehicle == reinterpret_cast<CVehicle*>(pCarriage))
+        {
+            pNetworkVehicle->UnbindTrainCarriage();
+        }
+    }
 }
 
 CVehicle* CNetworkVehicleManager::RecreateLostCopy(CNetworkVehicle* pNetworkVehicle, const CVector& position,
