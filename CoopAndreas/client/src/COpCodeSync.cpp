@@ -170,7 +170,13 @@ const SSyncedOpCode syncedOpcodes[] =
     {0x0175, true, {eSyncedParamType::VEHICLE}}, // set_car_heading [Car] {heading} [float]
     
     // Explosions
+    // Private build (EX-1 / O-D7, docs/design/mission-objects.md 10): script explosions are mirrored for the host's
+    // mission family (CMissionMirror) and replayed for registered scripts; no entity parameters (1.0 US cases 0x47E48D,
+    // 0x48D94A and 0x4774DA all call CExplosion::AddExplosion 0x736A50 with victim=nullptr, creator=nullptr).
+    {0x020C}, // add_explosion {x} [float] {y} [float] {z} [float] {type} [ExplosionType]
+    {0x0565}, // add_explosion_no_sound {x} [float] {y} [float] {z} [float] {type} [ExplosionType]
     {0x070C, true, {eSyncedParamType::VEHICLE}}, // explode_car_in_cutscene [Car]
+    {0x0948}, // add_explosion_variable_shake {x} [float] {y} [float] {z} [float] {type} [ExplosionType] {shake} [float]
     
     // Audio
     {0x097A}, // report_mission_audio_event_at_position {x} [float] {y} [float] {z} [float] {soundId} [int]

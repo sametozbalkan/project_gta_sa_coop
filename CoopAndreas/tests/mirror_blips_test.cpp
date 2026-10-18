@@ -199,6 +199,23 @@ void Difference()
     moved.x += 1.5f;
     CHECK(DecideSend(true, car, moved, 100000) == eSend::NONE);
 
+    // an owned object blip (eEntityKind::OBJECT): uses entity interval (0.5 Hz / 2 m) instead of 4 Hz follow
+    const SBlipState ownedObj = EntityBlip(Type::OBJECT, eEntityKind::OBJECT, 0x0502, 100.0f, 100.0f, 10.0f);
+    moved = ownedObj;
+    moved.x += 1.0f;  // >= 0.5 m follow threshold, but < 2.0 m entity threshold
+    CHECK(DecideSend(true, ownedObj, moved, FOLLOW_INTERVAL_MS) == eSend::NONE);
+    CHECK(DecideSend(true, ownedObj, moved, ENTITY_POSITION_INTERVAL_MS) == eSend::NONE);
+    moved = ownedObj;
+    moved.x += 2.5f;  // >= 2.0 m entity threshold
+    CHECK(DecideSend(true, ownedObj, moved, FOLLOW_INTERVAL_MS) == eSend::NONE);
+    CHECK(DecideSend(true, ownedObj, moved, ENTITY_POSITION_INTERVAL_MS - 1) == eSend::NONE);
+    CHECK(DecideSend(true, ownedObj, moved, ENTITY_POSITION_INTERVAL_MS) == eSend::POSITION);
+    // switching from unowned object (NONE) to owned object (OBJECT), or changing object handle -> FULL
+    CHECK(DecideSend(true, object, ownedObj, 0) == eSend::FULL);
+    SBlipState otherObj = ownedObj;
+    otherObj.entityId = 0x0503;
+    CHECK(DecideSend(true, ownedObj, otherObj, 0) == eSend::FULL);
+
     // the confirm gives the vehicle its network id: the whole state, so the others switch to the entity blip
     SBlipState pending = car;
     pending.entityKind = eEntityKind::NONE;
@@ -245,6 +262,15 @@ void LocalForms()
     CHECK(LocalType(car, eLocalForm::ENTITY) == Type::CAR);
     CHECK(DecideLocalForm(car, false, false) == eLocalForm::FOLLOW);
     CHECK(LocalType(car, eLocalForm::FOLLOW) == Type::COORD);
+
+    // an owned object (eEntityKind::OBJECT): FOLLOW before the copy resolves, ENTITY with Type::OBJECT once resolved
+    const SBlipState obj = EntityBlip(Type::OBJECT, eEntityKind::OBJECT, 0x0502, 10.0f, 20.0f, 5.0f);
+    CHECK(DecideLocalForm(obj, false, false) == eLocalForm::FOLLOW);
+    CHECK(LocalType(obj, eLocalForm::FOLLOW) == Type::COORD);
+    CHECK(DecideLocalForm(obj, true, false) == eLocalForm::ENTITY);
+    CHECK(LocalType(obj, eLocalForm::ENTITY) == Type::OBJECT);
+    CHECK(DecideLocalForm(obj, false, true) == eLocalForm::FOLLOW);
+    CHECK(DecideLocalForm(obj, true, true) == eLocalForm::ENTITY);
 
     // peds and players get char blips
     const SBlipState ped = EntityBlip(Type::CHAR, eEntityKind::PED, 0, 0.0f, 0.0f, 0.0f);  // id 0 is a valid id
@@ -320,6 +346,32 @@ void Switching()
     form = DecideLocalForm(car, false, false);
     type = LocalType(car, form);
     CHECK(form == eLocalForm::FOLLOW);
+    CHECK(NeedsRebuild(true, haveForm, haveType, haveRef, form, type, 0));
+
+    // An object blip on an owned object: FOLLOW while the copy is unresolved, then switches to ENTITY (Type::OBJECT),
+    // rebuilds if the local copy's pool handle changes, and switches back to FOLLOW if the copy is lost.
+    const SBlipState obj = EntityBlip(Type::OBJECT, eEntityKind::OBJECT, 0x15D7F, 15.0f, 25.0f, 3.0f);
+    form = DecideLocalForm(obj, false, false);
+    type = LocalType(obj, form);
+    CHECK(form == eLocalForm::FOLLOW && type == Type::COORD);
+    CHECK(NeedsRebuild(false, eLocalForm::NONE, Type::NONE, 0, form, type, 0));
+    haveForm = form;
+    haveType = type;
+    haveRef = 0;
+
+    form = DecideLocalForm(obj, true, false);
+    type = LocalType(obj, form);
+    CHECK(form == eLocalForm::ENTITY && type == Type::OBJECT);
+    CHECK(NeedsRebuild(true, haveForm, haveType, haveRef, form, type, 0x0301));
+    haveForm = form;
+    haveType = type;
+    haveRef = 0x0301;
+    CHECK(!NeedsRebuild(true, haveForm, haveType, haveRef, form, type, 0x0301));
+    CHECK(NeedsRebuild(true, haveForm, haveType, haveRef, form, type, 0x0302));  // new object ref in same or other slot
+
+    form = DecideLocalForm(obj, false, false);
+    type = LocalType(obj, form);
+    CHECK(form == eLocalForm::FOLLOW && type == Type::COORD);
     CHECK(NeedsRebuild(true, haveForm, haveType, haveRef, form, type, 0));
 
     // the host's coordinate blip becomes a contact point (should not happen for a handle): a new local blip

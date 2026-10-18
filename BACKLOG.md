@@ -47,7 +47,7 @@ to the next (`scripts/compile-scm.ps1` checks this).
 
 ## Next, in priority order
 
-1. **Group 2 infrastructure: mission objects (`OB-0` and trains implemented).** The designs are in `docs/design/trains.md`
+1. **Group 2 infrastructure: mission objects (`OB-0`, `EX-1`, the `OB-2` plumbing and trains implemented; next `OB-1`).** The designs are in `docs/design/trains.md`
    and `docs/design/mission-objects.md`.
    - **Trains (`docs/design/trains.md`)**: decisions `T-D1`–`T-D9` confirmed (2026-10-18) and packages `T1a`, `T1b`,
      `T2`, `T4` and `T5` implemented (`CTrainSync`, carriage network vehicle identity, `ENTITY_ATTACH` for peds/players
@@ -55,7 +55,9 @@ to the next (`scripts/compile-scm.ps1` checks this).
      on-foot sync) is scheduled before #74 *Green Goo* (`T-D5`/`T-D7`).
    - **Mission objects (`docs/design/mission-objects.md`)**: **`OB-0` (`O-D9`, remote shots on objects) is Done**
      (`CBulletSyncPolicy.h`, `CNetworkEntitySerializer.cpp`, `Hooks/PlayerHooks.cpp`, `PacketHandlers/players.cpp`,
-     `tests/bullet_sync_test.cpp`); decisions `O-D1`–`O-D8` and `O-D10`–`O-D11` remain open (below) for `OB-1`–`OB-3`
+     `tests/bullet_sync_test.cpp`); **`EX-1` (`O-D7` (b), script explosions) is Done**; `OB-2`'s wire and blip plumbing
+     is in, behind the `CMirrorObjects.h` placeholder that `OB-1` replaces; decisions `O-D1`–`O-D6`, `O-D8` and
+     `O-D10`–`O-D11` remain open (below) for `OB-1`–`OB-3`
      before the group 2 ports (#15–#17). Persistent objects (`OB-4`: doors, gates, cabins) are first needed in #23.
 
 ### Mission Objects & Pickups
@@ -64,7 +66,8 @@ to the next (`scripts/compile-scm.ps1` checks this).
 |---|---|---|---|
 | `OB-0` (`O-D9`) | Remote shots on objects & un-networked entity serialization (`CBulletSyncPolicy.h`, `CNetworkEntitySerializer.cpp`, `Hooks/PlayerHooks.cpp`, `PacketHandlers/players.cpp`, `tests/bullet_sync_test.cpp`) | #7, #14, #17, #42 | **Done** |
 | `OB-1` | Mission object mirror core (`CMirrorObjects`, `MISSION_OBJECTS`, `MISSION_OBJECT_MOTION`) | Group 2 (#11–#17) | Design-ready |
-| `OB-2` | Object entity blips in `MISSION_MIRROR_BLIPS` | #15 | Design-ready |
+| `OB-2` | Object entity blips in `MISSION_MIRROR_BLIPS` | #15 | **Plumbing done** (wire `ENTITY_OBJECT`, capture and resolve; inert until OB-1 replaces the `CMirrorObjects.h` placeholder) |
+| `EX-1` (`O-D7` (b)) | Script explosions (`020C`, `0565`, `0948`) of the host's mission family mirrored | #14, #17 | **Done** |
 | `OB-3` | Interaction hand-over (carry in #15, forklift in #17, `MISSION_OBJECT_CLAIM`) | #15, #17 | Design-ready |
 | `OB-4` | Persistent script objects (doors, gates, cabins) | #23 (group 4) | Design-ready |
 | `OB-5` | Vehicle-relative cargo | #72 | Design-ready |
@@ -102,9 +105,10 @@ to the next (`scripts/compile-scm.ps1` checks this).
 
 ## Open decisions
 
-- **Mission objects** (`docs/design/mission-objects.md`, O-D1–O-D8, O-D10–O-D11; `O-D9` / `OB-0` confirmed and **Done**),
-  for the maintainer: whether the friend carries boxes and drives a forklift, persistent doors and gates, mission
-  explosions, pickups from crates. (Train decisions `T-D1`–`T-D9` were confirmed on 2026-10-18 with the recommendations
+- **Mission objects** (`docs/design/mission-objects.md`, O-D1–O-D6, O-D8, O-D10–O-D11; `O-D9` / `OB-0` and `O-D7` / `EX-1`
+  confirmed and **Done**),
+  for the maintainer: whether the friend carries boxes and drives a forklift, persistent doors and gates,
+  pickups from crates. (Train decisions `T-D1`–`T-D9` were confirmed on 2026-10-18 with the recommendations
   in `docs/design/trains.md`.)
 - **At the port of the mission:** #26 Los Sepulcros sets the host's respect to 200 (`0629`) during the mission, and
   #103 End Of The Line (3) pays $250,000 frames before its pass; the mirror layer passes on neither.

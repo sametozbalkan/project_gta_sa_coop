@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "CMirrorBlips.h"
 #include "CMirrorBlipsPolicy.h"
+#include "CMirrorObjects.h"
 #include "CMissionMirror.h"
 #include "CNetworkStaticBlip.h"
 #include "CServerTime.h"
@@ -75,7 +76,8 @@ static_assert(MirrorBlipsPolicy::Type::CAR == MirrorBlipsWire::TYPE_FIRST &&
 static_assert(static_cast<uint8_t>(MirrorBlipsPolicy::eEntityKind::NONE) == MirrorBlipsWire::ENTITY_NONE &&
                   static_cast<uint8_t>(MirrorBlipsPolicy::eEntityKind::PLAYER) == MirrorBlipsWire::ENTITY_PLAYER &&
                   static_cast<uint8_t>(MirrorBlipsPolicy::eEntityKind::PED) == MirrorBlipsWire::ENTITY_PED &&
-                  static_cast<uint8_t>(MirrorBlipsPolicy::eEntityKind::VEHICLE) == MirrorBlipsWire::ENTITY_VEHICLE,
+                  static_cast<uint8_t>(MirrorBlipsPolicy::eEntityKind::VEHICLE) == MirrorBlipsWire::ENTITY_VEHICLE &&
+                  static_cast<uint8_t>(MirrorBlipsPolicy::eEntityKind::OBJECT) == MirrorBlipsWire::ENTITY_OBJECT,
     "the wire's entity kinds");
 static_assert(Config::MAX_SERVER_PLAYERS <= 32, "one bit per player in the pending join snapshots");
 
@@ -213,6 +215,7 @@ bool IsValidNetworkId(eEntityKind kind, int id)
         case eEntityKind::PLAYER: return id >= 0 && id < Config::MAX_SERVER_PLAYERS;
         case eEntityKind::PED: return id >= 0 && id < Config::MAX_SERVER_PEDS;
         case eEntityKind::VEHICLE: return id >= 0 && id < Config::MAX_SERVER_VEHICLES;
+        case eEntityKind::OBJECT: return id >= 0 && id <= MirrorBlipsWire::OBJECT_ID_MAX;
         default: return false;
     }
 }
@@ -323,6 +326,10 @@ bool CaptureBlip(int index, SBlipState& state)
                 return false;
             }
             SetPosition(state, pObject->GetPosition());
+            if (CMirrorObjects::IsOwnedObject(handle))
+            {
+                SetEntity(state, eEntityKind::OBJECT, handle);
+            }
             return true;
         }
         case MirrorBlipsPolicy::Type::SPOTLIGHT:
@@ -579,7 +586,7 @@ struct SResolved
 {
     bool bResolved = false;     // this game has the entity
     bool bLocalPlayer = false;  // it is this game's own player
-    int entityRef = 0;          // its pool reference (CPools::GetPedRef / GetVehicleRef)
+    int entityRef = 0;          // its pool reference (CPools::GetPedRef / GetVehicleRef / GetObjectRef)
 };
 
 // the host's entity in this game, by membership in the lists
@@ -623,6 +630,13 @@ SResolved ResolveEntity(const SBlipState& host)
                     resolved.bResolved = true;
                     resolved.entityRef = CPools::GetVehicleRef(pVehicle);
                 }
+            }
+            break;
+        case eEntityKind::OBJECT:
+            if (CObject* pObject = CMirrorObjects::ResolveObjectCopy(host.entityId))
+            {
+                resolved.bResolved = true;
+                resolved.entityRef = CPools::GetObjectRef(pObject);
             }
             break;
         default:

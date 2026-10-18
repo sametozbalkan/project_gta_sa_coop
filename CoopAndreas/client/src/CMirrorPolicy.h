@@ -40,6 +40,7 @@ constexpr uint16_t ADD_SCORE = 0x0109;                      // player, money
 constexpr uint16_t PRINT_WITH_NUMBER_BIG = 0x01E3;          // key, number, time, style (the M_PASS print)
 constexpr uint16_t PRINT_WITH_NUMBER = 0x01E4;              // key, number, time, flag
 constexpr uint16_t PRINT_WITH_NUMBER_NOW = 0x01E5;          // key, number, time, flag
+constexpr uint16_t ADD_EXPLOSION = 0x020C;                  // x, y, z, type (case 0x47E48D)
 constexpr uint16_t PRINT_BIG_Q = 0x0217;                    // key, time, style
 constexpr uint16_t PRINT_WITH_2_NUMBERS_NOW = 0x02FD;       // key, 2 numbers, time, flag
 constexpr uint16_t PRINT_WITH_3_NUMBERS = 0x02FF;           // key, 3 numbers, time, flag
@@ -60,6 +61,8 @@ constexpr uint16_t LOAD_AND_LAUNCH_MISSION = 0x0417;        // mission id
 constexpr uint16_t PRINT_HELP_FOREVER = 0x0512;             // key
 constexpr uint16_t PRINT_HELP_FOREVER_WITH_NUMBER = 0x0513; // key, number
 constexpr uint16_t LOAD_MISSION_TEXT = 0x054C;              // table name
+constexpr uint16_t ADD_EXPLOSION_NO_SOUND = 0x0565;         // x, y, z, type (case 0x48D94A)
+constexpr uint16_t ADD_EXPLOSION_VARIABLE_SHAKE = 0x0948;   // x, y, z, type, shake (case 0x4774DA)
 constexpr uint16_t AWARD_PLAYER_MISSION_RESPECT = 0x0998;   // respect
 constexpr uint16_t ADD_NEXT_MESSAGE_TO_PREVIOUS_BRIEFS = 0x09C1;  // state
 constexpr uint16_t CLEAR_THIS_PRINT_BIG_NOW = 0x0A0E;       // style
@@ -176,6 +179,15 @@ inline bool IsHelpCommand(uint16_t opcode)
 inline bool IsRewardCommand(uint16_t opcode)
 {
     return opcode == Op::ADD_SCORE || opcode == Op::AWARD_PLAYER_MISSION_RESPECT;
+}
+
+// EX-1 (O-D7, docs/design/mission-objects.md 10): script explosions of the host's mission family. 1.0 US cases:
+// 020C (0x47E48D, CollectParameters(4)), 0565 (0x48D94A, CollectParameters(4)) and 0948 (0x4774DA, CollectParameters(5))
+// all call CExplosion::AddExplosion (0x736A50) with no entity parameters.
+inline bool IsExplosionCommand(uint16_t opcode)
+{
+    return opcode == Op::ADD_EXPLOSION || opcode == Op::ADD_EXPLOSION_NO_SOUND ||
+           opcode == Op::ADD_EXPLOSION_VARIABLE_SHAKE;
 }
 
 // M-D5: the MAIN dialogue helpers missions start to play a line and print its subtitle count as the mission. Script names

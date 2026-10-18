@@ -1,6 +1,7 @@
 <#
 .SYNOPSIS
-    Builds real train packet tests with the vendored SDK, then exchanges client/server wire fixtures.
+    Builds real train and mission mirror blips packet tests with the vendored SDK, then exchanges client/server wire
+    fixtures.
 .DESCRIPTION
     Run from Windows PowerShell 5.1 or newer: powershell -File scripts/test-train-packets.ps1
     Requires the MSVC x86 C++ tools used by scripts/build.ps1. All outputs stay in ignored build/.
@@ -25,7 +26,6 @@ if (-not (Test-Path -LiteralPath $VcVarsAll -PathType Leaf)) {
 
 $build = Join-Path $root 'CoopAndreas\build\tests\train-packets'
 New-Item -ItemType Directory -Force -Path $build | Out-Null
-$source = Join-Path $root 'CoopAndreas\tests\network\train_packet_test.cpp'
 $includeDirs = @(
     'CoopAndreas\third_party',
     'CoopAndreas\third_party\plugin-sdk\shared',
@@ -38,11 +38,13 @@ $includes = '/I"' + (Join-Path $root 'CoopAndreas\shared') + '" /external:W0 '
 foreach ($includeDir in $includeDirs) {
     $includes += '/external:I"' + (Join-Path $root $includeDir) + '" '
 }
+foreach ($test in @('train_packet', 'mirror_blips_packet')) {
+$source = Join-Path $root ('CoopAndreas\tests\network\' + $test + '_test.cpp')
 foreach ($mode in @('debug', 'release')) {
     $flags = '/Od /MTd /D_DEBUG'
     if ($mode -eq 'release') { $flags = '/O2 /MT /DNDEBUG' }
     foreach ($role in @('client', 'server')) {
-        $name = 'train_packet_' + $role + '_' + $mode
+        $name = $test + '_' + $role + '_' + $mode
         $exe = Join-Path $build ($name + '.exe')
         $obj = Join-Path $build ($name + '.obj')
         $cmd = Join-Path $build ($name + '.cmd')
@@ -60,9 +62,10 @@ foreach ($mode in @('debug', 'release')) {
         & $exe --write (Join-Path $build ($mode + '-' + $role))
         if ($LASTEXITCODE -ne 0) { throw "Fixture write failed: $name" }
     }
-    & (Join-Path $build ('train_packet_client_' + $mode + '.exe')) --read (Join-Path $build ($mode + '-server'))
-    if ($LASTEXITCODE -ne 0) { throw "S2C decode failed: $mode" }
-    & (Join-Path $build ('train_packet_server_' + $mode + '.exe')) --read (Join-Path $build ($mode + '-client'))
-    if ($LASTEXITCODE -ne 0) { throw "C2S decode failed: $mode" }
+    & (Join-Path $build ($test + '_client_' + $mode + '.exe')) --read (Join-Path $build ($mode + '-server'))
+    if ($LASTEXITCODE -ne 0) { throw "S2C decode failed: $test $mode" }
+    & (Join-Path $build ($test + '_server_' + $mode + '.exe')) --read (Join-Path $build ($mode + '-client'))
+    if ($LASTEXITCODE -ne 0) { throw "C2S decode failed: $test $mode" }
 }
-Write-Host 'All train packet tests passed (Debug and Release, C2S and S2C).'
+}
+Write-Host 'All train and mirror blips packet tests passed (Debug and Release, C2S and S2C).'

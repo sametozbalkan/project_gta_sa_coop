@@ -67,6 +67,8 @@ struct SCounters
 {
     unsigned int textsMirrored = 0;    // texts only the mirror sent (unregistered family scripts)
     unsigned int textsRegistered = 0;  // texts of registered scripts (COpCodeSync's general replay)
+    unsigned int explosionsMirrored = 0;    // EX-1: script explosions only the mirror sent
+    unsigned int explosionsRegistered = 0;  // EX-1: script explosions of registered scripts
     unsigned int titles = 0;           // print_big style 2 outside the family
     unsigned int bigPrintsKept = 0;    // print_big outside the family that wasn't a title
     unsigned int rewardsHeld = 0;
@@ -75,10 +77,12 @@ struct SCounters
     unsigned int rewardsKept = 0;      // the family's rewards that weren't held: not positive (bets, costs)
     unsigned int passFrames = 0;
     unsigned int snapshots = 0;
-    unsigned int sentOpcodeSync = 0;   // OPCODE_SYNC packets the mirror sent: its texts, titles, rewards, snapshot tables
+    unsigned int sentOpcodeSync = 0;   // OPCODE_SYNC packets the mirror sent: its texts, explosions, titles, rewards, snapshot tables
     unsigned int sentAddMessage = 0;   // ADD_MESSAGE_GXT (snapshot)
     unsigned int sentMissionFlag = 0;  // ON_MISSION_FLAG_SYNC (snapshot)
     unsigned int replays = 0;          // receiver: replayed texts of the host
+    unsigned int explosionReplays = 0; // receiver: replayed script explosions of the host
+    unsigned int explosionSkips = 0;   // receiver: script explosions of the host dropped without a local player
     unsigned int tableLoads = 0;       // receiver: host tables loaded (load_mission_text or a key that needed it)
     unsigned int tableSkips = 0;       // receiver: load_mission_text of the table already loaded
     unsigned int helpClears = 0;       // receiver: help box cleared at the end of the host's mission
@@ -475,6 +479,10 @@ bool CMissionMirror::WantsCommand(CRunningScript* pScript, uint16_t opcode)
     {
         return IsMissionCode(pScript);
     }
+    if (MirrorPolicy::IsExplosionCommand(opcode))
+    {
+        return IsMissionCode(pScript);
+    }
     return false;
 }
 
@@ -526,6 +534,20 @@ bool CMissionMirror::OnCommandSerialized(
     CRunningScript* pScript, uint16_t opcode, bool bMirrorOnly, const uint8_t* data, int size)
 {
     opcode &= 0x7FFF;
+    if (MirrorPolicy::IsExplosionCommand(opcode))
+    {
+        if (bMirrorOnly)
+        {
+            ++ms_counters.explosionsMirrored;
+            ++ms_counters.sentOpcodeSync;
+        }
+        else
+        {
+            ++ms_counters.explosionsRegistered;
+        }
+        return true;
+    }
+
     const bool bReward = MirrorPolicy::IsRewardCommand(opcode);
     if (!bReward && !MirrorPolicy::IsTextCommand(opcode))
     {
@@ -616,7 +638,23 @@ void CMissionMirror::OnScriptsProcessed()
 bool CMissionMirror::OnReplayingCommand(const uint8_t* data, int size)
 {
     MirrorPolicy::SCommandView view;
-    if (!MirrorPolicy::ParseCommand(data, size, view) || !MirrorPolicy::IsTextCommand(view.opcode))
+    if (!MirrorPolicy::ParseCommand(data, size, view))
+    {
+        return true;
+    }
+    if (MirrorPolicy::IsExplosionCommand(view.opcode))
+    {
+        // EX-1: CExplosion::AddExplosion 0x736A50 needs no player, but a game without one (loading) has no world to show
+        // the blast in
+        if (FindPlayerPed(0) == nullptr)
+        {
+            ++ms_counters.explosionSkips;
+            return false;
+        }
+        ++ms_counters.explosionReplays;
+        return true;
+    }
+    if (!MirrorPolicy::IsTextCommand(view.opcode))
     {
         return true;
     }
@@ -695,13 +733,14 @@ void CMissionMirror::WriteDiagSummary(FILE* file)
 {
     const SCounters& c = ms_counters;
     fprintf(file,
-        "  mirror: mission=%d mirrored=%d name=%.8s texts=%u+%u titles=%u bigKept=%u peak=%u/s rewards held=%u sent=%u "
-        "dropped=%u kept=%u passFrames=%u snapshots=%u sent opcode=%u addMessage=%u missionFlag=%u | recv replays=%u "
-        "hostTable=%.7s tableLoads=%u tableSkips=%u helpClears=%u\n",
-        ms_mission.GetMissionId(), ms_mission.IsMirrored(), ms_szMissionName, c.textsMirrored, c.textsRegistered, c.titles,
-        c.bigPrintsKept, c.textsPeakPerSecond, c.rewardsHeld, c.rewardsSent, c.rewardsDropped, c.rewardsKept,
-        c.passFrames, c.snapshots, c.sentOpcodeSync, c.sentAddMessage, c.sentMissionFlag, c.replays,
-        ms_szHostTable[0] ? ms_szHostTable : "-", c.tableLoads, c.tableSkips, c.helpClears);
+        "  mirror: mission=%d mirrored=%d name=%.8s texts=%u+%u explosions=%u+%u titles=%u bigKept=%u peak=%u/s rewards "
+        "held=%u sent=%u dropped=%u kept=%u passFrames=%u snapshots=%u sent opcode=%u addMessage=%u missionFlag=%u | recv "
+        "replays=%u explosions=%u/%u hostTable=%.7s tableLoads=%u tableSkips=%u helpClears=%u\n",
+        ms_mission.GetMissionId(), ms_mission.IsMirrored(), ms_szMissionName, c.textsMirrored, c.textsRegistered,
+        c.explosionsMirrored, c.explosionsRegistered, c.titles, c.bigPrintsKept, c.textsPeakPerSecond, c.rewardsHeld,
+        c.rewardsSent, c.rewardsDropped, c.rewardsKept, c.passFrames, c.snapshots, c.sentOpcodeSync, c.sentAddMessage,
+        c.sentMissionFlag, c.replays, c.explosionReplays, c.explosionSkips, ms_szHostTable[0] ? ms_szHostTable : "-", c.tableLoads,
+        c.tableSkips, c.helpClears);
     CMirrorBlips::WriteDiagSummary(file); // M2
     CMirrorAreas::WriteDiagSummary(file);
     CMirrorHud::WriteDiagSummary(file); // M4

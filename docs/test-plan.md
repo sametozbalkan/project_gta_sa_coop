@@ -39,7 +39,7 @@ Session: date `____` · number of players `____` · package SHA-256 `____` · co
 
 ## What changed
 
-### 0.1.3 (train review fixes; not released)
+### 0.1.3 (train review fixes, script explosions; not released)
 
 - **Train snapshots:** initial creation and reconnects carry the current carriage health and wreck state.
 - **Train identity:** delayed packets from a deleted train cannot move a different train that reused its slot.
@@ -47,6 +47,11 @@ Session: date `____` · number of players `____` · package SHA-256 `____` · co
 - **Attachments:** a connected player who loads or starts over leaves their old attachment on the other screens;
   departed identities and deleted attachment targets are invalidated without losing temporary copy recreation.
 - **Station skip:** the request packet uses a valid discriminator in both debug and release builds.
+- **Script explosions:** explosions a host's story mission creates by script are shown, heard and felt on the guests'
+  games too. No mission of #1–#10 uses them, so in this test the `explosions=` counters of the diagnostics `mirror:`
+  line stay at 0 on every game (the first users are #14 and #17).
+- **Object blips:** the network format can carry a blip on a mission object; nothing uses it yet (object blips still
+  follow the host's position as before).
 - The network format differs from 0.1.2. Every client and the server must update together; the story scripts and
   co-op save layout are unchanged. Software tests do not confirm the in-game checks below.
 

@@ -41,6 +41,7 @@ enum class eEntityKind : uint8_t
     PLAYER,   // a player's ped, by player id
     PED,      // CNetworkPed id
     VEHICLE,  // CNetworkVehicle id
+    OBJECT,   // CMirrorObjects id (host object handle)
 };
 
 // The commands that create a blip and leave its handle in ScriptParams[0] when their handler returns (design 3.5 and
@@ -278,7 +279,15 @@ inline uint8_t LocalType(const SBlipState& host, eLocalForm form)
     switch (form)
     {
         case eLocalForm::ENTITY:
-            return host.entityKind == eEntityKind::VEHICLE ? Type::CAR : Type::CHAR;
+            if (host.entityKind == eEntityKind::VEHICLE)
+            {
+                return Type::CAR;
+            }
+            if (host.entityKind == eEntityKind::OBJECT)
+            {
+                return Type::OBJECT;
+            }
+            return Type::CHAR;
         case eLocalForm::FOLLOW:
             return Type::COORD;
         case eLocalForm::COORD:

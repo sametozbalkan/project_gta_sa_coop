@@ -354,6 +354,33 @@ void Classification()
     CHECK(IsRewardCommand(Op::ADD_SCORE) && IsRewardCommand(Op::AWARD_PLAYER_MISSION_RESPECT));
     CHECK(!IsRewardCommand(Op::REGISTER_MISSION_PASSED));
 
+    // EX-1 (O-D7): script explosion commands
+    CHECK(IsExplosionCommand(Op::ADD_EXPLOSION));
+    CHECK(IsExplosionCommand(Op::ADD_EXPLOSION_NO_SOUND));
+    CHECK(IsExplosionCommand(Op::ADD_EXPLOSION_VARIABLE_SHAKE));
+    CHECK(IsExplosionCommand(0x020C));
+    CHECK(IsExplosionCommand(0x0565));
+    CHECK(IsExplosionCommand(0x0948));
+    for (uint16_t opcode : texts)
+    {
+        CHECK(!IsExplosionCommand(opcode));
+    }
+    for (uint16_t opcode : {Op::ADD_SCORE, Op::AWARD_PLAYER_MISSION_RESPECT, Op::REGISTER_MISSION_PASSED,
+             Op::LOAD_AND_LAUNCH_MISSION, static_cast<uint16_t>(0x070C), static_cast<uint16_t>(0x0001),
+             static_cast<uint16_t>(0x010D), static_cast<uint16_t>(0x02EB), static_cast<uint16_t>(0x0000)})
+    {
+        CHECK(!IsExplosionCommand(opcode));
+    }
+    for (uint16_t opcode : {Op::ADD_EXPLOSION, Op::ADD_EXPLOSION_NO_SOUND, Op::ADD_EXPLOSION_VARIABLE_SHAKE})
+    {
+        CHECK(!IsTextCommand(opcode));
+        CHECK(!IsRewardCommand(opcode));
+        CHECK(!IsKeyedPrint(opcode));
+        CHECK(!IsHelpCommand(opcode));
+        CHECK(!IsObjectivePrint(opcode));
+        CHECK(!IsPassCommand(opcode));
+    }
+
     // the receiver's guard runs only for prints that show their keys
     for (uint16_t opcode : {Op::CLEAR_PRINTS, Op::CLEAR_THIS_PRINT, Op::CLEAR_THIS_BIG_PRINT, Op::CLEAR_HELP,
              Op::CLEAR_SMALL_PRINTS, Op::CLEAR_THIS_PRINT_BIG_NOW, Op::LOAD_MISSION_TEXT, Op::PLAY_MISSION_PASSED_TUNE,

@@ -23,6 +23,12 @@ constexpr uint8_t ENTITY_NONE = 0;     // a coordinate, or an entity without a n
 constexpr uint8_t ENTITY_PLAYER = 1;   // a player's ped, by player id
 constexpr uint8_t ENTITY_PED = 2;      // CNetworkPed id
 constexpr uint8_t ENTITY_VEHICLE = 3;  // CNetworkVehicle id
+constexpr uint8_t ENTITY_OBJECT = 4;   // CMirrorObjects id (the host's object pool handle)
+
+// an object pool handle is (slot << 8) | the slot's 7-bit id (CPool::GetRef). 1.0 US has 350 object slots
+// (CPools::Initialise, push 15Eh at 0x551096), so the largest is 0x15D7F; 17 bits leave room for 512 slots. 0 is a valid
+// handle (slot 0 once its id wrapped to 0)
+constexpr int OBJECT_ID_MAX = 0x1FFFF;
 
 constexpr uint8_t TYPE_FIRST = 1;  // eBlipType BLIP_CAR
 constexpr uint8_t TYPE_LAST = 8;   // eBlipType BLIP_AIRSTRIP
@@ -72,7 +78,7 @@ struct SMirrorBlipEntry
         }
 
         serialize_int(stream, type, MirrorBlipsWire::TYPE_FIRST, MirrorBlipsWire::TYPE_LAST);
-        serialize_int(stream, entityKind, MirrorBlipsWire::ENTITY_NONE, MirrorBlipsWire::ENTITY_VEHICLE);
+        serialize_int(stream, entityKind, MirrorBlipsWire::ENTITY_NONE, MirrorBlipsWire::ENTITY_OBJECT);
         switch (entityKind)
         {
             case MirrorBlipsWire::ENTITY_PLAYER:
@@ -83,6 +89,9 @@ struct SMirrorBlipEntry
                 break;
             case MirrorBlipsWire::ENTITY_VEHICLE:
                 serialize_int(stream, entityId, 0, Config::MAX_SERVER_VEHICLES - 1);
+                break;
+            case MirrorBlipsWire::ENTITY_OBJECT:
+                serialize_int(stream, entityId, 0, MirrorBlipsWire::OBJECT_ID_MAX);
                 break;
             default:
                 break;
