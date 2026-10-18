@@ -6,7 +6,7 @@ GTA: San Andreas hikâyesinin tamamını birlikte oynayın: iki oyuncu, tek kay�
 görevler.
 
 ![durum: alfa](https://img.shields.io/badge/durum-alfa-orange)
-![sürüm: 0.1.2-alpha](https://img.shields.io/badge/s%C3%BCr%C3%BCm-0.1.2--alpha-blue)
+![sürüm: 0.1.3-alpha](https://img.shields.io/badge/s%C3%BCr%C3%BCm-0.1.3--alpha-blue)
 [![lisans: GPL-3.0](https://img.shields.io/badge/lisans-GPL--3.0-green)](LICENSE)
 <!-- Buy Me a Coffee rozeti, hesap açılınca buraya eklenecek. -->
 
@@ -297,6 +297,12 @@ olarak bildirin: sürüm, host'un siz olup olmadığınız, kaç oyuncu olduğun
   oyunun NPC'leri ve arabaları geri gelir (host'un görev karakterleriyle birlikte).
 - **Görev ortasında ayrılan oyuncu:** host'un oyunu çökmez, görev onsuz sürer; hikâye görevleri yalnızca host'un
   oyununda başlar.
+- **Trenler:** host'un trenleri her ekranda aynı rayda, vagonları, yolcuları ve üzerlerindeki karakterlerle
+  birlikte gider; yolcu bir sonraki istasyonu isteyebilir.
+- **Görev nesneleri:** host'un görevinin yarattığı nesneler (kasalar, geçitler, şişeler, eldeki bir puro) diğer
+  oyuncunun ekranında da görünür, host'taki gibi hareket eder, araçların üstünde taşınır, tutan karakterin elinde
+  durur ve host'ta kırılınca kırılır; betik patlamaları iki oyuncuda da görülür, duyulur ve hasar verir, diğer
+  oyuncunun atışları da nesnelere isabet eder. `coopandreas.ini` içinde `mission-objects = false` ile kapatılabilir.
 - **Geniş ekran:** açılıştaki görüntü modu penceresi geniş ekran (16:9) çözünürlükleri de listeler.
 - **Kare sınırlayıcı:** hep açık; kapalıyken New Game siyah ekranda kalabiliyordu.
 - **Saklanan oyuncu durumu:** diğer oyuncunun silahları, zırhı, parası, kıyafetleri, becerileri ve saygısı
@@ -318,18 +324,18 @@ yalnızca kendi bilgisayarınıza yazılır. Oyunun neyi kime gönderdiği (İng
 - Alt+Tab o oyuncunun kendi oyununu duraklatır; bu oyuncu host ise görev de bekler. Diğer oyuncu, uzaktaki
   oyuncuyu ve onun oyununun yönettiği karakterleri yerinde donmuş görür (sürdüğü araba gazı kesilmiş gibi süzülür).
   Bağlantı kopmaz.
-- Görevlerin bazı bölümleri host'ta kalır: tek kişilik mini oyunlar (diğer oyuncu izler), yalnızca görev
-  betiğinin bildiği nesneler (ör. Nines And AK's görevindeki şişe atış alıştırması) ve görevin kendi aranma
-  kontrolleri (bunlar host'un yıldızlarına bakar).
+- Görevlerin bazı bölümleri host'ta kalır: tek kişilik mini oyunlar (diğer oyuncu izler), görev nesnelerini
+  taşımak ya da kaldırmak (diğer oyuncu onları görür ama henüz alamaz) ve görevin kendi aranma kontrolleri (bunlar
+  host'un yıldızlarına bakar).
 - Yalnızca host'a yönelik mesajlar (ör. "araca dön") diğer oyuncunun ekranında da görünür.
 - Henüz uyarlanmamış görevler host'un görevi olarak çalışır; diğer oyuncu yazılarını, işaretlerini ve
   zamanlayıcılarını görür ve yardım edebilir, ama uyarlamanın eklediği ara sahneler, koltuklar ve konumlar olmadan.
 - Görev sırasında ayrılıp geri gelen oyuncu görevin yazılarını ve işaretlerini görür, ama göreve ancak bir sonraki
-  görevde yeniden katılır. Host'un kendi bağlantısı görev sırasında koparsa bazı görevler takılabilir (düzeltmesi
-  planlandı).
+  görevde yeniden katılır.
 - Mülkleri yalnızca host satın almalı: diğer oyuncunun satın alması hiçbir kayda geçmez, parası gider.
-- Henüz senkronlanmayanlar: trenler, görev nesneleri (kasalar, kapılar, geçitler), yangın, çete savaşları ve
-  bölgeleri, römorklar, RC araçlar, paraşütler ve jetpack'i yerden almak.
+- Henüz senkronlanmayanlar: görevinden sonra da kalan kapılar, geçitler ve kulübeler, hareket eden bir trenin
+  üstünde ona bağlı olmadan durmak, yangın, çete savaşları ve bölgeleri, römorklar, RC araçlar, paraşütler ve
+  jetpack'i yerden almak.
 
 ## Nasıl çalışır
 
@@ -347,8 +353,8 @@ ek olarak küçük bir dosya diğer oyuncuların durumunu tutar.
 - **Los Santos'un kalanı:** grup 2 (#11–#17, Big Smoke ve Ryder görevleri), grup 3 (#18–#22, müzik görevleri
   ve Cesar) ve grup 4 (#23–#28, Burning Desire'dan The Green Sabre'a). Ardından hikâye sırasıyla Badlands, San
   Fierro, çöl, Las Venturas ve Los Santos'a dönüş.
-- **Grup 2'den önce:** iki oyuncu için trenler ve görev nesneleri (kasalar, kapılar, geçitler); tasarımlar
-  `docs/design/` altında.
+- **Grup 2'den önce:** diğer oyuncunun kutu taşıması ve forklift kullanması (#15, #17); trenler ve görev
+  nesneleri 0.1.3'ten beri var. Tasarımlar `docs/design/` altında.
 - **Dünya durumunun kalanı, ihtiyaç duyan görevlerden önce:** yarış kontrol noktaları (#22), çete bölgeleri ve
   savaşları (#25), köprü bariyerleri ve yolları (#28), harita nesneleri (#42), ayaklanma (#99) ve görevlerin
   açtığı kapı ve geçitler için nesne senkronu (#60).

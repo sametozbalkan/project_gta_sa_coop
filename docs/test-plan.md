@@ -50,6 +50,10 @@ Session: date `____` · number of players `____` · package SHA-256 `____` · co
 - **Script explosions:** explosions a host's story mission creates by script are shown, heard and felt on the guests'
   games too. No mission of #1–#10 uses them, so in this test the `explosions=` counters of the diagnostics `mirror:`
   line stay at 0 on every game (the first users are #14 and #17).
+- **No hang when the host's connection drops at a mission start:** #2, #3, #4, #5 and #7 waited without end for the
+  server to confirm their cars; they now go on after at most 2 s (and wait up to 0.5 s for their characters, which
+  they didn't really do before).
+  - [ ] **Normal start:** #2–#5 and #7 start as before; the guest sees the cars and characters as before.
 - **Mission objects:** objects the host's mission creates (in group 1: the cigars in #3 and #5, the bottles in #7, the
   beer in #8) appear on the guests' screens, move as on the host's, ride on the vehicles they are attached to, sit in
   the hands of the character holding them and break when the host's break; a blip on an object sits on it. Guests
@@ -489,8 +493,6 @@ The plan stops at #10: the missions from #11 on aren't rebuilt for co-op yet.
 
 - A guest who comes back during a mission takes no part in it: they see its texts and blips and join normally from
   the next mission.
-- If the host's own connection drops during a mission, some missions (#2–#5, #7) can hang while they wait for a
-  vehicle (a fix is planned).
 - A guest who starts getting into a car and gives up counts as sitting in that seat on the server for 10 s.
 - A task a mission gives a character at the moment it creates it doesn't play on the other screens (an old gap, no
   known effect in #1–#10).

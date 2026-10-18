@@ -222,15 +222,26 @@ Game.SetRelationship(RelationshipType.Respect, PedType.Mission1, PedType.Gang2)
 $big_smoke = Char.Create(24, 299, 2505.869, -1672.723, 12.3778)
 
 // co-op: Smoke and his car need their network ids before tasks naming them can reach the other players
-$temp_int = Coop.GetVehicleNetworkId($big_smoke_car)
-while $temp_int == -1
-    wait 0
+// (the car reads -1 until confirmed, at most 2 s; Smoke reads 0 until confirmed, and 0 is also a valid id, at most 0.5 s)
+141@ = 0
+while 40 > 141@
     $temp_int = Coop.GetVehicleNetworkId($big_smoke_car)
+    if $temp_int <> -1
+    then
+        break
+    end
+    wait 50
+    141@ += 1
 end
-$temp_int = Coop.GetPedNetworkId($big_smoke)
-while $temp_int == -1
-    wait 0
+141@ = 0
+while 10 > 141@
     $temp_int = Coop.GetPedNetworkId($big_smoke)
+    if $temp_int > 0
+    then
+        break
+    end
+    wait 50
+    141@ += 1
 end
 
 Char.SetHeading($big_smoke, 160.0)

@@ -73,9 +73,8 @@ to the next (`scripts/compile-scm.ps1` checks this).
 | `OB-4` | Persistent script objects (doors, gates, cabins) | #23 (group 4) | Design-ready |
 | `OB-5` | Vehicle-relative cargo | #72 | Design-ready |
 
-2. **The host's own connection drops mid-mission:** the network-id wait loops in INTRO1, INTRO2, SWEET1, SWEET1B and
-   SWEET2 have no timeout, so the mission can hang on the host. They get SWEET3's 2-second timeout (a small change
-   inside each mission).
+2. **Done (0.1.3):** the network-id wait loops in INTRO1, INTRO2, SWEET1, SWEET1B and SWEET2 have SWEET3's bounds
+   (cars 2 s, characters a non-zero id within 0.5 s), so a host whose connection drops no longer hangs there.
 3. **Infrastructure before the missions that need it** (`docs/design/README.md`, section 4): M5 race checkpoints and
    script spheres (#22, group 3); WS-5 gang territories and wars, with the friend's kills counting in the host's war
    (#25, group 4); WS-2 bridge barriers and roads (#28, group 4); WS-6 map objects (#42); T3 vehicle-relative on-foot

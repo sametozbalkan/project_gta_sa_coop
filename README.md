@@ -5,7 +5,7 @@
 Play the whole GTA: San Andreas story together: two players, one save, every mission rebuilt for co-op, one by one.
 
 ![status: alpha](https://img.shields.io/badge/status-alpha-orange)
-![version: 0.1.2-alpha](https://img.shields.io/badge/version-0.1.2--alpha-blue)
+![version: 0.1.3-alpha](https://img.shields.io/badge/version-0.1.3--alpha-blue)
 [![license: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-green)](LICENSE)
 <!-- Buy Me a Coffee badge goes here once the account exists. -->
 
@@ -294,6 +294,12 @@ template: the version, whether you hosted, how many players took part, the missi
   other game's NPCs and their cars come back (with the host's mission characters).
 - **A player who leaves mid-mission:** the host's game doesn't crash and the mission goes on without them;
   story missions start only on the host's game.
+- **Trains:** the host's trains run on the same track on every screen, with their carriages, passengers and
+  characters riding on them; a passenger can ask for the next station.
+- **Mission objects:** objects the host's mission creates (crates, gates, bottles, a cigar in a hand) appear on the
+  other player's screen, move as on the host's, ride on vehicles, sit in the hands of the character holding them
+  and break when the host's do; script explosions are seen, heard and felt by both, and the other player's shots
+  hit objects too. They can be switched off with `mission-objects = false` in `coopandreas.ini`.
 - **Widescreen:** the video mode dialog at startup also lists widescreen (16:9) resolutions.
 - **Frame limiter:** always on; without it, a New Game could stay on a black screen.
 - **Saved player state:** the other player's weapons, armour, money, clothes, skills and respect are saved with
@@ -315,17 +321,17 @@ are written only to your own PC. What the game sends, and to whom: [docs/privacy
 - Alt+Tab pauses that player's own game; if it is the host, the mission waits too. The other player sees the away
   player, and the characters that player's game controls, frozen in place (a car they drive coasts on). The
   connection stays up.
-- Some parts of a mission stay with the host: solo minigames (the other player watches), objects only the mission
-  script knows about (such as the bottle practice in Nines And AK's), and the mission's own wanted-level checks,
-  which read the host's stars.
+- Some parts of a mission stay with the host: solo minigames (the other player watches), carrying or lifting mission
+  objects (the other player sees them but can't pick them up yet), and the mission's own wanted-level checks, which
+  read the host's stars.
 - Messages meant only for the host (such as "get back in the car") show on the other player's screen too.
 - Missions that aren't rebuilt yet run as the host's mission; the other player sees its texts, markers and timers
   and can help, but without the cutscenes, seats and positions a rebuild adds.
 - A player who leaves during a mission and comes back sees its texts and markers but takes part again only from the
-  next mission. If the host's own connection drops during a mission, some missions can hang (a fix is planned).
+  next mission.
 - Only the host should buy properties: another player's purchase isn't saved anywhere and the money is gone.
-- Not synced yet: trains, mission objects (crates, doors, gates), fire, gang wars and territories, trailers, RC
-  vehicles, parachutes and picking up the jetpack.
+- Not synced yet: doors, gates and cabins that stay after their mission, standing on a moving train without being
+  attached to it, fire, gang wars and territories, trailers, RC vehicles, parachutes and picking up the jetpack.
 
 ## How it works
 
@@ -343,8 +349,8 @@ host's normal save; a small side file also keeps the other players' state.
 - **Rest of Los Santos:** group 2 (#11–#17, Big Smoke's and Ryder's missions), group 3 (#18–#22, the music
   missions and Cesar) and group 4 (#23–#28, Burning Desire to The Green Sabre). Then, in story order, Badlands,
   San Fierro, the desert, Las Venturas and the return to Los Santos.
-- **Before group 2:** trains and mission objects (crates, doors, gates) for two players; the designs are in
-  `docs/design/`.
+- **Before group 2:** the other player carrying boxes and driving a forklift (#15, #17); trains and mission
+  objects are in since 0.1.3. The designs are in `docs/design/`.
 - **Rest of the world state, before the missions that need it:** race checkpoints (#22), gang territories and
   wars (#25), the bridge barriers and roads (#28), map objects (#42), the riots (#99), and object sync for doors
   and gates that missions open (#60).

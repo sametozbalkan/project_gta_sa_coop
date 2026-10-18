@@ -218,23 +218,14 @@ $sweet_car = Car.Create(492, 2508.16, -1666.47, 12.3983)
 
 $ryder = Char.Create(24, 290, 2516.392, -1676.517, 13.0041)
 
-$temp_int = Coop.GetPedNetworkId($ryder)
-while $temp_int == -1
-    wait 0
-    $temp_int = Coop.GetPedNetworkId($ryder)
-end
+008B: 140@ = $ryder
+gosub @SWEET1B_COOP_WAIT_CHAR
 
-$temp_int = Coop.GetVehicleNetworkId($sweet_car)
-while $temp_int == -1
-    wait 0
-    $temp_int = Coop.GetVehicleNetworkId($sweet_car)
-end
+008B: 140@ = $sweet_car
+gosub @SWEET1B_COOP_WAIT_CAR
 
-$temp_int = Coop.GetVehicleNetworkId($ryder_car)
-while $temp_int == -1
-    wait 0
-    $temp_int = Coop.GetVehicleNetworkId($ryder_car)
-end
+008B: 140@ = $ryder_car
+gosub @SWEET1B_COOP_WAIT_CAR
 
 Car.ChangeColor($ryder_car, 84, 84)
 Car.SetHeading($ryder_car, 0.0)
@@ -1604,17 +1595,11 @@ World.SwitchEntryExit('LACRAK', False)
 37@ = Char.Create(25, 28, 306.03, 1121.86, 1082.87)
 
 // wait for the first one and for the last one
-$temp_int = Coop.GetPedNetworkId(61@)
-while $temp_int == -1
-    wait 0
-    $temp_int = Coop.GetPedNetworkId(61@)
-end
+0085: 140@ = 61@
+gosub @SWEET1B_COOP_WAIT_CHAR
 
-$temp_int = Coop.GetPedNetworkId(37@)
-while $temp_int == -1
-    wait 0
-    $temp_int = Coop.GetPedNetworkId(37@)
-end
+0085: 140@ = 37@
+gosub @SWEET1B_COOP_WAIT_CHAR
 
 Char.SetAreaVisible(61@, 5)
 Char.SetHeading(61@, 107.12)
@@ -3118,4 +3103,33 @@ goto_if_false @SWEET1B_18385
 
 :SWEET1B_18385
 return 
+
+:SWEET1B_COOP_WAIT_CAR
+// waits until the car in 140@ has a network id ($temp_int); it reads -1 until the server confirmed it. At most 2 s
+141@ = 0
+while 40 > 141@
+    $temp_int = Coop.GetVehicleNetworkId(140@)
+    if $temp_int <> -1
+    then
+        break
+    end
+    wait 50
+    141@ += 1
+end
+return
+
+:SWEET1B_COOP_WAIT_CHAR
+// the same for the ped in 140@. A ped this client created reads 0 until the server confirmed its id, and 0 is
+// also a valid id, so this waits for a non-zero id and gives up after 0.5 s
+141@ = 0
+while 10 > 141@
+    $temp_int = Coop.GetPedNetworkId(140@)
+    if $temp_int > 0
+    then
+        break
+    end
+    wait 50
+    141@ += 1
+end
+return
 

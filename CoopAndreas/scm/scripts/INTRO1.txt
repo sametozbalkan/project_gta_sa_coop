@@ -230,18 +230,24 @@ Task.StandStill($scplayer, 1)
 Char.SetHeading($scplayer, 32.0)
 Char.ClearTasksImmediately($scplayer)
 
-// waiting for the server to create the vehicles
-while true
-    wait 0
+// waiting for the server to create the vehicles: the car reads -1 until confirmed (at most 2 s), Big Smoke
+// reads 0 until confirmed, and 0 is also a valid id (at most 0.5 s)
+141@ = 0
+while 40 > 141@
     $temp_int = Coop.GetVehicleNetworkId(41@)
     86@ = Coop.GetPedNetworkId($big_smoke)
     
-    if and
-        $temp_int <> -1 
-        86@ <> -1
+    if $temp_int <> -1
     then
-        break
+        if or
+            86@ > 0
+            141@ >= 10
+        then
+            break
+        end
     end
+    wait 50
+    141@ += 1
 end
 
 Char.SetNextDesiredMoveState(MoveState.Walk)

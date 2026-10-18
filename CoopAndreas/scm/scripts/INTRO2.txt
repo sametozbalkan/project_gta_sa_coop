@@ -241,9 +241,10 @@ Car.SetCanBeVisiblyDamaged($ryder_car, False)
 Audio.SetRadioChannel(RadioChannel.RadioLosSantos)
 $ryder = Char.Create(24, 290, 2475.29, -1687.85, 12.51)
 
-// waiting for the server to create the vehicles
-while true
-    wait 0
+// waiting for the server to create the vehicles: the cars read -1 until confirmed (at most 2 s), Ryder reads 0
+// until confirmed, and 0 is also a valid id (at most 0.5 s)
+141@ = 0
+while 40 > 141@
     $temp_int = Coop.GetVehicleNetworkId(200@)
     67@ = Coop.GetVehicleNetworkId($ryder_car)
     37@ = Coop.GetPedNetworkId($ryder)
@@ -251,10 +252,16 @@ while true
     if and
         $temp_int <> -1  
         67@ <> -1  
-        37@ <> -1
     then
-        break
+        if or
+            37@ > 0
+            141@ >= 10
+        then
+            break
+        end
     end
+    wait 50
+    141@ += 1
 end
 
 67@ = DecisionMakerChar.Load(DecisionMakerType.Empty)
@@ -838,8 +845,8 @@ if Car.IsDead(200@)
 then
     200@ = Car.Create(492, 2095.52, -1799.78, 13.06)
     
-    while true
-        wait 0
+    141@ = 0
+    while 40 > 141@
         $temp_int = Coop.GetVehicleNetworkId(200@)
         
         if and
@@ -847,6 +854,8 @@ then
         then
             break
         end
+        wait 50
+        141@ += 1
     end
     
     Car.ChangeColor(200@, 59, 34)

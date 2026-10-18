@@ -228,32 +228,20 @@ $sweet = Char.Create(24, 290, 2518.07, -1668.82, 12.85)
 $big_smoke = Char.Create(24, 299, 2520.1, -1669.58, 13.1)
 
 // SWEET'S CAR
-$temp_int = Coop.GetVehicleNetworkId($sweet_car)
-while $temp_int == -1
-    wait 0
-    $temp_int = Coop.GetVehicleNetworkId($sweet_car)
-end
+008B: 140@ = $sweet_car
+gosub @SWEET1_COOP_WAIT_CAR
 
 // SWEET
-$temp_int = Coop.GetPedNetworkId($sweet)
-while $temp_int == -1
-    wait 0
-    $temp_int = Coop.GetPedNetworkId($sweet)
-end
+008B: 140@ = $sweet
+gosub @SWEET1_COOP_WAIT_CHAR
 
 // BIG SMOKE
-$temp_int = Coop.GetPedNetworkId($big_smoke)
-while $temp_int == -1
-    wait 0
-    $temp_int = Coop.GetPedNetworkId($big_smoke)
-end
+008B: 140@ = $big_smoke
+gosub @SWEET1_COOP_WAIT_CHAR
 
 // RYDER'S CAR
-$temp_int = Coop.GetVehicleNetworkId($ryder_car)
-while $temp_int == -1
-    wait 0
-    $temp_int = Coop.GetVehicleNetworkId($ryder_car)
-end
+008B: 140@ = $ryder_car
+gosub @SWEET1_COOP_WAIT_CAR
 
 ///
 
@@ -3177,4 +3165,33 @@ Char.StopFacialTalk($sweet)
 
 :SWEET1_16141
 return 
+
+:SWEET1_COOP_WAIT_CAR
+// waits until the car in 140@ has a network id ($temp_int); it reads -1 until the server confirmed it. At most 2 s
+141@ = 0
+while 40 > 141@
+    $temp_int = Coop.GetVehicleNetworkId(140@)
+    if $temp_int <> -1
+    then
+        break
+    end
+    wait 50
+    141@ += 1
+end
+return
+
+:SWEET1_COOP_WAIT_CHAR
+// the same for the ped in 140@. A ped this client created reads 0 until the server confirmed its id, and 0 is
+// also a valid id, so this waits for a non-zero id and gives up after 0.5 s
+141@ = 0
+while 10 > 141@
+    $temp_int = Coop.GetPedNetworkId(140@)
+    if $temp_int > 0
+    then
+        break
+    end
+    wait 50
+    141@ += 1
+end
+return
 
