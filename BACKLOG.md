@@ -6,13 +6,12 @@ What is being worked on, what comes next and what is still open. The rules and t
 
 ## Current state
 
-- **0.1.2-alpha** is the current release (GitHub pre-release, tag `v0.1.2-alpha`, 2026-10-18).
-- **0.1.3-alpha is on main, not released**: the train review follow-up (complete train snapshots, train
-  incarnations against stale packets, surviving wagons after a partial deletion, attachments across restarts,
-  removals and reconnects, station-skip serialization), script explosions (`EX-1`) and the mission object mirror
-  (`OB-1`, `OB-2`; it also shows group 1's cigars, bottles and beer). The wire format changed, so every player updates together.
-  Reviewed twice by agents, all gates pass; in-game checks in `docs/test-plan.md` A5/A6. It ships with the next
-  package.
+- **0.1.3-alpha** is the current release (GitHub pre-release, tag `v0.1.3-alpha`, 2026-10-19, installed in the game
+  copy): the train review follow-up (complete train snapshots, train incarnations against stale packets, surviving
+  wagons after a partial deletion, attachments across restarts, removals and reconnects, station-skip
+  serialization), script explosions (`EX-1`), the mission object mirror (`OB-1`, `OB-2`; it also shows group 1's
+  cigars, bottles and beer) and the bounded network-id waits of #2–#5 and #7. The wire format changed, so every
+  player updates together; co-op saves keep loading. Not tested in game.
 - **The 0.1.1 test** (2026-10-17, three players) reached #8 Drive-By:
   - in #8 the two non-host games crashed at the same moment when the Ballas got out of their Voodoos (0x642067); the
     host's game didn't;
@@ -27,8 +26,8 @@ What is being worked on, what comes next and what is still open. The rules and t
   - The wire format is 0.1.1's, but the version changed so that 0.1.1 and 0.1.2 games don't mix: every player, the
     host included, updates. Co-op saves keep loading.
 - **Waiting for a test** (`docs/test-plan.md`): #1–#10 from a New Game, the 0.1.1 changes (vehicle sync, a restart
-  during a session, a player leaving mid-mission, story missions starting only on the host, Alt+Tab keys) and the
-  0.1.2 fixes. #1–#6 last passed on 0.3.102; 0.1.0 (the mirror layer, the world-state registry, story host pinning)
+  during a session, a player leaving mid-mission, story missions starting only on the host, Alt+Tab keys), the
+  0.1.2 fixes and the 0.1.3 changes (group 1's mission objects, trains outside missions). #1–#6 last passed on 0.3.102; 0.1.0 (the mirror layer, the world-state registry, story host pinning)
   was never tested by two players.
 - **Group 2 (#11–#17) starts only after the group 1 test is approved.**
 

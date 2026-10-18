@@ -44,7 +44,8 @@ Two-player tests so far; what is still open is in `docs/test-plan.md`.
 - **0.1.1-alpha** (2026-10-17, three players): played up to #8 Drive-By, where both non-host games crashed when the
   Ballas got out of their Voodoos (0x642067). Earlier in that session the host's game crashed while starting a story
   mission (EIP 0x3F800000), probably with a player dead or arrested. Both are fixed in 0.1.2.
-- **0.1.2-alpha** (2026-10-18): not tested yet.
+- **0.1.2-alpha** (2026-10-18): not tested by two players; replaced by 0.1.3.
+- **0.1.3-alpha** (2026-10-19, also group 1's mission objects and the bounded network-id waits): not tested yet.
 
 ## Story order
 

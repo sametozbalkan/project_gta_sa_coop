@@ -1,7 +1,6 @@
 # Test plan
 
-For **0.1.3-alpha**, the next release (not published yet; the latest release is 0.1.2-alpha, which doesn't contain
-the 0.1.3 changes). Use the same build on every PC. Anyone can test: you need two or more PCs, each with GTA: San Andreas from
+For **0.1.3-alpha**, the current release. Use the same build on every PC. Anyone can test: you need two or more PCs, each with GTA: San Andreas from
 Steam, and Steam accounts that are friends with each other. Tick a box only after you have seen it on at least two
 PCs. Nothing in this plan is confirmed in game yet unless the results table says so; anything else you notice is
 welcome too (see [Reporting](#reporting)).
@@ -39,7 +38,7 @@ Session: date `____` · number of players `____` · package SHA-256 `____` · co
 
 ## What changed
 
-### 0.1.3 (train review fixes, script explosions, mission objects; not released)
+### 0.1.3 (train review fixes, script explosions, mission objects)
 
 - **Train snapshots:** initial creation and reconnects carry the current carriage health and wreck state.
 - **Train identity:** delayed packets from a deleted train cannot move a different train that reused its slot.
