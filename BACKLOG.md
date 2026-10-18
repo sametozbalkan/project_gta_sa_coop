@@ -12,6 +12,8 @@ What is being worked on, what comes next and what is still open. The rules and t
   serialization), script explosions (`EX-1`), the mission object mirror (`OB-1`, `OB-2`; it also shows group 1's
   cigars, bottles and beer) and the bounded network-id waits of #2–#5 and #7. The wire format changed, so every
   player updates together; co-op saves keep loading. Not tested in game.
+- **0.1.3.1-alpha** (2026-10-19): server-only hotfix: a player whose game crashed reconnects with the same nickname
+  after about 5 s instead of 30–60 s. Only the host needs it; 0.1.3 games connect unchanged.
 - **The 0.1.1 test** (2026-10-17, three players) reached #8 Drive-By:
   - in #8 the two non-host games crashed at the same moment when the Ballas got out of their Voodoos (0x642067); the
     host's game didn't;
