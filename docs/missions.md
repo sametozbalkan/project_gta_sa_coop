@@ -15,7 +15,7 @@ column belong to MAIN and stay as they are.
 
 | Status | Meaning |
 |---|---|
-| **Adapted** | Upstream ported it with co-op commands; `CoopAndreas/README.md` lists it as checked. |
+| **Adapted** | Upstream ported it with co-op commands; upstream's README at the imported commit `cec2a7d` lists it as checked. |
 | **Ported (test pending)** | Our fork ported and compiled it with the size/save checks passing. Two-player acceptance is still pending (`docs/test-plan.md`). |
 | **…, tested** | Played through in one of our two-player tests (#1–#6: group 1 test on 0.3.102-alpha, 2026-10-15/16). |
 | **Converted (0.1.0, test pending)** | A port (upstream's or ours) moved onto the mission mirror layer for 0.1.0: its copies of the host's displays are gone, gameplay and friend-only displays stay (`docs/design/mirror-layer.md` 4.2). Tested again from a New Game (`docs/test-plan.md`). |

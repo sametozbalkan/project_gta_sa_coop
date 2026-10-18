@@ -304,7 +304,7 @@ template: the version, whether you hosted, how many players took part, the missi
 ### Privacy
 
 No telemetry, no Discord integration, no crash-report upload and no serial key. Crash logs and diagnostic logs
-are written only to your own PC.
+are written only to your own PC. What the game sends, and to whom: [docs/privacy.md](docs/privacy.md).
 
 ## Known limitations
 

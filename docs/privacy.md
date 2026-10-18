@@ -24,6 +24,7 @@ integration.
 - Crash logs in the `CoopAndreas_crashes` folder of the game folder (registers, stack, loaded modules with their
   paths, active scripts) and a crash dump if you press Save Dump in the crash dialog. Share them only if you want
   to; they show your folder paths.
-- With `--coopdiag`: `CoopAndreas_diag.log` and `CoopAndreas_ped_sync.log` in the game folder.
+- With `--coopdiag` (the `CoopAndreas (diagnostics)` shortcut): `CoopAndreas_diag.log` and the other
+  `CoopAndreas_*.log` files in the game folder. Attach them to a bug report only if you want to.
 - On the host's PC, next to each co-op save: `<save>.coop` with the other players' state from that session,
   matched by nickname. Deleting it only means those players start that save without their items.

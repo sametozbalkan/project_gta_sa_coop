@@ -307,7 +307,7 @@ olarak bildirin: sürüm, host'un siz olup olmadığınız, kaç oyuncu olduğun
 ### Gizlilik
 
 Telemetri, Discord entegrasyonu, çökme raporu gönderimi ve seri anahtar yok. Çökme kayıtları ve tanı günlükleri
-yalnızca kendi bilgisayarınıza yazılır.
+yalnızca kendi bilgisayarınıza yazılır. Oyunun neyi kime gönderdiği (İngilizce): [docs/privacy.md](docs/privacy.md).
 
 ## Bilinen sınırlamalar
 
