@@ -9,6 +9,7 @@
 #include "stdafx.h"
 #include <network/packets/vehicles.h>
 #include <network/packets/peds.h>
+#include <network/packets/train.h>
 #include <network/packets/scripts.h>
 
 bool CNetwork::Init(unsigned short port)
@@ -112,6 +113,16 @@ void CNetwork::HandlePlayerDisconnected(ENetEvent& event)
     {
         return;
     }
+
+    // SYSTEM leave/rejoin notifications bypass the clients' event buffers. Fence this
+    // player identity on the reliable EVENT stream before it can be recycled, so an
+    // already queued attachment cannot survive into the next player with the same ID.
+    Packets::Train::EntityAttach detach{};
+    detach.playerid = pNetworkPlayer->m_iPlayerId;
+    detach.entityKind = Packets::Train::eAttachEntityKind::PLAYER;
+    detach.entityId = pNetworkPlayer->m_iPlayerId;
+    detach.bAttached = false;
+    GetPacketFactory().SendToAll(detach, pNetworkPlayer);
 
     CNetworkVehicle* vehicle = CNetworkVehicleManager::GetVehicle(pNetworkPlayer->m_nVehicleId);
 

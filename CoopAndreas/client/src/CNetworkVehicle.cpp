@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include "CEntityAttachmentState.h"
 #include "CNetworkVehicle.h"
 #include "CTrain.h"
 #include <CTaskSimpleCarSetPedOut.h>
@@ -82,7 +83,8 @@ CNetworkVehicle::CNetworkVehicle(int vehicleid, int modelid, CVector pos, float 
     // with it is gone: its copy and its record go (the record was left in the list before)
     if (auto vehicle = CNetworkVehicleManager::GetVehicle(vehicleid))
     {
-        CNetworkVehicleManager::RemoveForNetwork(vehicle, "spawn-reuses-id");
+        CNetworkVehicleManager::RemoveForNetwork(vehicle, "spawn-reuses-id", -1,
+            EntityAttachment::PreserveVehicleIdentityOnSpawn(vehicle->m_nModelId, modelid));
     }
 
     m_nVehicleId = vehicleid;

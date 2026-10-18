@@ -7,6 +7,11 @@ What is being worked on, what comes next and what is still open. The rules and t
 ## Current state
 
 - **0.1.2-alpha** is the current release (GitHub pre-release, tag `v0.1.2-alpha`, 2026-10-18).
+- **0.1.3-alpha is on main, not released**: the train review follow-up (complete train snapshots, train
+  incarnations against stale packets, surviving wagons after a partial deletion, attachments across restarts,
+  removals and reconnects, station-skip serialization). The wire format changed, so every player updates together.
+  Reviewed twice by agents, all gates pass; in-game checks in `docs/test-plan.md` A5/A6. It ships with the next
+  package.
 - **The 0.1.1 test** (2026-10-17, three players) reached #8 Drive-By:
   - in #8 the two non-host games crashed at the same moment when the Ballas got out of their Voodoos (0x642067); the
     host's game didn't;
@@ -117,6 +122,13 @@ to the next (`scripts/compile-scm.ps1` checks this).
   - a car of the host's old mission that the friend drives outlives the host's restart;
   - the client's temporary ped slots don't expire;
   - some modules ask `m_serverTimeOffset != 0` for a synced clock; `CServerTime::m_bSynced` is the right check.
+- **Trains and attachments** (from the 0.1.3 review, small):
+  - the host's own restart clears its remote attachment records, and `PLAYER_JOINED` fires only on the host, so a
+    non-host owner doesn't resend its attachments to a joiner (`trains.md` 6.5 says any game);
+  - a guest who restarts while syncing a car a host script attached sees that car unattached until its new syncer
+    sends a change;
+  - the codex review mentioned an inherited bullet surface/piece issue in the shot sync (`OB-0` area); not
+    investigated yet.
 - **Task sequences** (from the 0.1.2 review):
   - a task a mission gives a character in the frame it creates it doesn't reach the other screens (from upstream; no
     known effect in #1–#10);

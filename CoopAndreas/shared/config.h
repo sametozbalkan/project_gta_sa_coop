@@ -15,7 +15,8 @@
 // model), a player leaving during the host's mission, story starts only on the host, small fixes. 0.1.2 = replayed
 // task sequences name their entities when performed (the other games crashed in Drive-By) and the mission death
 // check with an empty gosub stack; no wire change, bumped so that a 0.1.1 game can't join.
-#define COOPANDREAS_VERSION "0.1.2-alpha"
+// 0.1.3 = train descriptor/state lifecycle and explicit train request discriminator; new wire schema.
+#define COOPANDREAS_VERSION "0.1.3-alpha"
 struct Config
 {
     static constexpr uint16_t DEFAULT_PORT = 6767;

@@ -10,7 +10,7 @@ namespace VehicleSync
 // Packets::Vehicles::VehicleRemove::reason: who asks for the removal. The server accepts it from the vehicle's syncer
 // (upstream's only case), from the game that created the vehicle when that game destroyed it before VEHICLE_CONFIRM (or
 // no longer has a record for the id VEHICLE_CONFIRM names), and from the host when a script of its mission deleted a
-// vehicle another game syncs. The server relays it to everyone else, who remove the vehicle whatever the reason; a
+// vehicle another game syncs. The server relays it to everyone, including its requester, who remove the vehicle whatever the reason; a
 // removal it rejects sends the vehicle back to its sender (VEHICLE_SPAWN), whose game has already let go of it.
 // REMOVE_SYNCER_RESTARTED: the syncer's own game started over (a new game or a load destroys every vehicle); from the
 // syncer only, and a car of the host's scripts goes back to the host instead (as when its syncer leaves).

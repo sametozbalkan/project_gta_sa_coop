@@ -139,7 +139,9 @@ PACKET_HANDLER(ePacketType::PED_REMOVE, Packets::Peds::PedRemove* pPedRemove, CN
         }
     }
 
-    GetPacketFactory().SendToAll(*pPedRemove, pNetworkPlayer);
+    // Definitive deletion also acknowledges the requester, whose record may already
+    // be absent. Handover returned above and preserves the same network identity.
+    GetPacketFactory().SendToAll(*pPedRemove);
     CNetworkPedManager::Remove(pNetworkPed);
 }
 

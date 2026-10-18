@@ -28,7 +28,9 @@ public:
     static void OnRemovePacket(int vehicleid, uint8_t reason);
     // the vehicle goes for the network (VEHICLE_REMOVE, an id reused by VEHICLE_SPAWN): players out, our copy deleted,
     // the record deleted; nothing is sent. packetReason: the VEHICLE_REMOVE's reason, -1 for the other sources.
-    static void RemoveForNetwork(CNetworkVehicle* pNetworkVehicle, const char* source, int packetReason = -1);
+    // preserveAttachmentIdentity: a same-model server resend replaces a local copy of the same identity.
+    static void RemoveForNetwork(CNetworkVehicle* pNetworkVehicle, const char* source, int packetReason = -1,
+        bool preserveAttachmentIdentity = false);
     static void SendRemove(int vehicleid, uint8_t reason);
     // a packet handler held this record and its vehicle across a call that can destroy vehicles (the ped recovery's
     // CREATE_PLAYER and its clear-space, a warp, a synchronous model load): whether the record with this id is still that

@@ -83,6 +83,13 @@ PACKET_HANDLER(
         vehicle->m_pSyncer == pNetworkPlayer, vehicle->m_pCreator == pNetworkPlayer, pNetworkPlayer->m_bIsHost,
         vehicle->m_bHostMission, pHost != nullptr && pHost != pNetworkPlayer);
 
+    if (VehicleSeatPolicy::ShouldAcknowledgeRemove(decision))
+    {
+        // Reliable EVENT acknowledgement: absent local records still invalidate
+        // attachment specs. Rejected removals and host handbacks never send it.
+        GetPacketFactory().Send(*pVehicleRemove, pNetworkPlayer);
+    }
+
     switch (decision)
     {
         case VehicleSeatPolicy::eRemove::DROP_STALE:

@@ -1,5 +1,6 @@
 #include "network/packets/train.h"
 #include "network/packet_types.h"
+#include "network/entity_lifecycle.h"
 #include "stdafx.h"
 #include "network/packet_handler.h"
 #include "CHostManager.h"
@@ -73,6 +74,25 @@ PACKET_HANDLER(ePacketType::ENTITY_ATTACH, Packets::Train::EntityAttach* pEntity
 
             default:
                 break;
+        }
+    }
+    // An attachment names live entities: its target vehicle, and a ped or vehicle subject, must exist and must not be
+    // newer than the packet (EntityLifecycle::IsFromBeforeCreation, the sender's stamp before the relay restamps it).
+    // Detaches always pass: they only clear.
+    if (bAllowed && pEntityAttach->bAttached)
+    {
+        const uint32_t stamp = pEntityAttach->serverTime;
+        CNetworkVehicle* pTarget = CNetworkVehicleManager::GetVehicle(pEntityAttach->targetVehicleId);
+        bAllowed = pTarget != nullptr && !EntityLifecycle::IsFromBeforeCreation(stamp, pTarget->m_nCreatedAt);
+        if (bAllowed && pEntityAttach->entityKind == Packets::Train::eAttachEntityKind::PED)
+        {
+            CNetworkPed* pPed = CNetworkPedManager::GetPed(pEntityAttach->entityId);
+            bAllowed = pPed != nullptr && !EntityLifecycle::IsFromBeforeCreation(stamp, pPed->m_nCreatedAt);
+        }
+        else if (bAllowed && pEntityAttach->entityKind == Packets::Train::eAttachEntityKind::VEHICLE)
+        {
+            CNetworkVehicle* pVeh = CNetworkVehicleManager::GetVehicle(pEntityAttach->entityId);
+            bAllowed = pVeh != nullptr && !EntityLifecycle::IsFromBeforeCreation(stamp, pVeh->m_nCreatedAt);
         }
     }
     if (!bAllowed)

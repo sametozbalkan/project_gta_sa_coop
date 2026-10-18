@@ -173,6 +173,124 @@ void ImmediateStateTriggersAndConfigMatching()
     CHECK(TrainSyncPolicy::ComputeLayoutHash(alteredCounts, trackLengths, configs) != h1);
 }
 
+void IncarnationsAndCompleteCarriageState()
+{
+    using namespace TrainSyncPolicy;
+    // Reused trainId: an old, apparently newer sequence must not poison the new window.
+    CHECK(!AcceptTrainState(100, 101, true, 110, 0, true));
+    CHECK(AcceptTrainState(101, 101, true, 1, 0, true));
+    CHECK(!MatchesIncarnation(100, 101, true)); // delayed REMOVE / CARRIAGES / station request
+    CHECK(!MatchesIncarnation(101, 101, false));
+    CHECK(MatchesIncarnation(101, 101, true));
+    CHECK(!AcceptDescriptor(100, 101, true, 0));
+    CHECK(AcceptDescriptor(101, 101, true, 0)); // current live resnapshot
+    CHECK(!AcceptDescriptor(101, 101, false, 0)); // tombstone after REMOVE
+    CHECK(AcceptDescriptor(102, 101, false, 0));
+    CHECK(AcceptRestartFence(0, 0)); // first session snapshot, before a native reset
+    CHECK(AcceptRestartFence(102, 0));
+    CHECK(AcceptRestartFence(102, 102)); // another page/current resnapshot
+    CHECK(!AcceptRestartFence(0, 102));
+    CHECK(!AcceptRestartFence(101, 102));
+    CHECK(!AcceptDescriptor(101, 101, true, 102)); // before restart fence
+    CHECK(!AcceptTrainState(101, 103, true, 120, 0, true));
+    CHECK(AcceptDescriptor(103, 101, false, 102));
+    CHECK(IsIncarnationNewer(1, 0xFFFFFFFFu));
+    CHECK(!IsIncarnationNewer(0xFFFFFFFFu, 1));
+    CHECK(!IsIncarnationNewer(0, 0));
+
+    struct Properties { uint8_t doorLock; uint16_t health; bool bWrecked; };
+    const Properties damaged{2, 431, false};
+    const Properties wrecked{4, 0, true};
+    Properties initial{0, 1000, false};
+    CopyCarriageProperties(damaged, initial);
+    CHECK(initial.doorLock == 2 && initial.health == 431 && !initial.bWrecked);
+    CopyCarriageProperties(wrecked, initial);
+    CHECK(initial.doorLock == 4 && initial.health == 0 && initial.bWrecked);
+}
+
+void SurvivingStockSubchains()
+{
+    using namespace TrainSyncPolicy;
+    uint32_t configs[16][16]{};
+    const uint32_t freight[] = {537, 569, 569, 590};
+    const uint32_t streak[] = {538, 570, 570};
+    for (int i = 0; i < 4; ++i) configs[10][i] = freight[i];
+    for (int i = 0; i < 3; ++i) configs[11][i] = streak[i];
+    // Every possible contiguous component after engine, middle, or tail deletion.
+    // Model matching is independent of direction; native geometry still needs gameplay acceptance.
+    for (const int cfg : {10, 11})
+    {
+        const int n = cfg == 10 ? 4 : 3;
+        for (int first = 0; first < n; ++first)
+            for (int count = 1; count <= n - first; ++count)
+            {
+                uint16_t models[8]{};
+                for (int i = 0; i < count; ++i) models[i] = static_cast<uint16_t>(configs[cfg][first + i]);
+                const auto result = MatchSubchainConfiguration(models, count, configs);
+                CHECK(result.config == cfg);
+                CHECK(ValidateConfigurationSubchain(models, count, result.config, result.offset, configs));
+                CHECK(result.stockCount == n);
+                if (first > 0) CHECK(result.offset > 0); // wagon-only head must retain non-front semantics
+            }
+    }
+    // Production placement uses the factory's signed length in either direction, including track wrap.
+    CHECK(Near(FollowingCarriageDistance(10.0f, -20.0f, 1000.0f), 990.0f));
+    CHECK(Near(FollowingCarriageDistance(990.0f, 20.0f, 1000.0f), 10.0f));
+    CHECK(Near(FollowingCarriageDistance(-10.0f, -20.0f, 1000.0f), 970.0f));
+    CHECK(Near(FollowingCarriageDistance(-10.0f, 20.0f, 1000.0f), 10.0f));
+    // A valid retained suffix of a 16-car stock chain still needs the complete stock allocation/load.
+    for (int i = 0; i < 16; ++i) configs[15][i] = i == 0 ? 537 : 569;
+    const uint16_t longSuffix[8] = {569, 569, 569, 569, 569, 569, 569, 569};
+    const auto longPlan = MatchSubchainConfiguration(longSuffix, 8, configs);
+    CHECK(longPlan.config == 15 && longPlan.stockCount == 16 && longPlan.offset == 1);
+    CHECK(ValidateConfigurationSubchain(longSuffix, 8, 15, 8, configs));
+    CHECK(!ValidateConfigurationSubchain(longSuffix, 8, 15, 9, configs));
+    // A middle deletion leaves both engine/prefix and tail/rider identities available. Slot ownership
+    // may change; identity/model/generation is the production criterion for reusing the native object.
+    CHECK(CanRetainCarriage(42, 537, 42, 537, true));
+    CHECK(CanRetainCarriage(44, 569, 44, 569, true)); // secondary component claims a parked native wagon
+    CHECK(!CanRetainCarriage(44, 569, 43, 569, true)); // removed middle identity cannot replace it
+    CHECK(!CanRetainCarriage(44, 569, 44, 569, false)); // reused native pool slot
+    CHECK(!CanRetainCarriage(44, 570, 44, 569, true));
+    CHECK(!CanRetainCarriage(-1, 569, -1, 569, true));
+    const uint16_t impossible[] = {538, 569};
+    CHECK(MatchSubchainConfiguration(impossible, 2, configs).config == -1);
+    const uint16_t suffix[] = {569, 590};
+    CHECK(ValidateConfigurationSubchain(suffix, 2, 10, 2, configs));
+    CHECK(!ValidateConfigurationSubchain(suffix, 2, 10, 3, configs));
+    CHECK(!ValidateConfigurationSubchain(suffix, 2, 16, 0, configs));
+    CHECK(!ValidateConfigurationSubchain(suffix, 9, 10, 0, configs));
+}
+
+void SplitDescriptorOrderAndHandoverExpiry()
+{
+    using namespace TrainSyncPolicy;
+    // Slot 5 re-described as [c0] while the pool scan put [c2,c3] into the lower free slot 2: slot 5's SPAWN goes
+    // first, so followers park c2/c3 before slot 2's descriptor claims them. Otherwise slot order is kept.
+    bool redescribed[8]{};
+    int order[8]{};
+    redescribed[5] = true;
+    OrderHostSpawnSlots(redescribed, 8, order);
+    const int expected[8] = {5, 0, 1, 2, 3, 4, 6, 7};
+    for (int i = 0; i < 8; ++i) CHECK(order[i] == expected[i]);
+    redescribed[1] = true;
+    OrderHostSpawnSlots(redescribed, 8, order);
+    const int expectedTwo[8] = {1, 5, 0, 2, 3, 4, 6, 7};
+    for (int i = 0; i < 8; ++i) CHECK(order[i] == expectedTwo[i]);
+    bool none[3]{};
+    int plain[3]{};
+    OrderHostSpawnSlots(none, 3, plain);
+    CHECK(plain[0] == 0 && plain[1] == 1 && plain[2] == 2);
+
+    // Unclaimed handovers expire after HANDOVER_TIMEOUT_MS, also across the 32-bit tick wrap.
+    CHECK(!IsHandoverExpired(1000, 1000));
+    CHECK(!IsHandoverExpired(1000, 1000 + HANDOVER_TIMEOUT_MS - 1));
+    CHECK(IsHandoverExpired(1000, 1000 + HANDOVER_TIMEOUT_MS));
+    uint32_t parkedBeforeWrap = 0xFFFFFF00u;
+    CHECK(!IsHandoverExpired(parkedBeforeWrap, 0x00000100u));
+    CHECK(IsHandoverExpired(parkedBeforeWrap, parkedBeforeWrap + HANDOVER_TIMEOUT_MS));
+}
+
 void AttachmentMirrorPolicy()
 {
     using TrainSyncPolicy::SAttachmentSpec;
@@ -240,6 +358,9 @@ int main()
     StepDisplaySnapAndHold();
     SequenceAndQuantization();
     ImmediateStateTriggersAndConfigMatching();
+    IncarnationsAndCompleteCarriageState();
+    SurvivingStockSubchains();
+    SplitDescriptorOrderAndHandoverExpiry();
     AttachmentMirrorPolicy();
     if (failures != 0)
     {

@@ -1,6 +1,7 @@
 # Test plan
 
-For **0.1.2-alpha**, the current release. Anyone can test: you need two or more PCs, each with GTA: San Andreas from
+For **0.1.3-alpha**, the next release (not published yet; the latest release is 0.1.2-alpha, which doesn't contain
+the 0.1.3 changes). Use the same build on every PC. Anyone can test: you need two or more PCs, each with GTA: San Andreas from
 Steam, and Steam accounts that are friends with each other. Tick a box only after you have seen it on at least two
 PCs. Nothing in this plan is confirmed in game yet unless the results table says so; anything else you notice is
 welcome too (see [Reporting](#reporting)).
@@ -16,7 +17,7 @@ the first player to connect. Every other player is a **guest**.
    (`Get-FileHash <zip>` in PowerShell) with it, extract the whole zip and run `Install.bat` (`Kur.bat` in 0.1.2 and
    earlier). The first install copies the Steam game to `C:\Games\GTASA_Coop` and converts that copy to 1.0 US; on an
    existing install it only refreshes the mod files.
-2. **Same version.** The bottom-left corner of the game shows the version: `0.1.2-alpha` for everyone. If the chat
+2. **Same version.** The bottom-left corner of the game shows the version: `0.1.3-alpha` for everyone. If the chat
    shows `Version mismatch`, don't start testing.
 3. **Host.** Start `CoopAndreas Server` in the game folder and, over the Internet, `1-Host.bat` in its `CoopTunnel`
    folder (`1-Host-ac.bat` in 0.1.2 and earlier); keep both windows open. So that you stay the host even when a guest
@@ -37,6 +38,17 @@ the first player to connect. Every other player is a **guest**.
 Session: date `____` · number of players `____` · package SHA-256 `____` · commit in `manifest.json` `____`.
 
 ## What changed
+
+### 0.1.3 (train review fixes; not released)
+
+- **Train snapshots:** initial creation and reconnects carry the current carriage health and wreck state.
+- **Train identity:** delayed packets from a deleted train cannot move a different train that reused its slot.
+- **Partial deletion:** surviving wagons remain mirrored when a script deletes only part of their train.
+- **Attachments:** a connected player who loads or starts over leaves their old attachment on the other screens;
+  departed identities and deleted attachment targets are invalidated without losing temporary copy recreation.
+- **Station skip:** the request packet uses a valid discriminator in both debug and release builds.
+- The network format differs from 0.1.2. Every client and the server must update together; the story scripts and
+  co-op save layout are unchanged. Software tests do not confirm the in-game checks below.
 
 ### 0.1.2 (fixes for the 0.1.1 test)
 
@@ -155,6 +167,34 @@ Session: date `____` · number of players `____` · package SHA-256 `____` · co
   Unity Station and rides it past Market Station (> 300 m from the host): the train doesn't vanish under the guest.
 - [ ] **Reconnecting while a train is nearby:** while a train stands or moves near the host, a guest disconnects and
   reconnects: the train appears on the guest's screen.
+- [ ] **Existing damage on reconnect:** damage a locomotive before a guest reconnects. Its existing damage and wreck
+  state must agree with the host, rather than returning as a healthy train. Packet tests separately check exact
+  health values, including damage below the change threshold.
+- [ ] **Delayed state and reused slots:** with delayed network traffic, remove a train and create another in the same
+  slot in a controlled test session. Old state must not move the replacement or prevent its valid updates.
+- [ ] **Station skip in debug:** repeat the passenger skip check with a debug client and debug server. Neither process
+  reports a serialization assertion.
+
+### A6. Attachment lifecycle and surviving wagons
+
+These checks require a scripted attachment or a partial train deletion. Run them when an approved mission reaches
+the situation in story order, or in a separate controlled engine test session. Do not skip ahead in the story save.
+Until the situation is available, leave the corresponding result pending.
+
+- [ ] **Attached guest starts over:** while a guest is attached to a host-owned vehicle that remains alive, the guest
+  starts a New Game or loads a co-op save while connected. On the other screens the guest leaves the old attachment
+  and resumes moving at the new location.
+- [ ] **Reconnect while an observer is away:** with three players, an observer uses Alt+Tab while an attached guest
+  disconnects and reconnects. On return the observer sees the new guest at their actual location, without the old
+  attachment. Repeat with NPC and vehicle identities in a controlled session.
+- [ ] **NPC resnapshot after restart:** restart a guest with delayed traffic while host-owned NPCs are attached to
+  vehicles. The NPCs return with their attachments after their spawn snapshots arrive.
+- [ ] **Temporary copy loss:** recreate a local copy of an attached NPC or its target vehicle without removing the
+  network identity. Its attachment returns. A definitively removed target must not attach the subject to an unrelated
+  vehicle that later reuses its ID.
+- [ ] **Engine or middle wagon removed:** delete one carriage in a controlled session, leaving the other wagons alive
+  on the host. All surviving components remain visible at the host's positions on guests. Check both travel
+  directions and a guest riding a surviving wagon. At #16, check the normal engine deletion during cleanup as well.
 
 ## B. In missions
 
@@ -484,6 +524,7 @@ often Steam names, so replace them with "host", "guest 1" and so on before you p
 | A3 Restarting during a session | | |
 | A4 Story markers, side activities | | |
 | A5 Trains | | |
+| A6 Attachments, surviving wagons | | |
 | B1 #3 barber | | |
 | B2 #3, #4 taken out of the car | | |
 | B3 #4 quitting from the menu | | |

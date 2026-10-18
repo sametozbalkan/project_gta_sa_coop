@@ -89,6 +89,29 @@ SRoutineCounts ms_routine;
 unsigned ms_nRestartRemovals = 0;  // during the current CWorld::ClearForRestart
 unsigned ms_nRestartCopiesLost = 0;
 
+// --coopdiag: the server sends an accepted VEHICLE_REMOVE back to its sender too (VehicleSeatPolicy::ShouldAcknowledgeRemove),
+// whose record is gone by then: the ids this game asked to remove lately, so that echo isn't logged as a ghost
+constexpr uint32_t REMOVAL_ACK_WINDOW_MS = 30000;
+// (per id, so a restart's burst of REMOVE_SYNCER_RESTARTED fits)
+struct SSentRemoval
+{
+    bool bSent = false;
+    uint32_t sentAt = 0;
+};
+SSentRemoval ms_aSentRemovals[Config::MAX_SERVER_VEHICLES];
+
+bool TakeSentRemoval(int vehicleid)
+{
+    if (vehicleid < 0 || vehicleid >= Config::MAX_SERVER_VEHICLES)
+    {
+        return false;
+    }
+    SSentRemoval& entry = ms_aSentRemovals[vehicleid];
+    const bool bRecent = entry.bSent && static_cast<uint32_t>(GetTickCount() - entry.sentAt) < REMOVAL_ACK_WINDOW_MS;
+    entry = SSentRemoval{};
+    return bRecent;
+}
+
 // private build (vehicle sync protocol review 2): the population's own cars, random traffic and car generators' parked cars
 // (CREATED_BY_PARKED, which the population removes as it does random ones)
 bool IsPopulationCar(uint8_t createdBy)
@@ -831,6 +854,7 @@ void CNetworkVehicleManager::OnAssignment(int vehicleid, uint16_t modelid, bool 
 
 void CNetworkVehicleManager::OnRemovePacket(int vehicleid, uint8_t reason)
 {
+    CTrainSync::OnNetworkVehicleRemoved(vehicleid);
     if (ms_pendingAssignments.Drop(vehicleid))
     {
         LogEvent("assignment-dropped", vehicleid, "reason=remove-packet");
@@ -845,13 +869,27 @@ void CNetworkVehicleManager::OnRemovePacket(int vehicleid, uint8_t reason)
     }
     else
     {
-        // nothing here with that id: a removal handled before the spawn of its vehicle would leave a ghost
-        LogFrequentEvent("remove-unknown", vehicleid, "reason=%s", VehicleSync::RemoveReasonName(reason));
+        // a carriage parked between two train descriptors may have no record (any more)
+        CTrainSync::OnCarriageRemovePacket(vehicleid, nullptr);
+        if (TakeSentRemoval(vehicleid))
+        {
+            LogFrequentEvent("remove-acked", vehicleid, "reason=%s", VehicleSync::RemoveReasonName(reason));
+        }
+        else
+        {
+            // nothing here with that id: a removal handled before the spawn of its vehicle would leave a ghost
+            LogFrequentEvent("remove-unknown", vehicleid, "reason=%s", VehicleSync::RemoveReasonName(reason));
+        }
     }
 }
 
-void CNetworkVehicleManager::RemoveForNetwork(CNetworkVehicle* pNetworkVehicle, const char* source, int packetReason)
+void CNetworkVehicleManager::RemoveForNetwork(CNetworkVehicle* pNetworkVehicle, const char* source, int packetReason,
+    bool preserveAttachmentIdentity)
 {
+    if (!preserveAttachmentIdentity)
+    {
+        CTrainSync::OnNetworkVehicleRemoved(pNetworkVehicle->m_nVehicleId);
+    }
     // let go of the vehicle first: the ~CVehicle hook then finds no record for it
     CVehicle* pVehicle = pNetworkVehicle->GetLiveVehicle();
     pNetworkVehicle->m_pVehicle = nullptr;
@@ -900,6 +938,7 @@ void CNetworkVehicleManager::SendRemove(int vehicleid, uint8_t reason)
     packet.reason = reason;
     GetPacketFactory().Send(packet);
     ms_diag.removalsSent++;
+    ms_aSentRemovals[vehicleid] = {true, GetTickCount()};
 }
 
 bool CNetworkVehicleManager::StillHolds(int vehicleid, const CNetworkVehicle* pNetworkVehicle, const CVehicle* pVehicle)

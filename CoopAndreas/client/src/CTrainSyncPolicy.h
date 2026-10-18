@@ -31,6 +31,13 @@ inline float WrapRailDistance(float distance, float trackLength)
     return wrapped;
 }
 
+// Native CTrain::m_fLength is signed by the factory for the train's direction. Never derive it
+// from an unsigned model length when reconnecting a retained component.
+inline float FollowingCarriageDistance(float previousDistance, float signedLength, float trackLength)
+{
+    return WrapRailDistance(previousDistance + signedLength, trackLength);
+}
+
 // Shortest signed delta (to - from) on a closed loop of length trackLength in [-trackLength/2, +trackLength/2)
 inline float ShortestRailDelta(float fromDistance, float toDistance, float trackLength)
 {
@@ -125,6 +132,115 @@ inline bool IsSequenceNewer(uint8_t incomingSeq, uint8_t lastSeq, bool bHasLast)
     }
     const uint8_t diff = static_cast<uint8_t>(incomingSeq - lastSeq);
     return diff != 0 && diff < 128;
+}
+
+// Incarnations are host-local serial numbers, retained across native game restarts. A state/event must
+// match the descriptor exactly; it must never advance a new train's sequence window.
+inline bool IsIncarnationNewer(uint32_t incoming, uint32_t previous)
+{
+    return incoming != 0 && (previous == 0 || (incoming != previous && incoming - previous < 0x80000000u));
+}
+
+inline bool AcceptRestartFence(uint32_t incoming, uint32_t current)
+{
+    return incoming == current || IsIncarnationNewer(incoming, current);
+}
+
+inline bool AcceptDescriptor(uint32_t incoming, uint32_t highWater, bool active, uint32_t restartFence)
+{
+    return IsIncarnationNewer(incoming, restartFence) &&
+           (IsIncarnationNewer(incoming, highWater) || (active && incoming == highWater));
+}
+
+inline bool AcceptTrainState(uint32_t incoming, uint32_t current, bool active, uint8_t sequence,
+    uint8_t previousSequence, bool hasState)
+{
+    return active && incoming != 0 && incoming == current && IsSequenceNewer(sequence, previousSequence, hasState);
+}
+
+inline bool MatchesIncarnation(uint32_t incoming, uint32_t current, bool active)
+{
+    return active && incoming != 0 && incoming == current;
+}
+
+struct SSubchainConfiguration
+{
+    int config = -1;
+    int offset = 0;
+    int stockCount = 0;
+};
+
+inline bool ValidateConfigurationSubchain(const uint16_t* models, int count, int config, int offset,
+    const uint32_t configs[16][16])
+{
+    if (!models || count < 1 || count > 8 || config < 0 || config >= 16 || offset < 0 || offset + count > 16)
+        return false;
+    for (int i = 0; i < offset + count; ++i)
+        if (!configs[config][i] || (i >= offset && configs[config][i] != models[i - offset]))
+            return false;
+    return true;
+}
+
+// A deleted engine or middle carriage leaves independent, contiguous portions of a stock train.
+// Prefer a complete configuration, then a stock prefix, then any interior/suffix portion.
+inline SSubchainConfiguration MatchSubchainConfiguration(const uint16_t* models, int count,
+    const uint32_t configs[16][16])
+{
+    SSubchainConfiguration best{};
+    int bestRank = 3;
+    for (int cfg = 0; cfg < 16; ++cfg)
+    {
+        int stockCount = 0;
+        while (stockCount < 16 && configs[cfg][stockCount]) ++stockCount;
+        for (int offset = 0; offset + count <= stockCount; ++offset)
+        {
+            if (!ValidateConfigurationSubchain(models, count, cfg, offset, configs)) continue;
+            const int rank = offset == 0 ? (count == stockCount ? 0 : 1) : 2;
+            if (rank < bestRank)
+            {
+                best = {cfg, offset, stockCount};
+                bestRank = rank;
+            }
+        }
+    }
+    return best;
+}
+
+// The same native carriage may move between train slots after a middle deletion. Network identity,
+// model and the captured pool generation must all agree before retaining its binding/occupants.
+inline bool CanRetainCarriage(int expectedId, uint16_t expectedModel, int candidateId,
+    uint16_t candidateModel, bool poolGenerationMatches)
+{
+    return expectedId >= 0 && expectedId == candidateId && expectedModel == candidateModel && poolGenerationMatches;
+}
+
+// A parked carriage waits for the descriptor of the other portion of a split, which the host sends in the same
+// frame as the re-described one. Unclaimed after this long, it would only stand frozen on the track.
+constexpr uint32_t HANDOVER_TIMEOUT_MS = 4000;
+
+inline bool IsHandoverExpired(uint32_t parkedAtMs, uint32_t nowMs)
+{
+    return nowMs - parkedAtMs >= HANDOVER_TIMEOUT_MS;
+}
+
+// Host SPAWN order within a frame: the slots re-described after a split go first, then the others in slot order, so
+// a follower parks the old copy's other wagons before the descriptor of the new portion looks for them.
+inline void OrderHostSpawnSlots(const bool* redescribed, int count, int* outOrder)
+{
+    int next = 0;
+    for (int pass = 0; pass < 2; ++pass)
+        for (int slot = 0; slot < count; ++slot)
+            if (redescribed[slot] == (pass == 0)) outOrder[next++] = slot;
+}
+
+// Shared by SPAWN/SNAPSHOT initialization; retaining a damaged/wrecked host's complete initial state
+// prevents a late join from depending on a future property-change event.
+template <typename Carriage, typename State>
+inline void CopyCarriageProperties(const Carriage& source, State& target)
+{
+    target.doorLock = source.doorLock;
+    target.health = source.health;
+    target.bWrecked = source.bWrecked;
 }
 
 // Quantize/dequantize speed (m_fTrainSpeed in metres per timeStep)

@@ -1,6 +1,7 @@
 #include "network/packets/peds.h"
 #include "network/packet_types.h"
 #include "stdafx.h"
+#include "CTrainSync.h"
 #include <CCarEnterExit.h>
 #include <CTaskSimpleCarSetPedInAsPassenger.h>
 
@@ -49,6 +50,7 @@ PACKET_HANDLER(ePacketType::PED_REMOVE, Packets::Peds::PedRemove* pPedRemove)
     CChat::AddMessage("PED REMOVE %d", pPedRemove->pedid);
 #endif
 
+    CTrainSync::OnNetworkPedRemoved(pPedRemove->pedid);
     CNetworkPed* pNetworkPed = CNetworkPedManager::GetPed(pPedRemove->pedid);
     if (pNetworkPed)
     {

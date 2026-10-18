@@ -23,7 +23,10 @@ namespace EntityLifecycle
 // an entity still come after them: it sends them only once it has handled the server-stamped spawn or confirmation, which
 // it does no earlier than its own clock reaches that stamp plus INTERP_BUFFER_DELAY_MS. The per-frame updates (idle,
 // driver, passenger, on foot, shots), VEHICLE_ENTER/EXIT and the radio keep their sender's clock: they are that player's
-// own stream, ordered against its keys and positions.
+// own stream, ordered against its keys and positions. ENTITY_ATTACH takes the server's clock too: an attachment names
+// network ids, so it must line up with their removals (a removed target or subject drops the attachment, and a late
+// attachment must not come after it) and with the detach fence the server sends for a departing player before his id
+// can be handed out again (CNetwork::HandlePlayerDisconnected; equal stamps keep the server's send order).
 inline bool UsesServerTime(ePacketType type)
 {
     switch (type)
@@ -36,6 +39,7 @@ inline bool UsesServerTime(ePacketType type)
         case ePacketType::SET_VEHICLE_CREATED_BY:
         case ePacketType::PED_SPAWN:
         case ePacketType::PED_REMOVE:
+        case ePacketType::ENTITY_ATTACH:
             return true;
         default:
             return false;

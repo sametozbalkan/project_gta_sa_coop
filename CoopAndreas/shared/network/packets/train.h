@@ -67,6 +67,8 @@ struct STrainCarriageEntry
     int vehicleid = 0;
     uint16_t modelid = 537;
     uint8_t doorLock = 0;
+    uint16_t health = 1000;
+    bool bWrecked = false;
 
     template <typename Stream>
     bool Serialize(Stream& stream)
@@ -74,6 +76,8 @@ struct STrainCarriageEntry
         serialize_int(stream, vehicleid, 0, Config::MAX_SERVER_VEHICLES - 1);
         serialize_uint16(stream, modelid);
         serialize_int(stream, doorLock, 0, 8);
+        serialize_uint16(stream, health);
+        serialize_bool(stream, bWrecked);
         return true;
     }
 };
@@ -81,8 +85,10 @@ struct STrainCarriageEntry
 struct STrainSpawnPayload
 {
     uint8_t trainId = 0;
+    uint32_t incarnation = 0;
     uint8_t trackId = 0;
     uint8_t configIndex = 0;
+    uint8_t configurationOffset = 0;
     bool bClockwise = false;
     uint16_t nodeIndex = 0;
     uint8_t carriageCount = 1;
@@ -98,8 +104,10 @@ struct STrainSpawnPayload
             return false;
         }
         serialize_int(stream, trainId, 0, MAX_TRAINS - 1);
+        serialize_uint32(stream, incarnation);
         serialize_int(stream, trackId, 0, 3);
         serialize_int(stream, configIndex, 0, 15);
+        serialize_int(stream, configurationOffset, 0, 15);
         serialize_bool(stream, bClockwise);
         serialize_uint16(stream, nodeIndex);
         serialize_int(stream, carriageCount, 1, MAX_TRAIN_CARRIAGES);
@@ -136,6 +144,7 @@ class TrainState : public Packet
 public:
     SenderPlayerId playerid{};
     uint8_t trainId = 0;
+    uint32_t incarnation = 0;
     STrainStatePayload state{};
 
 private:
@@ -144,6 +153,7 @@ private:
     {
         serialize_object(stream, playerid);
         serialize_int(stream, trainId, 0, MAX_TRAINS - 1);
+        serialize_uint32(stream, incarnation);
         serialize_object(stream, state);
         return true;
     }
@@ -170,8 +180,9 @@ public:
     // SPAWN
     STrainSpawnPayload spawn{};
 
-    // REMOVE / CARRIAGES / REQUEST
+    // REMOVE / CARRIAGES / REQUEST; SNAPSHOT uses incarnation as the restart fence.
     uint8_t trainId = 0;
+    uint32_t incarnation = 0;
 
     // CARRIAGES
     uint8_t carriageCount = 1;
@@ -209,6 +220,7 @@ private:
 
             case eTrainEventKind::REMOVE:
                 serialize_int(stream, trainId, 0, MAX_TRAINS - 1);
+                serialize_uint32(stream, incarnation);
                 break;
 
             case eTrainEventKind::CARRIAGES:
@@ -217,6 +229,7 @@ private:
                     return false;
                 }
                 serialize_int(stream, trainId, 0, MAX_TRAINS - 1);
+                serialize_uint32(stream, incarnation);
                 serialize_int(stream, carriageCount, 1, MAX_TRAIN_CARRIAGES);
                 for (int i = 0; i < carriageCount; i++)
                 {
@@ -229,6 +242,7 @@ private:
                 {
                     return false;
                 }
+                serialize_uint32(stream, incarnation);
                 serialize_bool(stream, bReset);
                 serialize_int(stream, snapshotCount, 0, MAX_SNAPSHOT_TRAINS);
                 for (int i = 0; i < snapshotCount; i++)
@@ -243,8 +257,19 @@ private:
             case eTrainEventKind::REQUEST:
             {
                 serialize_int(stream, trainId, 0, MAX_TRAINS - 1);
+                serialize_uint32(stream, incarnation);
                 uint8_t reqRaw = static_cast<uint8_t>(requestKind);
-                serialize_int(stream, reqRaw, 0, static_cast<int>(eTrainRequestKind::REQUEST_MAX));
+                // A single-value integer range is invalid for serialize_int. Keep an explicit
+                // discriminator on the wire and reject unknown requests in every stream mode.
+                if (Stream::IsWriting && requestKind != eTrainRequestKind::SKIP_STATION)
+                {
+                    return false;
+                }
+                serialize_uint8(stream, reqRaw);
+                if (reqRaw != static_cast<uint8_t>(eTrainRequestKind::SKIP_STATION))
+                {
+                    return false;
+                }
                 if (Stream::IsReading)
                 {
                     requestKind = static_cast<eTrainRequestKind>(reqRaw);

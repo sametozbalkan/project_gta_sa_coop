@@ -401,6 +401,8 @@ const uintptr_t worldClearForRestartCallAddresses[] = {0x53C5CB};  // one site (
 
 static void __cdecl CWorld__ClearForRestart_Hook()
 {
+    // Send while the previous player/target identities still exist. The post-clear reset is idempotent.
+    CTrainSync::DetachLocalPlayerForRestart();
     CNetworkVehicleManager::SetRestartClear(true);
     plugin::Call<WORLD_CLEAR_FOR_RESTART>();
     CNetworkVehicleManager::SetRestartClear(false);

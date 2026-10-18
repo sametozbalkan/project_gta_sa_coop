@@ -25,6 +25,12 @@ public:
     static void OnGameRestartCleared();
     static void ClearForRestart();
 
+    // Definitive network identity removal, independent of local engine copy destruction.
+    static void OnNetworkPlayerRemoved(int playerId);
+    static void OnNetworkPedRemoved(int pedId);
+    static void OnNetworkVehicleRemoved(int vehicleId);
+    static void DetachLocalPlayerForRestart();
+
     // Vehicle sync lifecycle callbacks
     static void OnVehicleDestroyed(CVehicle* pVehicle);
     static void OnCarriageRemovePacket(int vehicleid, CVehicle* pVehicle);

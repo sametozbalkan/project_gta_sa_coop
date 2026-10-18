@@ -159,7 +159,7 @@ enum class eRemove
 {
     DROP_STALE,        // stamped before the vehicle was created: about an older vehicle with this id
                        // (EntityLifecycle::IsFromBeforeCreation), nothing happens
-    REMOVE,            // removed on the server and relayed to everyone else
+    REMOVE,            // removed on the server and relayed to everyone, including the requester
     GIVE_TO_HOST,      // REMOVE_SYNCER_RESTARTED of a car of the host's scripts while the host is another player: the host
                        // syncs it now, the restarting game gets it back as a copy (VEHICLE_SPAWN)
     REJECT_AND_RESEND  // not that player's to remove: the vehicle stays, and since every game lets go of its record before
@@ -185,6 +185,13 @@ inline eRemove DecideRemove(uint8_t reason, bool bStale, bool bSenderIsSyncer, b
         return eRemove::GIVE_TO_HOST;
     }
     return eRemove::REMOVE;
+}
+
+// The requester also needs authoritative identity invalidation after dropping its
+// local copy. A rejection or host handback preserves that same network identity.
+inline bool ShouldAcknowledgeRemove(eRemove decision)
+{
+    return decision == eRemove::REMOVE;
 }
 
 // Whether a vehicle belongs to the host's scripts: MISSION_VEHICLE from the host's game, as its VEHICLE_SPAWN or its

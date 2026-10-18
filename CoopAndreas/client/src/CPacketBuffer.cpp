@@ -5,6 +5,7 @@
 #include "stdafx.h"
 #include "CPacketBuffer.h"
 #include "CServerTimePolicy.h"
+#include "CPacketOrderingPolicy.h"
 
 void CPacketBuffer::Receive(Packet* pPacket)
 {
@@ -15,16 +16,7 @@ void CPacketBuffer::Receive(Packet* pPacket)
         return;
     }
 
-    if (m_packets.empty() || pPacket->serverTime >= m_packets.back()->serverTime)
-    {
-        m_packets.push_back(pPacket);
-        return;
-    }
-
-    auto it = std::upper_bound(m_packets.begin(), m_packets.end(), pPacket->serverTime,
-        [](server_time_t time, const Packet* snapshot) { return time < snapshot->serverTime; });
-
-    m_packets.insert(it, pPacket);
+    PacketOrderingPolicy::InsertByServerTime(m_packets, pPacket);
 }
 
 // private build (vehicle sync protocol): packets stamped far ahead of this game's clock came from a game whose clock hadn't
